@@ -2,12 +2,15 @@
 
 Scripts that connect any firstmate home to HarborDeck without changing firstmate. They read firstmate's own state and CLIs and write through the `harbordeck` CLI, so everything they install is schema-checked.
 
+**To set up a home, follow [SETUP.md](SETUP.md)**: `install.sh` does everything below, including a launchd agent and the firstmate-side instructions.
+
 | Script | Writes | From |
 |---|---|---|
 | `hd-fleet.sh` | `fleet.json` | `state/*.meta` + `bin/fm-crew-state.sh <id>` per endpoint |
 | `hd-quota.sh` | `quota.json` | `quota-axi --json` (cached reads) |
 | `hd-rules.sh <prefs.md>` | `rules.json` | a markdown preferences file such as `data/captain.md` |
 | `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` (`--follow`: live, on every append) |
+| `install.sh` | CLI links, app settings, launchd agent, firstmate instructions | see [SETUP.md](SETUP.md) |
 | `hd-live.sh` | all of the above, continuously | runs the bridge in `--follow` mode and refreshes fleet (10 s), quota (120 s) and rules (on file change) |
 
 Requirements: bash, `jq`, the `harbordeck` CLI on `PATH` (or `HD=/path/to/harbordeck.js`), and `quota-axi` for the quota script.
@@ -51,13 +54,14 @@ Use the plain CLI (see `skill/SKILL.md`). Two conventions make the bridge work:
 | `file` | todo: inbox note "done"; answer: nothing to route |
 
 - When a keyed answer names an item that is not a captain-held task (`fm-captain-hold.sh` reports `skipped:`), the bridge sends an inbox note instead, so no answer is lost.
+- `--echo` (or `HD_BRIDGE_MODE=echo`, which `hd-live.sh` and `install.sh --mode echo` pass through) logs each firstmate command with a timestamp instead of running it. It still asks the read-only `fm-captain-hold.sh open` predicate, so it shows exactly what live mode would do. HarborDeck-side effects still happen, and echo mode keeps its own cursor (`firstmate-bridge.echo`). `--dry-run` is a one-shot preview that changes nothing.
 - `--request-id` keys make inbox notes idempotent: replaying a line never creates a second note.
 - `decide`, `approve`, `reject` and `file` mark the item resolved on the desk.
 - Every note that expects an answer ends with the exact command to reply, e.g. `Reply: harbordeck reply <id> "<text>"`.
 
 ## Fleet mapping
 
-`fm-crew-state.sh` runs with `FM_CREW_STATE_NO_FORGE=1` (no network). Its states map to the desk's crew states: `working` → working; `parked`, `paused`, `blocked` → waiting; `done` → done; anything else → idle. Endpoints with `kind=secondmate` become counter staff (`firstmates[]`); all others are crew. A crew whose id matches an item id gets `item` set. `HD_MATE_ID`/`HD_MATE_LABEL` name the main home (default `mate-main`, `First Mate`).
+`fm-crew-state.sh` runs with `FM_CREW_STATE_NO_FORGE=1` (no network); each crew's `task_title` comes from `bin/fm-tasks-axi.sh show <task> --full`. Its states map to the desk's crew states: `working` → working; `parked`, `paused`, `blocked` → waiting; `done` → done; anything else → idle. Endpoints with `kind=secondmate` become counter staff (`firstmates[]`); all others are crew. A crew whose id matches an item id gets `item` set. `HD_MATE_ID`/`HD_MATE_LABEL` name the main home (default `mate-main`, `First Mate`).
 
 ## Rules mapping
 

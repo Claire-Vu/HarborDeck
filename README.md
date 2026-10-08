@@ -12,7 +12,7 @@ The app is a live view, not an import: it watches the data directory, so new ite
 | Data contract + JSON Schemas | [`docs/CONTRACT.md`](docs/CONTRACT.md), [`schema/`](schema) | anyone writing or reading the files |
 | Agent CLI `harbordeck` / `hd` (+ MCP server) | [`cli/`](cli) | agents: write items cheaply, read answers |
 | Agent skill | [`skill/`](skill) | teaching any agent to use the desk |
-| firstmate adapter | [`adapters/firstmate`](adapters/firstmate) | a complete live integration example |
+| firstmate adapter | [`adapters/firstmate`](adapters/firstmate), setup in [`SETUP.md`](adapters/firstmate/SETUP.md) | a complete live integration: `install.sh` wires a firstmate home in one command |
 
 ## Install and run
 
