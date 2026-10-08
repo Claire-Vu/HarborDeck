@@ -42,8 +42,8 @@ harbordeck validate                                                   # ok: 1 fl
 Then open the app and stamp something. In echo mode the log shows the exact firstmate command, for example:
 
 ```
-2026-10-08T08:50:59Z would run: printf $'v2\tmerge\tMerge\tdone' | ~/firstmate/bin/fm-captain-hold.sh answers --source harbordeck
-2026-10-08T08:51:09Z would run: ~/firstmate/bin/fm-inbox.sh note --request-id hd-cc-dropship-research-ask-1791449464 -- HarborDeck ask on cc-dropship-research ...
+2026-10-08T08:50:59Z would run: printf $'ship-24\tmerge\tMerge\tdone' | ~/firstmate/bin/fm-captain-hold.sh answers --source harbordeck
+2026-10-08T08:51:09Z would run: ~/firstmate/bin/fm-inbox.sh note --request-id hd-db-research-ask-1791449464 -- HarborDeck ask on db-research ...
 ```
 
 ## Go live
