@@ -1,0 +1,3 @@
+schema/
+*.tgz
+node_modules/
