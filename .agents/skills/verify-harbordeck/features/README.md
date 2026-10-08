@@ -1,6 +1,6 @@
 # Harbor Deck verification map
 
-This directory is the maintained source for verifying Harbor Deck's user-facing behavior. Read this index before driving the app, then use the matching feature file as the recipe. `H` and `U` below are `.cursor/skills/verify-harbordeck/scripts/hdv` and `.../ui.mjs`, as in the skill.
+This directory is the maintained source for verifying Harbor Deck's user-facing behavior. Read this index before driving the app, then use the matching feature file as the recipe. `H` and `U` below are `.agents/skills/verify-harbordeck/scripts/hdv` and `.../ui.mjs`, as in the skill.
 
 ## Baseline preconditions
 

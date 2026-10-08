@@ -13,7 +13,7 @@ Harbor Deck has three surfaces, all tied together by one data directory (`docs/C
 
 Read [`features/README.md`](features/README.md) before choosing a recipe. The feature map is the maintained verification source; a proof that drives one convenient entry point is incomplete when the map lists others.
 
-All paths below are relative to the worktree root. `H=.cursor/skills/verify-harbordeck/scripts/hdv` and `U=.cursor/skills/verify-harbordeck/scripts/ui.mjs` are the two helpers.
+The skill lives in `.agents/skills/verify-harbordeck/`; `.claude/skills/verify-harbordeck` and `.cursor/skills/verify-harbordeck` are relative symlinks to it, so every harness finds the same copy. Edit only the `.agents` path. All paths below are relative to the worktree root. `H=.agents/skills/verify-harbordeck/scripts/hdv` and `U=.agents/skills/verify-harbordeck/scripts/ui.mjs` are the two helpers.
 
 ## Isolation rules
 
@@ -28,7 +28,7 @@ All paths below are relative to the worktree root. `H=.cursor/skills/verify-harb
 Once per worktree: `npm install` (if Electron reports `failed to install correctly`: `npm approve-scripts electron && npm rebuild electron`).
 
 ```bash
-H=.cursor/skills/verify-harbordeck/scripts/hdv
+H=.agents/skills/verify-harbordeck/scripts/hdv
 $H launch            # seeded synthetic data dir (17 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
 ```
@@ -49,7 +49,7 @@ Every line must be `ok`: app pid alive, the pid runs this worktree's Electron, t
 
 ```bash
 eval "$($H env)"     # HARBORDECK_HOME, CHROME_DEVTOOLS_AXI_BROWSER_URL/SESSION, HDV_HOME, HDV_RUN_ID for this instance
-U=.cursor/skills/verify-harbordeck/scripts/ui.mjs
+U=.agents/skills/verify-harbordeck/scripts/ui.mjs
 ```
 
 **UI: `ui.mjs`** (Playwright over the app's CDP port; each call connects, acts once, disconnects; exit 1 with a one-line reason on failure):

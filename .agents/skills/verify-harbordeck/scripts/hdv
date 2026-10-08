@@ -88,7 +88,7 @@ cmd_doctor() {
   check "data dir is synthetic ($HDV_HOME)" '[ -d "$HDV_HOME/items" ] && case "$HDV_HOME" in "$state"/*) true ;; *) false ;; esac'
   check "app reads that data dir" 'grep -qF "data directory: $HDV_HOME" "$state/electron.log"'
   check "wake command is the stub" 'grep -qF "$state/bin/wake" "$HDV_HOME/schedule/config.json"'
-  echo "build  $(git -C "$HDV_ROOT" rev-parse --abbrev-ref HEAD)@$(git -C "$HDV_ROOT" rev-parse --short HEAD)$(git -C "$HDV_ROOT" diff --quiet HEAD -- . ':!.cursor' || echo ' (dirty)')"
+  echo "build  $(git -C "$HDV_ROOT" rev-parse --abbrev-ref HEAD)@$(git -C "$HDV_ROOT" rev-parse --short HEAD)$(git -C "$HDV_ROOT" diff --quiet HEAD -- . ':!.agents' ':!.claude' ':!.cursor' || echo ' (dirty)')"
   echo "items  $(ls "$HDV_HOME/items" | grep -c '\.json$')   answers $(wc -l < "$HDV_HOME/answers.jsonl" 2>/dev/null | tr -d ' ' || echo 0)"
   [ "$ok" = 1 ]
 }
