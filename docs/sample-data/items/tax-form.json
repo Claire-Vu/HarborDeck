@@ -1,6 +1,7 @@
 {
  "id": "tax-form",
  "kind": "todo",
+ "topic": "paperwork",
  "project": "admin",
  "title": "Sign the quarterly tax form",
  "summary": "It is pre-filled. It needs your signature only.",

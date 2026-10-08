@@ -32,6 +32,19 @@ hd todo     <id> "<what to do>" -s "<why, by when>" -d 2026-11-01
 - `-s`: plain sentences, no markdown. `-b`/`-a`: **paths or URLs only**. Never paste report text into a flag. Artifact type comes from the extension or URL; prefix to force it (`pr:`, `video:`, `image:`, `report:`).
 - `-p` priority 1 critical … 4 low (default 3). `-d` due: epoch, ISO date, or `+12h`/`+2d`.
 - Standing orders: `-r <rule>` to tag, `--ok <rule>[:note]` when you checked it passes, `--flag <rule>:<why>` when it does not.
+- `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic or a link reach the user together.
+
+## Keep later remarks with their item
+
+When you learn or say something more about an existing item or topic, attach it instead of leaving it only in chat (one line, about 20 tokens):
+
+```sh
+hd note <id> "<one or two sentences>" [-a <path|url>]
+hd note topic:<slug> "<text>"        # a topic with no item yet is created by its first note
+hd topic <slug>                      # the topic's timeline, to catch up before you act
+```
+
+If it belongs to no item or topic, `hd gap` it.
 
 Several items at once, one process, nothing written if any line is wrong:
 
@@ -39,7 +52,8 @@ Several items at once, one process, nothing written if any line is wrong:
 hd batch <<'EOF'
 decision pr24 "Merge PR 24?" -s "Bundles four fixes; CI green." --opt merge+ --opt hold -a https://github.com/o/r/pull/24
 answer survey "B-roll tools survey" -s "Two free sources cover most shots." -b reports/broll.md
-todo api-key "Renew the maps API key" -d +9d
+todo api-key "Renew the maps API key" -d +9d -t maps-api
+note pr24 "CI rerun green after the cache fix."
 EOF
 ```
 

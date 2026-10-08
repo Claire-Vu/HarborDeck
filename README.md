@@ -51,6 +51,7 @@ Any agent that can write a JSON file can join without the CLI: the format is in 
   items/<id>.json   agent → app   one file per item; rewrite to update
   answers.jsonl     app → agent   append-only, one line per action
   gaps.jsonl        agent → app   responses that fit no item kind (listed in the Agent log drawer)
+  notes.jsonl       agent → app   remarks kept with an existing item or topic (topic pages)
   fleet.json        optional      crew scene: who is cooking, waiting, idle
   quota.json        optional      stamina bars and refill countdowns
   rules.json        optional      standing orders that items are checked against
@@ -132,8 +133,11 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `I` | inspect: pair a claim with evidence, then Match or Mismatch (writes a `comment` with an anchor) |
 | `R` | standing orders |
 | `L` | shift report |
+| `O` | topic page of the item at the desk |
 | `P` | plain mode (a flat list with the same actions) |
 | `Esc` | close drawers and dialogs |
+
+Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (Topics tab for the list). Items that share a topic or a `rel` link arrive as one visitor with a bundle of papers and can be settled with one stamp.
 
 Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, plus gaps), crew tab with stamina per subscription window, requests tab for new orders to an agent, desk sounds and generated harbor music (both off by default), light/dark/auto theme.
 

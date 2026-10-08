@@ -20,7 +20,7 @@ Connecting an agent takes three things:
 2. **Teach the agent**: install [`skill/SKILL.md`](../skill/SKILL.md) as an Agent Skill (Claude Code: copy `skill/` to `~/.claude/skills/harbordeck/`; Codex and other harnesses that read skills: their skills dir), or paste [`skill/AGENTS-snippet.md`](../skill/AGENTS-snippet.md) into the project's `AGENTS.md`/`CLAUDE.md`.
 3. **Read answers back** at each turn (`hd answers --cursor <agent id>`) or live: `hd answers --cursor <agent id> --wait` returns the moment the user acts. Agents with an orchestrator can route lines automatically; see [`adapters/firstmate`](../adapters/firstmate) for a complete example.
 
-Agents that prefer tools to a shell can use the MCP server instead: `hd mcp` (stdio). It exposes `harbordeck_batch`, `harbordeck_answers` and `harbordeck_gap`. Claude Code: `claude mcp add harbordeck -- harbordeck mcp`.
+Agents that prefer tools to a shell can use the MCP server instead: `hd mcp` (stdio). It exposes `harbordeck_batch`, `harbordeck_answers`, `harbordeck_gap` and `harbordeck_topic`. Claude Code: `claude mcp add harbordeck -- harbordeck mcp`.
 
 ### Why it is cheap
 
@@ -48,9 +48,13 @@ hd answer|review|todo <id> "<title>" [flags]
   -s/--sum "<one line>"   -b/--body <path|url>   -a/--art [type:]<path|url> (repeat)
   -p/--pri 1-4   -d/--due <epoch|ISO|+12h|+2d>   -f/--from <agent>   --project <p>   --stream <s>
   -r/--rule <key> (repeat)   --ok <rule>[:note]   --flag <rule>:<note>
+  -t/--topic <slug>   --rel <id>[,<id>]   (kept when a rewrite omits them)
 hd reply <id> "<text>"            append to the item's thread (also answers a request id)
 hd resolve <id>...
 hd batch                          stdin, one command per line, all-or-nothing validation
+hd note <id|topic:slug> "<text>" [-a <path|url>]   keep a remark with its item or topic
+hd topics [--json]                one line per topic
+hd topic <slug> [--json]          the topic's timeline
 hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek] [--wait [--timeout <s>]]
 hd ls [--all]
 hd fleet|quota|rules <file|->     validate and install a snapshot
@@ -70,7 +74,9 @@ The `schedule`/`limit`/`tick`/`scheduler` commands are the limit-reset scheduler
 
 Behaviour worth knowing:
 
-- Writing an item with an existing id rewrites it, keeps `created` and `thread`, sets `updated`, and reopens it.
+- Writing an item with an existing id rewrites it, keeps `created`, `thread`, and `topic`/`rel` unless given again, sets `updated`, and reopens it.
+- `hd note <id> "..."` appends to `notes.jsonl` with the item's topic; `hd note topic:<slug> "..."` notes a topic directly and creates it if new (`ok note topic:x (new topic)`). An unknown item id is an error: note the topic instead, or log a gap.
+- `hd topic <slug>` prints one line per event (`MM-DD HH:MM`, local time): `+ <kind> <id> "<title>"`, `reply`, `you <action>`, `note`, `resolved`, after the open items. Long text is clipped; `--json` has it all.
 - Relative paths are made absolute against the current directory. A missing file is a warning on stderr, not an error.
 - Artifact type is inferred: `/pull/N` and `/merge_requests/N` URLs are `pr`, other URLs `link`; by extension `video`, `image`, `audio`, `report` (md, txt, pdf, html), `diff`, else `file`. Prefix to override: `-a image:https://...`.
 - `-a web:<url>` shows a local page (dev server, local report) in the desk's browser pane. `-a lavish:<url>` does the same for a Lavish review page; `-a lavish:<file.html>` runs `lavish-axi <file> --no-open` to start or resume its session and stores the session URL (the path, with a warning, when `lavish-axi` is missing or `HARBORDECK_LAVISH=0`).

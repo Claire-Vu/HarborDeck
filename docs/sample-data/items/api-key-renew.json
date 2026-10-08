@@ -1,6 +1,7 @@
 {
  "id": "api-key-renew",
  "kind": "todo",
+ "topic": "keys",
  "project": "weather-app",
  "stream": "infra",
  "title": "Renew the maps API key",

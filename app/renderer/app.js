@@ -260,21 +260,27 @@ function spriteSVG(id, kind, opts = {}) {
 }
 const prioChip = it => h('span', { class: `prio p${prio(it)}`, title: `priority ${prio(it)}: ${PRIO_LABEL[prio(it)]}` }, `P${prio(it)}`);
 const dueChip = it => { if (!it.due) return null; const d = it.due - now(); return h('span', { class: `due ${d < 0 ? 'over' : d < 86400 ? 'soon' : ''}`, title: `due ${fmtDate(it.due)} ${fmtTime(it.due)}` }, d < 0 ? `overdue ${age(-d)}` : `due ${age(d)}`); };
+// topics, notes and bundles (topic-view.js)
+const topicView = window.HarborTopicView({ h, modal, toast, fmtDate, fmtTime, KIND, ACTION_LABEL, prioChip, mateLabel, st, save, paper, statusOf, openItem, finishStamp, focus: id => { S.current = id; st(id).read = true; },
+  data: () => ({ topics: SNAP.topics || {}, byId, notes: SNAP.notes || [] }), openArtifact: a => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) });
+const bundleOf = it => topicView.groups(queueItems().filter(i => !st(i.id).awaiting)).get(it.id) || [it];
+function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else { stepUp(id); selectTab('window'); } }
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
   $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].map(k =>
     h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
-  $('#tab-window-count').textContent = counts.all;
+  $('#tab-window-count').textContent = counts.all; $('#tab-topics-count').textContent = topicView.openCount();
 }
 function renderQueue() {
-  const list = queueItems(); const ul = $('#queue'); ul.replaceChildren();
+  const list = queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
   for (const it of list) {
-    const s = st(it.id); const m = mateFor(it); const c = crewFor(it); const flagged = flaggedCount(it);
-    ul.append(h('li', { 'aria-current': String(S.current === it.id), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
+    const s = st(it.id); const m = mateFor(it); const c = crewFor(it); const flagged = flaggedCount(it); const g = groups.get(it.id) || [it];
+    if (g[0] !== it) continue; // bundle members ride with the first
+    ul.append(h('li', { 'aria-current': String(g.some(x => x.id === S.current)), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
       h('div', { html: spriteSVG(m.id, it.kind, { mate: true, tired: tired() }) }),
       h('div', null,
-        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title)),
-        h('div', { class: 'q-meta' }, prioChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
+        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null),
+        h('div', { class: 'q-meta' }, prioChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
   }
   if (!list.length) ul.append(h('li', { class: 'q-empty' }, 'Nobody at the window.'));
   $('#btn-next').disabled = !list.some(i => !st(i.id).awaiting);
@@ -288,7 +294,8 @@ function renderWindowScene() {
   const w = $('#at-window'); w.replaceChildren(); w.className = 'at-window';
   const tz = tired(); const it = byId[S.current]; const t0 = now();
   // queue outside the window: one sprite per item waiting on the captain (not the one at the counter)
-  const line = queueItems().filter(i => !st(i.id).awaiting && i.id !== S.current);
+  const present = queueItems().filter(i => !st(i.id).awaiting); const groups = topicView.groups(present); const mine = groups.get(S.current) || [];
+  const line = present.filter(i => !mine.includes(i) && groups.get(i.id)[0] === i);
   const pq = $('#pier-queue'); pq.replaceChildren();
   line.slice(0, 7).forEach((i, n) => {
     const who = whoBrings(i); const lvl = impatience(i);
@@ -299,7 +306,7 @@ function renderWindowScene() {
   pq.setAttribute('aria-label', `${line.length} waiting outside the window`);
   if (!it || statusOf(it) !== 'open') { w.append(h('div', { class: 'empty' }, line.length ? 'N: next at the window' : 'The pier is quiet')); return; }
   const m = mateFor(it); const who = whoBrings(it);
-  w.append(h('div', { class: 'speech' }, `${m.label} · ${KIND[it.kind].toLowerCase()}`, !who.mate ? h('small', null, `from ${who.name}`) : null),
+  w.append(h('div', { class: 'speech' }, `${m.label} · ${KIND[it.kind].toLowerCase()}${mine.length > 1 ? ` + ${mine.length - 1} more` : ''}`, !who.mate ? h('small', null, `from ${who.name}`) : null),
     h('div', { class: 'walk', title: `${who.name} at the window`, html: spriteSVG(who.id, it.kind, { mate: who.mate, tired: tz, sweat: impatience(it) === 2 }) }));
 }
 function renderYard() {
@@ -334,7 +341,7 @@ function renderDesk() {
   papers.push(paper('manifest', `${KIND[it.kind]} manifest`, [
     h('div', { class: 'm-top' }, prioChip(it), dueChip(it), h('span', { class: 'spacer' }), h('span', { class: 'pay', title: 'pays on stamp (value × priority × urgency)' }, money(payFor(it, 'decide')))),
     h('h3', null, it.title),
-    h('div', { class: 'meta' }, `${it.project}${it.stream ? ' · ' + it.stream : ''} · ${fmtDate(it.created)} · ${m.label}${c ? ', via ' + crewName(c.id) : ''}`),
+    h('div', { class: 'meta' }, `${it.project}${it.stream ? ' · ' + it.stream : ''} · ${fmtDate(it.created)} · ${m.label}${c ? ', via ' + crewName(c.id) : ''} `, topicView.chip(it)),
     it.rules?.length ? h('div', { class: 'check-row' }, checksFor(it).map(({ rule, check }) => h('button', { class: `chk ${check ? (check.ok ? 'ok' : 'flag') : 'none'}`, title: `${rule}: ${check ? (check.ok ? 'passed' : 'FLAGGED') + ' · ' + check.note : 'tagged, not auto-checked'}`, onclick: () => openDrawer('orders') }, check ? (check.ok ? '✓' : '⚠') : '§', ' ', rule))) : null,
     (it.checks || []).some(x => x.ok === false) ? h('div', { class: 'flag-note' }, (it.checks || []).filter(x => x.ok === false).map(x => h('div', null, '⚠ ', x.note))) : null,
     h('p', { class: 'claims' }, claims.map((cl, i) => h('span', { class: `fact ${s.flags[i] === 'match' ? 'matched' : s.flags[i] === 'flag' ? 'flagged' : ''}`, onclick: e => pickFact({ type: 'claim', label: cl, anchor: { claim: cl }, idx: i }, e.currentTarget) }, cl, ' ')))
@@ -345,6 +352,7 @@ function renderDesk() {
   const thread = threadFor(it);
   if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: 'msg' }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, JSON.stringify(x.anchor)))), 't'));
   papers.push(askSlip(it));
+  const group = bundleOf(it); if (group.length > 1) papers.push(topicView.bundlePaper(it, group));
   const W = surf.clientWidth || 900, H = surf.clientHeight || 600; const pos = S.positions[it.id] || {};
   papers.forEach((p, i) => {
     const d = defaultPos(p.dataset.pid, i, W, H); const u = pos[p.dataset.pid] || d;
@@ -355,12 +363,13 @@ function renderDesk() {
 }
 function threadFor(it) {
   const s = st(it.id);
-  return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
+  return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...(SNAP.notes || []).filter(n => n.item === it.id).map(n => ({ from: `note · ${n.from ? mateLabel(n.from) : 'agent'}`, text: n.text, at: n.at })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
 }
 function defaultPos(pid, i, W, H) {
   if (pid === 'm') return { x: 24, y: 24 };
   if (pid === 'ask') return { x: W - 330, y: 30 };
   if (pid === 't') return { x: W - 310, y: H * .55 };
+  if (pid === 'b') return { x: 24, y: H * .58 };
   const k = i - 1; return { x: 340 + k * 44, y: 24 + k * 66 };
 }
 function paper(cls, label, kids, pid, extraGrip) {
@@ -492,20 +501,22 @@ function stamp(verdict) {
   openNote({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…' }, note => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note }, true));
 }
 // A stamp is applied at once, but its JSONL line is held for UNDO_MS. Undo restores the item and writes nothing.
-function finishStamp(it, text, ink, line, stays) {
+// extra: [{ it, line }] for the other papers of a bundle, held, written and undone with this one.
+function finishStamp(it, text, ink, line, stays, extra = []) {
   commitPending();
   const s = st(it.id); const src = document.querySelector(`#stamps .stamp.${ink}`) || document.querySelector('#stamps .stamp'); const zone = $('#stamp-zone');
-  const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current };
+  const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current, extra: extra.map(e => [e.it.id, JSON.parse(JSON.stringify(st(e.it.id)))]) };
   flyStamp(src, zone, ink, () => {
     if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(now())} ${fmtTime(now())}`))); }
     $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud');
     const walk = $('#at-window .walk'); if (walk) { const who = whoBrings(it); walk.innerHTML = spriteSVG(who.id, stays ? it.kind : '', { mate: who.mate, happy: ink === 'approve' || ink === 'file', sad: ink === 'reject' }); walk.className = `walk ${stays ? 'go-off' : ink === 'reject' ? 'go-sad' : 'go-happy'}`; }
     line.at = now();
     if (stays) s.awaiting = true; else { s.status = 'resolved'; s.verdict = line; }
+    for (const e of extra) { e.line.at = line.at; Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
     save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length;
-    pending = { line, itemId: it.id, snap, stays, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line)) };
+    pending = { line, extra, itemId: it.id, snap, stays, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line) + (extra.length ? ` (+${extra.length} more)` : '')) };
     if ($('#agentlog').classList.contains('open')) renderLog();
-    setTimeout(() => { if (pending && pending.line === line) earn(it, line.action); }, 300);
+    setTimeout(() => { if (pending && pending.line === line) [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action)); }, 300);
     setTimeout(() => { if (!pending || pending.line !== line) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!pending || pending.line !== line) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
   });
 }
@@ -515,13 +526,13 @@ function undoToast(msg) {
 }
 function commitPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
-  writeLine(p.line); $('#log-count').textContent = S.answers.length;
+  writeLine(p.line); for (const e of p.extra || []) writeLine(e.line); $('#log-count').textContent = S.answers.length;
   if ($('#agentlog').classList.contains('open')) renderLog();
   if (!S.prefs.plain) renderRail();
 }
 function undoPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
-  S.items[p.itemId] = p.snap.item; S.cash = p.snap.cash; S.current = p.itemId; save();
+  S.items[p.itemId] = p.snap.item; for (const [id, x] of p.snap.extra || []) S.items[id] = x; S.cash = p.snap.cash; S.current = p.itemId; save();
   snd('flip'); toast('Undone. Nothing was sent.'); renderAll();
 }
 function flyStamp(src, zone, ink, done) {
@@ -635,7 +646,7 @@ function renderGaps() {
   $('#gaps').replaceChildren(h('h3', { class: 'oh' }, `Gaps (${gaps.length})`), h('p', { class: 'legend' }, 'Responses an agent could not fit into a decision, review, dispatch or notice. Each one is a case for a new desk item.'),
     ...(gaps.length ? gaps.map(g => h('div', { class: 'gap' }, h('div', null, g.text), h('div', { class: 'si-meta' }, [g.from && mateLabel(g.from), g.item && `squeezed into ${g.item}`, g.at && `${fmtDate(g.at)} ${fmtTime(g.at)}`].filter(Boolean).join(' · ')), g.sample ? h('div', { class: 'si-meta' }, 'sample: ', g.sample) : null)) : [h('p', { class: 'legend' }, 'None yet.')]));
 }
-function renderLog() { renderGaps(); $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${JSON.stringify(pending.line)}` : ''); $('#log-count').textContent = S.answers.length; }
+function renderLog() { renderGaps(); $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${[pending.line, ...(pending.extra || []).map(e => e.line)].map(l => JSON.stringify(l)).join('\n')}` : ''); $('#log-count').textContent = S.answers.length; }
 function modal(cls, titleText, content, footer, headerExtra) {
   closeModal();
   const m = h('div', { class: `modal ${cls}`, onclick: e => { if (e.target === m) closeModal(); } },
@@ -740,7 +751,7 @@ function renderStaminaMini() {
   $('#stamina-cluster').className = `stamina-cluster ${m < 10 ? 'empty' : m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
   $('#tab-crew-flag').hidden = m >= 25; document.body.classList.toggle('tired', m < 20);
 }
-function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'requests') renderRequests(); }
+function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'requests') renderRequests(); if (name === 'topics') $('#topics-pane').replaceChildren(topicView.list()); }
 
 // ------------------------------------------------------------ day cycle: morning manifest, shift report
 function meter(score, max) { const pct = Math.max(0, Math.min(100, Math.round(((score + max) / (2 * max)) * 100))); return h('div', { class: 'meter' }, h('span', { style: `width:${pct}%` })); }
@@ -782,6 +793,7 @@ function openLedger() {
 function actionsFor(it) {
   const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = v => { S.current = it.id; s.read = true; save(); stamp(v); };
   for (const v of VERDICTS) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, onclick: () => run(v) }, cfg[v].label));
+  const group = bundleOf(it); if (group.length > 1) out.push(h('button', { class: 'abtn approve', disabled: s.awaiting, title: group.map(m => m.title).join(' · '), onclick: () => topicView.stampBundle(it, group) }, `Approve bundle (${group.length})`));
   return out;
 }
 function plainCard(it, openByDefault) {
@@ -789,7 +801,7 @@ function plainCard(it, openByDefault) {
   const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body));
   const thread = threadFor(it); const flagged = (it.checks || []).filter(x => x.ok === false);
   const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open && !s.read) { s.read = true; save(); } } },
-    h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), it.title, flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
+    h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), it.title, flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ' ', topicView.chip(it), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
     h('div', { class: 'body' },
       h('p', { class: 'summary-text' }, it.summary),
       flagged.length ? h('div', { class: 'flag-note' }, flagged.map(x => h('div', null, `⚠ ${x.rule}: ${x.note}`))) : null,
@@ -816,6 +828,7 @@ function renderPlain() {
     const send = () => { const v = ta.value.trim(); if (!v) return; const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); toast(`Order handed to ${mateLabel(to)}`); renderPlain(); };
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'New order'), h('div', { class: 'pcard order-plain' }, ta, h('div', { class: 'row' }, sel, h('button', { class: 'abtn file', onclick: send }, 'Hand it over')))));
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
+    root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Topics'), h('div', { class: 'pcard topics-plain' }, topicView.list())));
     const done = ITEMS.filter(i => statusOf(i) === 'resolved');
     if (done.length) root.append(h('section', { class: 'plain-group' }, h('h2', null, `Resolved (${done.length})`), done.map(i => plainCard(i))));
   }
@@ -861,16 +874,19 @@ function syncItems(prevById) {
   return { replies, fresh: fresh.filter(it => !S.answers.some(a => a.action === 'request' && a.id === it.id)) };
 }
 let deferred = null;
+// What the desk papers show: the current item, its notes and its bundle. Anything else changing keeps the papers still.
+const deskSig = () => { const it = byId[S.current]; return JSON.stringify(it ? [it, (SNAP.notes || []).filter(n => n.item === it.id), bundleOf(it).map(m => m.id)] : null); };
 function applySnapshot(snap) {
-  const prevHome = SNAP.home, prevById = byId, curBefore = JSON.stringify(byId[S.current] || null);
+  const prevHome = SNAP.home, prevById = byId, prevNotes = SNAP.notes || [], curBefore = deskSig();
   setData(snap);
   if (snap.home !== prevHome || (snap.demoSeed || 0) !== (S.demoSeed || 0)) { loadState(); syncItems(null); closeModal(); renderAll(); if (!S.dayOpen) openManifest(); else if (!S.current) next(); return; }
   S.answers = (snap.answers || []).slice();
   const { replies, fresh } = syncItems(prevById);
   save();
   if (S.current && !byId[S.current]) S.current = null;
-  renderAll(JSON.stringify(byId[S.current] || null) === curBefore);
+  renderAll(deskSig() === curBefore);
   if ($('#agentlog').classList.contains('open')) renderLog();
+  topicView.update(prevNotes);
   if (replies) { snd('ding'); if (!S.prefs.plain) renderRail(true); toast(replies > 1 ? `${replies} replies landed on the rail` : 'A reply landed on the rail'); }
   if (fresh.length) { snd('slide'); toast(fresh.length > 1 ? `${fresh.length} new at the window` : `New at the window: ${fresh[0].title}`); }
   if (snap.errors?.length) console.warn('harbor: unreadable items', snap.errors);
@@ -947,6 +963,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
   if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
   else if (k === 'n') next(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
+  else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
 });
 window.addEventListener('beforeunload', commitPending);

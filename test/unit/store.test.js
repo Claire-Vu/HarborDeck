@@ -129,3 +129,14 @@ test('demo seed adds the browser-pane item only when given a local site URL', ()
   const it = JSON.parse(fs.readFileSync(path.join(home, 'items', 'plan-offline.json'), 'utf8'));
   assert.deepStrictEqual(it.artifacts, [{ type: 'web', url: 'http://127.0.0.1:1234/plan.html', label: 'Plan page' }]);
 });
+
+test('snapshot carries notes.jsonl (complete, placeable lines) and serves note artifacts', () => {
+  const home = tmp();
+  write(path.join(home, 'items/a.json'), { id: 'a', kind: 'todo', title: 'A', topic: 'x', rel: ['b'] });
+  write(path.join(home, 'shot.png'), 'png');
+  write(path.join(home, 'notes.jsonl'), '{"item":"a","text":"on a","at":1}\n{"topic":"x","text":"on x","artifact":{"type":"image","path":"shot.png"},"at":2}\n{"text":"nowhere","at":3}\n{"topic":"x","te');
+  const snap = store.snapshot(home);
+  assert.deepStrictEqual(snap.notes.map(n => n.text), ['on a', 'on x']);
+  assert.strictEqual(snap.files['shot.png'].exists, true);
+  assert.strictEqual(snap.items[0].topic, 'x');
+});

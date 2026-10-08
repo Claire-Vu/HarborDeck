@@ -80,6 +80,7 @@
       <button class="tab" role="tab" data-tab="window" aria-selected="true">Window <span class="badge" id="tab-window-count">0</span></button>
       <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests</button>
       <button class="tab" role="tab" data-tab="crew" aria-selected="false">Crew <span class="badge warn" id="tab-crew-flag" hidden>!</span></button>
+      <button class="tab" role="tab" data-tab="topics" aria-selected="false" title="Topics: everything said about one subject">Topics <span class="badge" id="tab-topics-count">0</span></button>
     </div>
     <section class="tabpane" data-pane="window">
       <div class="filters" id="filters"></div>
@@ -88,6 +89,7 @@
     </section>
     <section class="tabpane" data-pane="requests" hidden><div class="pane-scroll" id="requests-pane"></div></section>
     <section class="tabpane" data-pane="crew" hidden><div class="pane-scroll" id="crew-pane"></div></section>
+    <section class="tabpane" data-pane="topics" hidden><div class="pane-scroll" id="topics-pane"></div></section>
   </aside>
 
   <section class="desk" id="desk" aria-label="Desk">
@@ -103,7 +105,7 @@
       <button class="stamp reject" data-verdict="reject" aria-label="Reject"><span class="handle"></span><span class="base"><span class="lbl">Reject</span></span></button>
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
-      <div class="keys">1-4 stamp · U undo · T tickets · N next · I inspect · R orders · Esc</div>
+      <div class="keys">1-4 stamp · U undo · T tickets · N next · O topic · I inspect · R orders · Esc</div>
     </div>
   </aside>
 </main>
@@ -132,6 +134,7 @@
 
 <script src="schedule-view.js"></script>
 <script src="web-pane.js"></script>
+<script src="topic-view.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
