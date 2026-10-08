@@ -1,0 +1,46 @@
+{
+  "name": "harbordeck",
+  "productName": "Harbor Deck",
+  "version": "0.1.0",
+  "description": "A desktop desk for everything your agents need from you: decisions, reviews, dispatches and to-dos, answered with a stamp.",
+  "main": "app/main.js",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo",
+    "seed-demo": "node app/demo/seed.js",
+    "test": "node --test \"test/unit/*.test.js\"",
+    "test:smoke": "playwright test",
+    "check": "node --check app/main.js && node --check app/preload.js && node --check app/renderer/app.js",
+    "dist": "electron-builder --mac dir",
+    "dist:dmg": "electron-builder --mac dmg"
+  },
+  "build": {
+    "appId": "dev.harbordeck.app",
+    "productName": "Harbor Deck",
+    "files": [
+      "app/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dir"
+      ],
+      "identity": null
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "electron": "38.2.0",
+    "electron-builder": "26.0.12"
+  },
+  "allowScripts": {
+    "electron@38.2.0": true
+  }
+}
