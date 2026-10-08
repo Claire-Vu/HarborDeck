@@ -100,7 +100,9 @@ test('an ask becomes a ticket, and the agent reply turns it green live', async (
   await expect(page.locator('#rail .ticket.waiting', { hasText: 'Quarantine' })).toBeVisible();
   const itemFile = path.join(home, 'items', 'flaky-e2e.json');
   const it = JSON.parse(fs.readFileSync(itemFile, 'utf8'));
-  it.thread = [...(it.thread || []), { from: 'Web mate', text: 'Never locally; only on the slow runner.', at: Math.floor(Date.now() / 1000) + 1 }];
+  // a reply in the same second as the ask still counts (timestamps are whole seconds)
+  const askAt = JSON.parse(fs.readFileSync(file, 'utf8').trim().split('\n').pop()).at;
+  it.thread = [...(it.thread || []), { from: 'Web mate', text: 'Never locally; only on the slow runner.', at: askAt }];
   fs.writeFileSync(itemFile, JSON.stringify(it));
   await expect(page.locator('#rail .ticket.replied.new', { hasText: 'Quarantine' })).toBeVisible({ timeout: 8000 });
 });

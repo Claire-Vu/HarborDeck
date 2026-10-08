@@ -6,7 +6,7 @@
 # Reads state/*.meta (harness, model, effort, project, kind) and each crew's
 # current state from bin/fm-crew-state.sh (forge reads off). Secondmates
 # (kind=secondmate) become counter staff (firstmates[]); every other endpoint is
-# crew. A crew whose id matches an open HarborDeck item gets "item" set, so the
+# crew, titled from bin/fm-tasks-axi.sh show <task>. A crew whose id matches an open HarborDeck item gets "item" set, so the
 # desk can show what a decision unblocks. --print writes to stdout instead of
 # installing through `harbordeck fleet -`.
 # Env: FM_HOME (required), HD (default: harbordeck), HD_MATE_ID (default:
@@ -34,6 +34,12 @@ crew_state() {  # <id> -> idle|working|waiting|done
   esac
 }
 
+task_title() {  # <task id> -> title from the backlog, or nothing
+  [ -n "$1" ] && [ -x "$FM_HOME/bin/fm-tasks-axi.sh" ] || return 0
+  FM_HOME=$FM_HOME "$FM_HOME/bin/fm-tasks-axi.sh" show "$1" --full 2>/dev/null </dev/null \
+    | sed -n 's/^  title: //p' | head -n 1 | sed 's/^"\(.*\)"$/\1/; s/\\"/"/g' || true
+}
+
 rows=$(
   for meta in "$FM_HOME"/state/*.meta; do
     [ -e "$meta" ] || continue
@@ -41,13 +47,14 @@ rows=$(
     kind=$(meta_get "$meta" kind)
     project=$(meta_get "$meta" project)
     item=''
+    task=$(meta_get "$meta" endpoint_task_id)
     [ -f "$HD_HOME/items/$id.json" ] && item=$id
     jq -n --arg id "$id" --arg kind "$kind" --arg harness "$(meta_get "$meta" harness)" \
       --arg model "$(meta_get "$meta" model)" --arg effort "$(meta_get "$meta" effort)" \
-      --arg project "${project##*/}" --arg task "$(meta_get "$meta" endpoint_task_id)" \
-      --arg state "$(crew_state "$id")" --arg item "$item" --arg mate "$MATE" \
+      --arg project "${project##*/}" --arg task "$task" \
+      --arg title "$(task_title "$task")" --arg state "$(crew_state "$id")" --arg item "$item" --arg mate "$MATE" \
       '{id: $id, kind: $kind, harness: $harness, model: $model, effort: $effort, project: $project,
-        task: $task, state: $state, item: $item, firstmate: $mate}
+        task: $task, task_title: $title, state: $state, item: $item, firstmate: $mate}
        | with_entries(select(.value != ""))'
   done
 )

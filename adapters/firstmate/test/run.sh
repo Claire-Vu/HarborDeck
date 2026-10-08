@@ -15,6 +15,7 @@ check() {  # <description> <command...>
 mkdir -p "$FM_HOME/bin" "$FM_HOME/state"
 cat > "$FM_HOME/bin/fm-captain-hold.sh" <<'EOF'
 #!/usr/bin/env bash
+if [ "$1" = open ]; then case $2 in held-1|held-2) exit 0 ;; *) exit 1 ;; esac; fi
 in=$(cat); printf 'hold %s | %s\n' "$*" "$in" >> "$FM_HOME/calls.log"
 id=${in%%$'\t'*}
 if [ "$id" = held-1 ] || [ "$id" = held-2 ]; then echo "closed: $id"; else echo "skipped: $id (not held)"; exit 1; fi
@@ -81,6 +82,15 @@ EOF
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
 check "bridge: dry run touches nothing" test ! -e "$FM_HOME/calls.log"
 check "bridge: dry run lists routes" grep -q "fm-inbox.sh note --request-id req-9" "$tmp/dry.txt"
+cp -R "$HARBORDECK_HOME" "$tmp/hd-echo"
+HARBORDECK_HOME="$tmp/hd-echo" "$here/hd-bridge.sh" --echo > "$tmp/echo.txt"
+check "bridge --echo: touches no firstmate state" test ! -e "$FM_HOME/calls.log"
+check "bridge --echo: held decision would close the hold" grep -qE '^[0-9TZ:-]+ would run: printf .*held-1.*fm-captain-hold.sh answers --source harbordeck' "$tmp/echo.txt"
+check "bridge --echo: unheld decision would note instead" grep -qF "hd-free-1-decide-2" "$tmp/echo.txt"
+check "bridge --echo: harbordeck side still resolves" test "$(jq -r .status "$tmp/hd-echo/items/held-1.json")" = resolved
+check "bridge --echo: own cursor advanced, live cursor untouched" test -s "$tmp/hd-echo/cursors/firstmate-bridge.echo" -a ! -e "$tmp/hd-echo/cursors/firstmate-bridge"
+HARBORDECK_HOME="$tmp/hd-echo" "$here/hd-bridge.sh" --echo > "$tmp/echo2.txt"
+check "bridge --echo: second run routes nothing" test ! -s "$tmp/echo2.txt"
 "$HD" answers --since-offset 0 >/dev/null
 "$here/hd-bridge.sh" >/dev/null
 log="$FM_HOME/calls.log"

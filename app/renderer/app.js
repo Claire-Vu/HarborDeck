@@ -106,8 +106,10 @@ function crewName(id) { return NAMES[hash(id) % NAMES.length]; }
 function crewColors(id) { return { cap: CAPS[hash(id) % CAPS.length], coat: CAPS[(hash(id) >> 3) % CAPS.length] }; }
 function crewFor(it) {
   const linked = FLEET.crew.find(c => c.item === it.id); if (linked) return linked;
-  const pool = FLEET.crew.filter(c => c.firstmate === mateFor(it).id && (it.kind === 'answer' ? /scout/.test(c.id) : !/scout/.test(c.id)));
-  const list = pool.length ? pool : FLEET.crew.filter(c => c.firstmate === mateFor(it).id);
+  // never credit an item to crew working on another project
+  const mine = FLEET.crew.filter(c => c.firstmate === mateFor(it).id && (!c.project || c.project === it.project));
+  const pool = mine.filter(c => it.kind === 'answer' ? /scout/.test(c.id) : !/scout/.test(c.id));
+  const list = pool.length ? pool : mine;
   return list.length ? list[hash(it.stream || it.id) % list.length] : null;
 }
 function traits(c) {
@@ -525,7 +527,7 @@ function tickets() {
     const key = `${a.id}:${a.at}`; if (S.tickets.done[key]) continue;
     let title, reply = null, item = null;
     if (a.action === 'request') { title = `Order to ${mateLabel(a.to)}`; reply = (byId[a.id] ? { from: mateFor(byId[a.id]).label, text: byId[a.id].summary, at: byId[a.id].created } : null); item = byId[a.id] || null; }
-    else { item = byId[a.id]; title = item?.title || a.id; const th = item?.thread || []; reply = th.filter(m => m.at > a.at && m.from !== 'captain').sort((x, y) => x.at - y.at)[0] || null; }
+    else { item = byId[a.id]; title = item?.title || a.id; const th = item?.thread || []; reply = th.filter(m => m.at >= a.at && m.from !== 'captain').sort((x, y) => x.at - y.at)[0] || null; }
     out.push({ key, a, title, reply, item, seen: !!S.tickets.seen[key] });
   }
   return out.sort((x, y) => ((y.reply && !y.seen) - (x.reply && !x.seen)) || ((!!y.reply) - (!!x.reply)) || x.a.at - y.a.at);
