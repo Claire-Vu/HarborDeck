@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Claire-Vu/HarborDeck/schema/item.schema.json",
+  "title": "HarborDeck item",
+  "description": "One thing an agent puts in front of the user. File: <HARBORDECK_HOME>/items/<id>.json. Unknown fields are allowed and ignored.",
+  "type": "object",
+  "required": ["id", "kind", "title", "created", "status"],
+  "properties": {
+    "id": { "$ref": "#/$defs/slug" },
+    "kind": { "enum": ["decision", "answer", "review", "todo"] },
+    "project": { "type": "string", "maxLength": 200 },
+    "stream": { "type": "string", "maxLength": 200 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "summary": { "type": "string", "maxLength": 2000 },
+    "body": { "type": "string", "minLength": 1, "description": "Path (absolute, or relative to HARBORDECK_HOME) or http(s) URL of a markdown/text file. Never inline prose." },
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "label"],
+        "properties": {
+          "key": { "$ref": "#/$defs/slug" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "recommended": { "type": "boolean" }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$", "description": "pr | video | image | report | audio | link | file | diff | ... ; unknown types render as a link" },
+          "url": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*:" },
+          "path": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "maxLength": 200 }
+        },
+        "oneOf": [{ "required": ["url"] }, { "required": ["path"] }]
+      }
+    },
+    "rules": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "ok"],
+        "properties": {
+          "rule": { "$ref": "#/$defs/slug" },
+          "ok": { "type": "boolean" },
+          "note": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "thread": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "text", "at"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "text": { "type": "string", "minLength": 1, "maxLength": 4000 },
+          "at": { "$ref": "#/$defs/epoch" }
+        }
+      }
+    },
+    "priority": { "type": "integer", "minimum": 1, "maximum": 4 },
+    "due": { "$ref": "#/$defs/epoch" },
+    "from": { "type": "string", "maxLength": 100 },
+    "created": { "$ref": "#/$defs/epoch" },
+    "updated": { "$ref": "#/$defs/epoch" },
+    "status": { "enum": ["open", "resolved"] }
+  },
+  "if": { "properties": { "kind": { "const": "decision" } } },
+  "then": { "required": ["options"] },
+  "else": { "not": { "required": ["options"] } },
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+    "epoch": { "type": "integer", "minimum": 0 }
+  }
+}

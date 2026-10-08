@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Claire-Vu/HarborDeck/schema/quota.schema.json",
+  "title": "HarborDeck quota snapshot",
+  "description": "<HARBORDECK_HOME>/quota.json. Optional. One stamina bar per subscription window.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "window", "used_pct", "resets_at"],
+    "properties": {
+      "name": { "type": "string", "minLength": 1 },
+      "window": { "type": "string", "pattern": "^[1-9][0-9]*[hdw]$" },
+      "used_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+      "resets_at": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

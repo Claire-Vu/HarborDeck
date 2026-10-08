@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Claire-Vu/HarborDeck/schema/rules.schema.json",
+  "title": "HarborDeck standing orders",
+  "description": "<HARBORDECK_HOME>/rules.json. Optional. Keyed by the strings items use in rules[] and checks[].rule.",
+  "type": "object",
+  "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+  "additionalProperties": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+      "source": { "type": "string", "maxLength": 300 }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Claire-Vu/HarborDeck/schema/gap.schema.json",
+  "title": "HarborDeck gap line",
+  "description": "One line of <HARBORDECK_HOME>/gaps.jsonl: a response an agent could not map onto an item kind. Feeds HarborDeck improvements.",
+  "type": "object",
+  "required": ["text", "at"],
+  "properties": {
+    "text": { "type": "string", "minLength": 1, "maxLength": 2000, "description": "What did not fit and why." },
+    "sample": { "type": "string", "description": "Path or URL of an example of the response." },
+    "item": { "type": "string", "description": "Item id it was squeezed into, if any." },
+    "from": { "type": "string" },
+    "at": { "type": "integer", "minimum": 0 }
+  }
+}

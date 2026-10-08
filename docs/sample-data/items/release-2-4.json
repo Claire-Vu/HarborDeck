@@ -1,0 +1,50 @@
+{
+ "id": "release-2-4",
+ "kind": "decision",
+ "project": "weather-app",
+ "stream": "releases",
+ "title": "Ship release 2.4 to the store?",
+ "summary": "Release 2.4 adds hourly radar and fixes the widget crash. All 212 tests pass. The crash rate on the beta channel fell from 1.8% to 0.2%.",
+ "options": [
+  {
+   "key": "ship",
+   "label": "Ship today",
+   "recommended": true
+  },
+  {
+   "key": "hold",
+   "label": "Hold for one more beta week"
+  }
+ ],
+ "artifacts": [
+  {
+   "type": "pr",
+   "url": "https://github.com/example/weather-app/pull/88"
+  },
+  {
+   "type": "report",
+   "path": "bodies/release-2-4-notes.md"
+  }
+ ],
+ "rules": [
+  "no-release-without-word",
+  "friday-freeze"
+ ],
+ "checks": [
+  {
+   "rule": "no-release-without-word",
+   "ok": true,
+   "note": "held for your word"
+  },
+  {
+   "rule": "friday-freeze",
+   "ok": false,
+   "note": "today is Friday; freeze says ship Monday"
+  }
+ ],
+ "priority": 1,
+ "due": 1791486400,
+ "created": 1791392800,
+ "status": "open",
+ "from": "mate-main"
+}
