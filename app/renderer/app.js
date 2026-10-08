@@ -69,7 +69,6 @@ const hash = s => { let x = 0; for (const c of String(s)) x = (x * 31 + c.charCo
 const fmtDate = ts => new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const fmtTime = ts => new Date(ts * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 const age = secs => { const s = Math.max(0, secs); if (s < 3600) return `${Math.round(s / 60)}m`; if (s < 86400) return `${Math.floor(s / 3600)}h`; const d = Math.floor(s / 86400); return `${d}d${d < 3 ? ' ' + Math.floor((s % 86400) / 3600) + 'h' : ''}`; };
-const dur = secs => { const s = Math.max(0, secs); if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m`; if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`; return age(s); };
 const sentences = text => (text || '').split(/(?<=[.!?])\s+(?=[A-Z"'(@$0-9])/).map(s => s.trim()).filter(Boolean);
 const base = p => (p || '').split('/').pop();
 const prio = it => it.priority || 3;
@@ -158,15 +157,8 @@ const tired = () => { const m = staminaMin(); return m != null && m < 20; };
 // scheduler: requests queued for after the usage-limit reset or a time (scheduler.json via the main process)
 const queuedRequests = () => (SCHED?.pending || []).filter(p => p.request && !S.answers.some(a => a.action === 'request' && a.id === p.request.id));
 const awakeUntil = () => (SCHED?.keep_awake && SCHED.keep_awake.until > now() ? SCHED.keep_awake.until : null);
-function queuedLabel(p) {
-  const t = now();
-  if (!SCHED?.enabled) return 'held: the scheduler is off (harbordeck scheduler on)';
-  if (!p.due) return 'going out on the next tick';
-  const d = p.due - t;
-  if (d <= 0) return d < -180 ? 'overdue: is the scheduler running? (harbordeck scheduler install)' : 'going out now';
-  return p.kind === 'reset' ? `waiting for reset · ${dur(d)}` : `queued for ${fmtTime(p.due)} · ${dur(d)}`;
-}
-function nextClockEpoch(hhmm) { const [hh, mm] = hhmm.split(':').map(Number); const d = new Date(); d.setHours(hh, mm, 0, 0); if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1); return Math.floor(d.getTime() / 1000); }
+const { dur, nextClockEpoch } = window.HarborSchedule;
+const queuedLabel = p => window.HarborSchedule.queuedLabel(p, SCHED, now(), fmtTime);
 
 // ------------------------------------------------------------ audio: desk sounds + generated harbor music
 let actx = null;
@@ -725,20 +717,9 @@ function staminaPanel() {
   return box;
 }
 function renderSchedChip() {
-  const c = $('#sched-chip'); const q = queuedRequests().length; const pend = (SCHED?.pending || []).filter(p => p.kind !== 'limit').length; const ka = awakeUntil();
-  const reset = SCHED?.next_reset && SCHED.next_reset > now() ? SCHED.next_reset : null;
-  if (!SCHED || (!pend && !reset && SCHED.enabled)) { c.hidden = true; return; }
-  c.hidden = false; c.classList.toggle('off', !SCHED.enabled);
-  const parts = [];
-  if (!SCHED.enabled) parts.push('scheduler off');
-  if (pend) parts.push(`⏳ ${pend} queued`);
-  if (reset) parts.push(`↻ ${dur(reset - now())}`);
-  if (ka) parts.push(`☕ ${fmtTime(ka)}`);
-  c.replaceChildren(h('span', null, parts.join(' · ')));
-  c.title = [!SCHED.enabled ? 'Scheduler is off: nothing queued goes out (harbordeck scheduler on).' : null,
-    pend ? `${pend} waiting in the scheduler${q ? ` (${q} order${q > 1 ? 's' : ''})` : ''}; they go out by themselves.` : null,
-    reset ? `Usage limit resets at ${fmtTime(reset)}${reset - now() > 86400 ? ' ' + fmtDate(reset) : ''}.` : null,
-    ka ? `Keeping this Mac awake until ${fmtTime(ka)} (display can still sleep).` : null].filter(Boolean).join(' ');
+  const c = $('#sched-chip'); const v = window.HarborSchedule.chip(SCHED, queuedRequests().length, now(), { fmtTime, fmtDate });
+  c.hidden = !v; if (!v) return;
+  c.classList.toggle('off', v.off); c.replaceChildren(h('span', null, v.text)); c.title = v.title;
 }
 function renderStaminaMini() {
   renderSchedChip();

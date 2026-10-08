@@ -17,8 +17,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { writeAtomic, SLUG } from './store.js';
+import { parseWhen, parseResetText, fmtTime } from './when.js';
+import { awakeOps, holdAwake, AWAKE_SLACK } from './keep-awake.js';
+
+export { parseWhen, parseResetText, fmtTime } from './when.js';
+export { launchdLabel, launchdPlist, systemdUnits, hookSnippet } from './install.js';
 
 export const DEFAULTS = { wake_command: '', margin: 90, max_attempts: 5, wake_timeout: 120, keep_awake: process.platform === 'darwin' };
 export const DEDUPE_WINDOW = 15 * 60; // limit records this close are the same reset
@@ -92,84 +97,6 @@ export function setEnabled(home, on) {
   if (on) fs.rmSync(p.off, { force: true }); else fs.writeFileSync(p.off, '');
   log(home, on ? 'turned on' : 'turned off');
   writeStatus(home);
-}
-
-// ------------------------------------------------------------ time parsing
-
-const pad = (n) => String(n).padStart(2, '0');
-
-// Epoch of a wall-clock time in an IANA zone (or the local zone when tz is falsy).
-export function zonedEpoch(y, mo, d, h, mi, tz) {
-  if (!tz) return Math.floor(new Date(y, mo - 1, d, h, mi, 0).getTime() / 1000);
-  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' });
-  const wall = Date.UTC(y, mo - 1, d, h, mi, 0);
-  let t = wall;
-  for (let i = 0; i < 3; i++) { // converge on the zone offset (twice covers DST edges)
-    const f = Object.fromEntries(fmt.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
-    const seen = Date.UTC(+f.year, +f.month - 1, +f.day, +f.hour % 24, +f.minute, +f.second);
-    t += wall - seen;
-  }
-  return Math.floor(t / 1000);
-}
-
-// Wall-clock parts of an epoch in tz (or local).
-function partsIn(epoch, tz) {
-  if (!tz) { const d = new Date(epoch * 1000); return { y: d.getFullYear(), mo: d.getMonth() + 1, d: d.getDate() }; }
-  const f = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(epoch * 1000)).map((x) => [x.type, x.value]));
-  return { y: +f.year, mo: +f.month, d: +f.day };
-}
-
-// Next occurrence of h:mi (today or tomorrow) after t.
-function nextClock(h, mi, t, tz) {
-  const p = partsIn(t, tz);
-  let e = zonedEpoch(p.y, p.mo, p.d, h, mi, tz);
-  if (e <= t) { const q = partsIn(t + 86400, tz); e = zonedEpoch(q.y, q.mo, q.d, h, mi, tz); }
-  return e;
-}
-
-// "HH:MM" (next occurrence), "+30m" "+2h" "+1d", "YYYY-MM-DD HH:MM" (local), ISO 8601, "@<epoch>".
-// Returns epoch seconds, or null when unparseable.
-export function parseWhen(s, t = now()) {
-  s = String(s).trim();
-  let m;
-  if ((m = /^@(\d{9,11})$/.exec(s))) return Number(m[1]);
-  if ((m = /^\+(\d+(?:\.\d+)?)([smhd])$/.exec(s))) return t + Math.round(Number(m[1]) * { s: 1, m: 60, h: 3600, d: 86400 }[m[2]]);
-  if ((m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(s))) return nextClock(+m[1], +m[2], t);
-  if ((m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/.exec(s))) return zonedEpoch(+m[1], +m[2], +m[3], +m[4], +m[5]);
-  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const v = Date.parse(s); return Number.isNaN(v) ? null : Math.floor(v / 1000); }
-  return null;
-}
-
-const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
-
-// Reset time from a limit message: "resets 3pm", "resets Oct 9, 3:30pm (Europe/Paris)",
-// "resets at 15:00", or a "...|<epoch>" suffix. Returns epoch seconds or null.
-export function parseResetText(text, t = now()) {
-  if (!text) return null;
-  let m = /\|(\d{10})\b/.exec(text);
-  if (m) return Number(m[1]);
-  m = /resets?\s+(?:at\s+)?(?:([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(?:at\s+)?)?(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?)?(?:\s*\(([A-Za-z_]+(?:\/[A-Za-z0-9_+-]+)+|UTC)\))?/i.exec(text);
-  if (!m) return null;
-  const [, mon, day, hs, mins, ap, tz0] = m;
-  if (!ap && mins === undefined) return null; // "resets 3" is not a time
-  let h = Number(hs);
-  if (ap) { if (h < 1 || h > 12) return null; h = (h % 12) + (/^p/i.test(ap) ? 12 : 0); } else if (h > 23) return null;
-  const mi = Number(mins || 0);
-  let tz = tz0 || null;
-  if (tz) { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = null; } }
-  if (mon && MONTHS.includes(mon.toLowerCase().slice(0, 3))) {
-    const mo = MONTHS.indexOf(mon.toLowerCase().slice(0, 3)) + 1;
-    let y = partsIn(t, tz).y;
-    let e = zonedEpoch(y, mo, Number(day), h, mi, tz);
-    if (e < t - 86400) e = zonedEpoch(++y, mo, Number(day), h, mi, tz);
-    return e;
-  }
-  return nextClock(h, mi, t, tz);
-}
-
-export function fmtTime(epoch) {
-  const d = new Date(epoch * 1000);
-  return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()]} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // ------------------------------------------------------------ queue
@@ -524,102 +451,11 @@ export function writeStatus(home, t = now(), env = process.env, syncAwake = true
   return data;
 }
 
-// ------------------------------------------------------------ keep awake (macOS)
-// While anything is pending, hold exactly one `caffeinate -i -t <secs>` assertion: idle
-// system sleep is blocked, the display may still sleep. It ends on its own at `until`
-// (the last due item + slack), so a crashed scheduler never keeps the Mac up for good;
-// every status write extends, replaces or kills it. No sudo, no pmset.
-const AWAKE_SLACK = 300;
-
-const awakeOps = (env) => ({
-  bin: env.HARBORDECK_CAFFEINATE || 'caffeinate',
-  // Only ever kill a pid that is still our caffeinate (pids get reused).
-  alive(pid, bin) {
-    const r = spawnSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' });
-    const cmd = (r.stdout || '').trim();
-    return r.status === 0 && cmd.includes(path.basename(bin)) && / -i -t \d+/.test(cmd);
-  },
-  start(bin, secs) {
-    const c = spawn(bin, ['-i', '-t', String(secs)], { detached: true, stdio: 'ignore' });
-    c.on('error', () => { /* no caffeinate here */ });
-    c.unref();
-    return c.pid;
-  },
-  stop(pid) { try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ } },
-});
-
-// Returns the assertion now held ({ pid, until }) or null. `ops` is injectable for tests.
+// While anything is pending, keep the Mac awake until the last due item (+ slack); release otherwise.
+// `ops` is injectable for tests.
 export function syncKeepAwake(home, data, env = process.env, t = now(), ops = awakeOps(env)) {
-  const p = paths(home);
   const cfg = loadConfig(home, env);
-  const cur = readJson(p.awake, null);
-  const held = cur && cur.pid && cur.until > t && ops.alive(cur.pid, ops.bin) ? cur : null;
   const want = cfg.keep_awake && data.enabled && data.pending.length > 0;
-  if (!want) {
-    if (held) { ops.stop(held.pid); log(home, `keep-awake released (pid ${held.pid})`); }
-    if (cur) fs.rmSync(p.awake, { force: true });
-    return null;
-  }
-  const until = Math.min(Math.max(t, ...data.pending.map((i) => i.due || t)) + AWAKE_SLACK, t + MAX_HORIZON);
-  if (held && Math.abs(held.until - until) < 60) return held;
-  if (held) ops.stop(held.pid);
-  const pid = ops.start(ops.bin, until - t);
-  if (!pid) { fs.rmSync(p.awake, { force: true }); return null; }
-  const next = { pid, until };
-  writeAtomic(p.awake, JSON.stringify(next) + '\n');
-  log(home, `keep-awake until ${fmtTime(until)} (caffeinate -i pid ${pid})`);
-  return next;
-}
-
-// ------------------------------------------------------------ install (launchd / systemd / cron)
-
-export function launchdLabel(home, defaultHome) {
-  return home === defaultHome ? 'dev.harbordeck.scheduler' : `dev.harbordeck.scheduler.${sha(home, 8)}`;
-}
-
-const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-export function launchdPlist({ label, node, bin, home, envPath, interval = 60 }) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- harbordeck scheduler: runs "harbordeck tick" every ${interval}s. Remove with "harbordeck scheduler uninstall". -->
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>${xml(label)}</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>${xml(node)}</string>
-    <string>${xml(bin)}</string>
-    <string>tick</string>
-  </array>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>HARBORDECK_HOME</key>
-    <string>${xml(home)}</string>
-    <key>PATH</key>
-    <string>${xml(envPath)}</string>
-  </dict>
-  <key>StartInterval</key>
-  <integer>${interval}</integer>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>StandardErrorPath</key>
-  <string>${xml(path.join(home, 'schedule', 'launchd.err'))}</string>
-</dict>
-</plist>
-`;
-}
-
-export function systemdUnits({ node, bin, home, envPath, interval = 60 }) {
-  const q = (s) => `"${String(s).replace(/(["\\])/g, '\\$1')}"`;
-  return {
-    service: `[Unit]\nDescription=harbordeck scheduler tick\n\n[Service]\nType=oneshot\nEnvironment=HARBORDECK_HOME=${q(home)}\nEnvironment=PATH=${q(envPath)}\nExecStart=${q(node)} ${q(bin)} tick\n`,
-    timer: `[Unit]\nDescription=harbordeck scheduler tick every ${interval}s\n\n[Timer]\nOnBootSec=${interval}\nOnUnitActiveSec=${interval}\n\n[Install]\nWantedBy=timers.target\n`,
-    cron: `* * * * * HARBORDECK_HOME=${q(home)} PATH=${q(envPath)} ${q(node)} ${q(bin)} tick`,
-  };
-}
-
-export function hookSnippet(bin) {
-  return JSON.stringify({ hooks: { StopFailure: [{ matcher: 'rate_limit', hooks: [{ type: 'command', command: `${bin} limit record` }] }] } }, null, 2);
+  const until = want ? Math.min(Math.max(t, ...data.pending.map((i) => i.due || t)) + AWAKE_SLACK, t + MAX_HORIZON) : null;
+  return holdAwake(paths(home).awake, until, t, ops, (m) => log(home, m));
 }
