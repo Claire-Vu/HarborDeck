@@ -414,7 +414,7 @@ export async function tick(home, env = process.env, t = now()) {
       try { fs.renameSync(path.join(p.queue, `${i.id}.json`), path.join(p.sent, `${i.id}.json`)); } catch { continue; } // another tick won
       out.push({ ...i, _due: d });
     }
-    if (changed || out.length) writeStatus(home, t, env);
+    if (changed || out.length) writeStatus(home, t, env, false);
     return out;
   });
   if (res.deferred.length && !claimed.length) log(home, `no wake_command; ${res.deferred.length} message(s) waiting`);
@@ -516,9 +516,10 @@ export function statusData(home, env = process.env, t = now()) {
   };
 }
 
-export function writeStatus(home, t = now(), env = process.env) {
+// syncAwake false: leave the keep-awake assertion as is (tick re-syncs it after delivering).
+export function writeStatus(home, t = now(), env = process.env, syncAwake = true) {
   const data = statusData(home, env, t);
-  data.keep_awake = syncKeepAwake(home, data, env, t);
+  if (syncAwake) data.keep_awake = syncKeepAwake(home, data, env, t);
   writeAtomic(paths(home).status, JSON.stringify(data, null, 1) + '\n');
   return data;
 }
