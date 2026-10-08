@@ -1,0 +1,4 @@
+{"id":"newsletter-6","action":"ask","note":"is the weekly digest opt-in?","at":1791441106}
+{"id":"req-1791433906-7","action":"request","note":"Add a \"what changed since last visit\" banner to boards","to":"mate-web","at":1791433906}
+{"id":"hdv-palette","action":"decide","key":"warm","note":"","at":1791451912}
+{"id":"req-1791451920-595","action":"request","note":"Write the weekly digest","to":"mate-main","queued_at":1791451920,"at":1791451950}

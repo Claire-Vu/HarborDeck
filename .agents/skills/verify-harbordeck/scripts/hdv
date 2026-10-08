@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# hdv: launch, check, drive and tear down one isolated Harbor Deck instance for verification.
+# Everything lives in one state dir per worktree (default /tmp/hdv-<hash of repo root>, override HDV_STATE):
+# a synthetic data dir, a private Electron profile, a stub caffeinate and a stub wake command that only logs.
+# Never touches ~/.harbordeck, the installed app, launchd, or the real caffeinate.
+#
+#   hdv launch [--demo] [--port N]   start the app (seeded synthetic data dir; --demo: the app's own demo + pretend agent)
+#   hdv doctor                       read-only: is this instance ours, up, and on synthetic data?
+#   hdv env                          print exports (eval "$(hdv env)") for chrome-devtools-axi and the CLI
+#   hdv hd <args...>                 run the harbordeck CLI against the instance's data dir
+#   hdv tick                         one scheduler tick (real `harbordeck tick`) with the stub wake + caffeinate
+#   hdv wake-log                     what the stub wake command received
+#   hdv evidence [feature]           print (and create) the evidence dir for this run [/feature]
+#   hdv capture <feature> <step>     save <step>.png (+ .pane.png), <step>.aria.yml and <step>.state/ (answers, items, scheduler, wake log)
+#   hdv cleanup                      kill what launch started, remove the state dir; evidence stays
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/../../../.." && pwd)
+state=${HDV_STATE:-/tmp/hdv-$(printf '%s' "$root" | shasum | cut -c1-10)}
+ev_root=${HDV_EVIDENCE_ROOT:-$HOME/.local/share/verify-harbordeck}
+info="$state/instance.env"
+
+die() { echo "hdv: $*" >&2; exit 1; }
+load() { [ -f "$info" ] || die "no instance (run: hdv launch)"; # shellcheck disable=SC1090
+  . "$info"; }
+alive() { [ -n "${1:-}" ] && kill -0 "$1" 2>/dev/null; }
+cli_env() { env HARBORDECK_HOME="$HDV_HOME" HARBORDECK_FROM="${HARBORDECK_FROM:-mate-main}" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" HARBORDECK_LAUNCHD_DIR="$state/launchd" "$@"; }
+# true when pid $1 is HDV_PID or one of its descendants (node_modules/.bin/electron spawns the real binary)
+ours() { local p=${1:-}; while [ -n "$p" ] && [ "$p" -gt 1 ]; do [ "$p" = "$HDV_PID" ] && return 0; p=$(ps -o ppid= -p "$p" | tr -d ' '); done; return 1; }
+free_port() { local p=$1; while lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; do p=$((p + 1)); done; echo "$p"; }
+
+cmd_launch() {
+  local demo=0 port=""
+  while [ $# -gt 0 ]; do case "$1" in --demo) demo=1 ;; --port) port=$2; shift ;; *) die "launch: unknown flag $1" ;; esac; shift; done
+  if [ -f "$info" ]; then . "$info"; alive "${HDV_PID:-}" && die "already running (pid $HDV_PID); hdv cleanup first"; fi
+  rm -rf "$state"; mkdir -p "$state/bin" "$state/profile" "$state/launchd"
+  [ -x "$root/node_modules/.bin/electron" ] || die "no electron: run npm install in $root"
+  port=${port:-$(free_port 9340)}
+  local run_id; run_id="$(date +%Y%m%d-%H%M%S)-$(git -C "$root" rev-parse --short HEAD)"
+  # Stub caffeinate: looks like `caffeinate -i -t N` to the scheduler's pid check, holds no assertion.
+  printf '#!/bin/sh\ntrap "kill \\$! 2>/dev/null; exit 0" TERM INT\nsleep "${3:-60}" & wait\n' > "$state/bin/caffeinate"
+  # Stub wake command: logs what an agent would have received, exits 0 (delivered).
+  printf '#!/bin/sh\n{ printf "%%s\\t%%s\\t%%s\\t" "$(date +%%s)" "$HARBORDECK_SCHEDULE_KIND" "${HARBORDECK_ITEM:--}"; tr "\\n" " " ; echo; } >> "%s/wake.log"\n' "$state" > "$state/bin/wake"
+  chmod +x "$state/bin/caffeinate" "$state/bin/wake"; : > "$state/wake.log"
+  local home
+  if [ "$demo" = 1 ]; then home="$state/profile/demo"
+  else
+    # The demo's local web page (app/demo/static-site.js) on a random loopback port, for the browser-pane item.
+    nohup node -e 'require(process.argv[1]).startStaticSite(process.argv[2]).then(s => console.log(s.url))' \
+      "$root/app/demo/static-site.js" "$root/app/demo/assets/web" > "$state/site.url" 2> "$state/site.log" &
+    echo "HDV_SITE_PID=$!" > "$state/site.pid"
+    for _ in $(seq 1 50); do [ -s "$state/site.url" ] && break; sleep 0.1; done
+    [ -s "$state/site.url" ] || die "demo web page did not start ($(cat "$state/site.log"))"
+    home="$state/home"
+    node -e 'require(process.argv[1]).seedDemo(process.argv[2], undefined, { webUrl: process.argv[3] })' "$root/app/demo/seed.js" "$home" "$(cat "$state/site.url")"
+  fi
+  cat > "$info" <<ENV
+HDV_ROOT='$root'
+HDV_HOME='$home'
+HDV_PROFILE='$state/profile'
+HDV_PORT=$port
+HDV_DEMO=$demo
+HDV_RUN_ID='$run_id'
+HDV_SITE='$(cat "$state/site.url" 2>/dev/null)'
+$(cat "$state/site.pid" 2>/dev/null)
+ENV
+  HARBORDECK_HOME=$([ "$demo" = 1 ] || echo "$home") HARBORDECK_USER_DATA="$state/profile" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" \
+    nohup "$root/node_modules/.bin/electron" "$root" $([ "$demo" = 1 ] && echo --demo) --remote-debugging-port="$port" > "$state/electron.log" 2>&1 &
+  echo "HDV_PID=$!" >> "$info"
+  local i
+  for i in $(seq 1 150); do
+    curl -sf "http://127.0.0.1:$port/json/list" 2>/dev/null | grep -q 'renderer/index.html' && [ -d "$home/items" ] && break
+    sleep 0.2
+  done
+  [ "$i" -lt 150 ] || { tail -20 "$state/electron.log" >&2; die "app did not come up on CDP port $port"; }
+  # Scheduler config lives in the synthetic data dir: stub wake, no margin, keep-awake on (stub caffeinate).
+  load; cli_env node "$root/cli/bin/harbordeck.js" scheduler config --wake-command "$state/bin/wake" --margin 0 --keep-awake on >/dev/null
+  echo "ready  pid=$HDV_PID${HDV_SITE:+  site=$HDV_SITE}  cdp=http://127.0.0.1:$port  home=$home  run=$run_id"
+}
+
+cmd_doctor() {
+  load; local ok=1
+  check() { if eval "$2"; then echo "ok    $1"; else echo "FAIL  $1"; ok=0; fi; }
+  check "app pid $HDV_PID alive" 'alive "$HDV_PID"'
+  check "pid runs this worktree's electron" 'ps -p "$HDV_PID" -o command= | grep -qF "$HDV_ROOT"'
+  check "CDP :$HDV_PORT owned by our pid tree" 'ours "$(lsof -nP -iTCP:"$HDV_PORT" -sTCP:LISTEN -t | head -1)"'
+  check "window is the Harbor Deck desk" 'curl -sf "http://127.0.0.1:$HDV_PORT/json/list" | grep -q "\"title\": \"Harbor Deck\""'
+  check "data dir is synthetic ($HDV_HOME)" '[ -d "$HDV_HOME/items" ] && case "$HDV_HOME" in "$state"/*) true ;; *) false ;; esac'
+  check "app reads that data dir" 'grep -qF "data directory: $HDV_HOME" "$state/electron.log"'
+  check "wake command is the stub" 'grep -qF "$state/bin/wake" "$HDV_HOME/schedule/config.json"'
+  echo "build  $(git -C "$HDV_ROOT" rev-parse --abbrev-ref HEAD)@$(git -C "$HDV_ROOT" rev-parse --short HEAD)$(git -C "$HDV_ROOT" diff --quiet HEAD -- . ':!.agents' ':!.claude' ':!.cursor' || echo ' (dirty)')"
+  echo "items  $(ls "$HDV_HOME/items" | grep -c '\.json$')   answers $(wc -l < "$HDV_HOME/answers.jsonl" 2>/dev/null | tr -d ' ' || echo 0)"
+  [ "$ok" = 1 ]
+}
+
+cmd_env() {
+  load
+  echo "export HDV_STATE='$state' HDV_HOME='$HDV_HOME' HDV_PORT=$HDV_PORT HDV_RUN_ID='$HDV_RUN_ID' HDV_SITE='${HDV_SITE:-}'"
+  echo "export HARBORDECK_HOME='$HDV_HOME' HARBORDECK_CAFFEINATE='$state/bin/caffeinate' HARBORDECK_LAUNCHD_DIR='$state/launchd'"
+  echo "export CHROME_DEVTOOLS_AXI_BROWSER_URL='http://127.0.0.1:$HDV_PORT' CHROME_DEVTOOLS_AXI_SESSION='hdv-$HDV_PORT'"
+}
+
+cmd_hd() { load; cli_env node "$HDV_ROOT/cli/bin/harbordeck.js" "$@"; }
+cmd_tick() { load; cli_env node "$HDV_ROOT/cli/bin/harbordeck.js" tick; }
+cmd_wake_log() { load; cat "$state/wake.log"; }
+cmd_evidence() { load; local d="$ev_root/$HDV_RUN_ID${1:+/$1}"; mkdir -p "$d"; echo "$d"; }
+
+cmd_capture() {
+  load; [ -n "${2:-}" ] || die "usage: hdv capture <feature> <step>"
+  local d; d=$(cmd_evidence "$1"); local ui="$(dirname "$0")/ui.mjs" url="http://127.0.0.1:$HDV_PORT"
+  node "$ui" shot "$d/$2.png" --cdp "$url" && node "$ui" aria --out "$d/$2.aria.yml" --cdp "$url"
+  # the browser pane is a separate view the desk screenshot does not include; shoot it on its own when open
+  node "$ui" shot "$d/$2.pane.png" --pane --cdp "$url" 2>/dev/null || true
+  mkdir -p "$d/$2.state"
+  cp "$HDV_HOME/answers.jsonl" "$d/$2.state/" 2>/dev/null || : > "$d/$2.state/answers.jsonl"
+  cp "$state/wake.log" "$d/$2.state/wake.log"
+  [ -f "$HDV_HOME/scheduler.json" ] && cp "$HDV_HOME/scheduler.json" "$d/$2.state/"
+  (cd "$HDV_HOME/items" && for f in *.json; do node -e 'const i=require(process.argv[1]);console.log([i.id,i.kind,i.status,(i.thread||[]).length,i.title].join("\t"))' "$PWD/$f"; done) > "$d/$2.state/items.tsv"
+  echo "$d/$2.{png,aria.yml,state/}"
+}
+
+cmd_cleanup() {
+  [ -f "$state/site.pid" ] && . "$state/site.pid"
+  [ -f "$info" ] || { alive "${HDV_SITE_PID:-}" && kill "$HDV_SITE_PID"; echo "nothing to clean"; rm -rf "$state"; return; }
+  . "$info"
+  # chrome-devtools-axi bridge for this instance (it only attached; stopping it never closes the app's owner)
+  CHROME_DEVTOOLS_AXI_BROWSER_URL="http://127.0.0.1:$HDV_PORT" CHROME_DEVTOOLS_AXI_SESSION="hdv-$HDV_PORT" chrome-devtools-axi stop >/dev/null 2>&1 || true
+  # stub caffeinate the scheduler may have left running (pid recorded by the scheduler, checked to be our stub)
+  local cp; cp=$(node -e 'try{console.log(require(process.argv[1]).pid||"")}catch{}' "$HDV_HOME/schedule/keep-awake.json" 2>/dev/null || true)
+  if alive "$cp" && ps -p "$cp" -o command= | grep -qF "$state/bin/caffeinate"; then kill "$cp" 2>/dev/null || true; fi
+  if alive "${HDV_SITE_PID:-}" && ps -p "$HDV_SITE_PID" -o command= | grep -qF static-site.js; then kill "$HDV_SITE_PID" 2>/dev/null || true; fi
+  if alive "${HDV_PID:-}"; then
+    kill "$HDV_PID" 2>/dev/null || true
+    for _ in $(seq 1 50); do alive "$HDV_PID" || break; sleep 0.1; done
+    alive "$HDV_PID" && kill -9 "$HDV_PID" 2>/dev/null || true
+  fi
+  rm -rf "$state"
+  echo "cleaned $state (evidence kept under $ev_root/$HDV_RUN_ID)"
+}
+
+sub=${1:-}; [ $# -gt 0 ] && shift
+case "$sub" in
+  launch) cmd_launch "$@" ;; doctor) cmd_doctor ;; env) cmd_env ;; hd) cmd_hd "$@" ;; tick) cmd_tick ;;
+  wake-log) cmd_wake_log ;; evidence) cmd_evidence "${1:-}" ;; capture) cmd_capture "$@" ;; cleanup) cmd_cleanup ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; [ -z "$sub" ] || exit 2 ;;
+esac
