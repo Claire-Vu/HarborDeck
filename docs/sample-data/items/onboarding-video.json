@@ -1,0 +1,45 @@
+{
+ "id": "onboarding-video",
+ "kind": "review",
+ "project": "bakery-site",
+ "stream": "content",
+ "title": "Review: 45 s onboarding video",
+ "summary": "A 45 s walkthrough of ordering a cake. Voice is calm and slow. Captions are on.",
+ "artifacts": [
+  {
+   "type": "video",
+   "url": "https://example.com/media/onboarding-v2.mp4"
+  },
+  {
+   "type": "report",
+   "path": "bodies/onboarding-script.md"
+  }
+ ],
+ "rules": [
+  "captions-always"
+ ],
+ "checks": [
+  {
+   "rule": "captions-always",
+   "ok": true
+  }
+ ],
+ "thread": [
+  {
+   "from": "captain",
+   "text": "Make the voice slower.",
+   "at": 1791350000
+  },
+  {
+   "from": "mate-design",
+   "text": "Re-recorded at 0.9x pace; v2 attached.",
+   "at": 1791380000
+  }
+ ],
+ "priority": 2,
+ "due": 1791659200,
+ "created": 1791340000,
+ "updated": 1791380000,
+ "status": "open",
+ "from": "mate-design"
+}

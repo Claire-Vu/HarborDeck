@@ -1,0 +1,33 @@
+{
+ "id": "logo-colors",
+ "kind": "decision",
+ "project": "bakery-site",
+ "stream": "branding",
+ "title": "Logo palette: warm or cool?",
+ "summary": "Two palettes were mocked on the home page. Warm reads as cozy. Cool reads as modern.",
+ "options": [
+  {
+   "key": "warm",
+   "label": "Warm (cream and rust)",
+   "recommended": true
+  },
+  {
+   "key": "cool",
+   "label": "Cool (slate and mint)"
+  }
+ ],
+ "artifacts": [
+  {
+   "type": "image",
+   "path": "bodies/palette-warm.svg"
+  },
+  {
+   "type": "image",
+   "path": "bodies/palette-cool.svg"
+  }
+ ],
+ "priority": 3,
+ "created": 1791370000,
+ "status": "open",
+ "from": "mate-design"
+}

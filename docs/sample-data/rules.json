@@ -1,0 +1,18 @@
+{
+ "no-release-without-word": {
+  "text": "Never ship a release without the owner's explicit word.",
+  "source": "preferences.md"
+ },
+ "friday-freeze": {
+  "text": "No production releases on Fridays.",
+  "source": "preferences.md"
+ },
+ "budget-30": {
+  "text": "Infrastructure spend stays under $30/mo per project.",
+  "source": "preferences.md"
+ },
+ "captions-always": {
+  "text": "Every video ships with burned-in captions.",
+  "source": "preferences.md"
+ }
+}

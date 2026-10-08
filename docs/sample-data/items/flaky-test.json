@@ -1,0 +1,18 @@
+{
+ "id": "flaky-test",
+ "kind": "answer",
+ "project": "weather-app",
+ "stream": "quality",
+ "title": "Why the radar test was flaky",
+ "summary": "The test raced a timer. A fake clock fixes it. No product code changed.",
+ "artifacts": [
+  {
+   "type": "pr",
+   "url": "https://github.com/example/weather-app/pull/90"
+  }
+ ],
+ "priority": 3,
+ "created": 1791280000,
+ "status": "resolved",
+ "from": "mate-main"
+}

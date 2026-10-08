@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Claire-Vu/HarborDeck/schema/answer.schema.json",
+  "title": "HarborDeck answer line",
+  "description": "One line of <HARBORDECK_HOME>/answers.jsonl, appended by the app per user action. Undo is not an action: an undone line is never written.",
+  "type": "object",
+  "required": ["id", "action", "at"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", "description": "Item id; for action=request a new id minted by the app." },
+    "action": { "enum": ["decide", "approve", "reject", "needs-work", "comment", "ask", "file", "request"] },
+    "key": { "type": "string", "description": "decide only: the chosen option key." },
+    "note": { "type": "string", "maxLength": 4000 },
+    "anchor": {
+      "type": "object",
+      "description": "comment only: what the note points at.",
+      "properties": {
+        "claim": { "type": "string" },
+        "artifact": { "type": "string" },
+        "t": { "type": "number", "minimum": 0 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "heading": { "type": "string" },
+        "rule": { "type": "string" }
+      }
+    },
+    "to": { "type": "string", "description": "request only: the agent id (fleet firstmates[].id) the order is handed to." },
+    "at": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    { "if": { "properties": { "action": { "const": "decide" } } }, "then": { "required": ["key"] } },
+    { "if": { "properties": { "action": { "const": "request" } } }, "then": { "required": ["note"] } }
+  ]
+}

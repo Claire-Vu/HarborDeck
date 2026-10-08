@@ -1,0 +1,29 @@
+{
+ "id": "db-research",
+ "kind": "answer",
+ "project": "weather-app",
+ "stream": "infra",
+ "title": "Research: hosted Postgres options",
+ "summary": "Three hosts fit the budget. Two include point-in-time restore. The cheapest lacks a region near most users.",
+ "body": "bodies/db-research.md",
+ "artifacts": [
+  {
+   "type": "report",
+   "path": "bodies/db-research.md"
+  }
+ ],
+ "rules": [
+  "budget-30"
+ ],
+ "checks": [
+  {
+   "rule": "budget-30",
+   "ok": true,
+   "note": "all three under $30/mo"
+  }
+ ],
+ "priority": 4,
+ "created": 1791310000,
+ "status": "open",
+ "from": "mate-main"
+}

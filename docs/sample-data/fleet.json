@@ -1,0 +1,115 @@
+{
+ "generated": 1791400000,
+ "day": "2026-10-07",
+ "firstmates": [
+  {
+   "id": "mate-main",
+   "label": "First Mate",
+   "domain": "everything else",
+   "harness": "claude",
+   "model": "opus",
+   "state": "attending"
+  },
+  {
+   "id": "mate-design",
+   "label": "Design mate",
+   "domain": "bakery-site",
+   "harness": "codex",
+   "model": "gpt",
+   "state": "attending"
+  }
+ ],
+ "crew": [
+  {
+   "id": "crew-release",
+   "firstmate": "mate-main",
+   "harness": "claude",
+   "model": "opus",
+   "effort": "medium",
+   "state": "waiting",
+   "task": "release-2-4",
+   "task_title": "Cut release 2.4",
+   "item": "release-2-4",
+   "project": "weather-app",
+   "shipped": 5,
+   "rework": 1
+  },
+  {
+   "id": "crew-video",
+   "firstmate": "mate-design",
+   "harness": "codex",
+   "model": "gpt",
+   "effort": "medium",
+   "state": "done",
+   "task": "onboarding-video",
+   "task_title": "Onboarding video v2",
+   "item": "onboarding-video",
+   "project": "bakery-site",
+   "shipped": 2,
+   "rework": 1
+  },
+  {
+   "id": "crew-search",
+   "firstmate": "mate-main",
+   "harness": "claude",
+   "model": "sonnet",
+   "effort": "low",
+   "state": "working",
+   "task": "search-speedup",
+   "task_title": "Speed up city search",
+   "project": "weather-app",
+   "shipped": 3,
+   "rework": 0
+  },
+  {
+   "id": "crew-spare",
+   "firstmate": "mate-main",
+   "harness": "claude",
+   "model": "haiku",
+   "effort": "low",
+   "state": "idle",
+   "shipped": 7,
+   "rework": 0
+  }
+ ],
+ "regulars": [
+  {
+   "id": "releases",
+   "label": "Release train",
+   "shipped": 4,
+   "rework": 1
+  },
+  {
+   "id": "branding",
+   "label": "Bakery brand",
+   "shipped": 1,
+   "rework": 0
+  },
+  {
+   "id": "infra",
+   "label": "Infrastructure",
+   "shipped": 2,
+   "rework": 0
+  }
+ ],
+ "tools": [
+  {
+   "id": "radar-tiles",
+   "label": "Radar tile cache",
+   "item": "release-2-4",
+   "state": "building"
+  },
+  {
+   "id": "fake-clock",
+   "label": "Fake clock for tests",
+   "state": "installed"
+  }
+ ],
+ "counts": {
+  "shipped_7d": 6,
+  "merged_7d": 3,
+  "rework_7d": 1,
+  "open_prs": 2,
+  "reports_7d": 2
+ }
+}

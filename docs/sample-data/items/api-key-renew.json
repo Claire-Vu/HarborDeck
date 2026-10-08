@@ -1,0 +1,19 @@
+{
+ "id": "api-key-renew",
+ "kind": "todo",
+ "project": "weather-app",
+ "stream": "infra",
+ "title": "Renew the maps API key",
+ "summary": "The key expires in 9 days. Only the account owner can renew it in the provider console.",
+ "artifacts": [
+  {
+   "type": "link",
+   "url": "https://example.com/console/keys"
+  }
+ ],
+ "priority": 2,
+ "due": 1792177600,
+ "created": 1791396000,
+ "status": "open",
+ "from": "mate-main"
+}
