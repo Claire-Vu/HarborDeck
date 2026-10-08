@@ -131,10 +131,14 @@ Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, 
 ## Development
 
 ```sh
-npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed
+npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed; then the garden gate
 npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security
 npm run check       # syntax check of main, preload and renderer
+adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
+test/evidence/run.sh demo        # recorded proof of the live round trip (ystack evidence runner)
 ```
+
+`npm run garden` runs the ystack garden gate (`.garden/`) when `~/.agents/skills/garden` is installed, and skips otherwise. It ratchets two rules: no new source files over 400 code lines (the renderer and the CLI dispatcher are grandfathered, so add features as new modules), and no generic module names (`utils`, `helpers`).
 
 Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (pure Node: store, watch, hook, settings), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
 

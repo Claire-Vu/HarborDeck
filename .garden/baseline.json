@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-08T08:57:34.604Z",
+  "counts": {
+    "tsc": 0,
+    "file-length": 0,
+    "generated-merge": 1,
+    "instructions-length": 0,
+    "agents-md": 2,
+    "verify-skill": 2,
+    "ci-gate": 1,
+    "garden-manifest": 0,
+    "library-rules": 0,
+    "rule:any-check-file-growth": 2,
+    "rule:any-check-generic-module-names": 0
+  }
+}
