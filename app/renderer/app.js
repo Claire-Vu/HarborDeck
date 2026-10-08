@@ -368,9 +368,10 @@ function paper(cls, label, kids, pid, extraGrip) {
 }
 const fileFor = path => { const f = FILES[path]; return f && f.exists ? f : null; };
 const EXT_TYPE = { png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image', mp4: 'video', m4v: 'video', webm: 'video', mov: 'video', mp3: 'audio', wav: 'audio', m4a: 'audio', pdf: 'pdf', diff: 'diff', patch: 'diff', md: 'report', markdown: 'report', txt: 'report', log: 'report', json: 'report', csv: 'report', yaml: 'report', yml: 'report' };
-// The renderer understands pr | video | image | pdf | report | link; anything else is guessed from the path, or shown as a link/file card.
+// The renderer understands pr | video | image | pdf | report | web | link; anything else is guessed from the path, or shown as a link/file card.
 function artType(a) {
   const t = String(a.type || '').toLowerCase();
+  if (a.url && (t === 'web' || t === 'lavish')) return 'web';
   if (['pr', 'video', 'image', 'pdf', 'report', 'audio', 'diff'].includes(t)) return t;
   if (a.url && /^(link|file)$/.test(t)) return 'link';
   if (a.path) return EXT_TYPE[(a.path.split('.').pop() || '').toLowerCase()] || 'file';
@@ -389,6 +390,13 @@ function artifactPaper(it, a, i) {
       h('div', { class: 'pr-num fact', onclick: e => pickFact({ type: 'point', label: host, anchor: { artifact: a.url } }, e.currentTarget) }, host),
       h('dl', { class: 'pr-meta' }, h('dt', null, 'link'), h('dd', null, h('a', { href: a.url, onclick: e => { e.preventDefault(); openUrl(a.url); } }, a.url)))
     ], pid, h('button', { class: 'ibtn', onclick: () => openUrl(a.url) }, 'Open'));
+  }
+  if (type === 'web') {
+    let host = a.url; try { host = new URL(a.url).host; } catch (e) { /* keep raw */ }
+    return paper('prcard', a.label || (a.type === 'lavish' ? 'Lavish plan' : 'Web page'), [
+      h('div', { class: 'pr-num fact', onclick: e => pickFact({ type: 'point', label: host, anchor: { artifact: a.url } }, e.currentTarget) }, host),
+      h('dl', { class: 'pr-meta' }, h('dt', null, 'page'), h('dd', null, h('a', { href: a.url, onclick: e => { e.preventDefault(); openViewer(a); } }, a.url)))
+    ], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'View'));
   }
   if (type === 'pdf' || type === 'file') {
     return paper('report', type === 'pdf' ? 'Document' : 'File', [h('div', { class: 'meta' }, a.path),
@@ -637,6 +645,7 @@ function modal(cls, titleText, content, footer, headerExtra) {
 function closeModal() { $('#modal-root').replaceChildren(); }
 function openViewer(a) {
   const f = fileFor(a.path); let body, cls = 'dossier'; const type = artType(a);
+  if (type === 'web') return window.harborWebPane.open({ url: a.url, title: a.label || (a.type === 'lavish' ? 'Lavish plan' : 'Web page'), modal, h, toast });
   if (type === 'pdf') body = h('div', { class: 'mount' }, f ? h('iframe', { class: 'pdf-full', src: f.url, title: base(a.path) }) : h('p', null, `not available locally: ${a.path}`));
   else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : h('p', null, `not available locally: ${a.path}`));
   else if (type === 'diff' && f?.text != null) body = h('article', { class: 'sheet' }, diffView(f.text));
@@ -881,11 +890,12 @@ async function openSettings() {
   };
   const dir = field('Data directory', cur.dataDir, '~/.harbordeck', true);
   const root = field('Artifact root', cur.artifactRoot, 'optional: relative paths not found in the data directory resolve here', true);
+  const hosts = field('Web hosts', (cur.webHosts || []).join(', '), 'optional: hosts besides localhost the desk browser may show, e.g. devbox.lan:8080');
   const hookOn = h('input', { type: 'checkbox', checked: !!cur.onAnswer.enabled });
   const hookCmd = h('textarea', { rows: 2, placeholder: 'e.g. ~/bin/wake-agent.sh   (the JSON line arrives on stdin and in $HARBORDECK_LINE)', value: cur.onAnswer.command || '', spellcheck: false });
   const content = h('div', { class: 'settings' },
     h('p', { class: 'legend' }, 'Now reading ', h('code', null, cur.home), cur.demo ? ' (demo data)' : '', cur.envHome && !cur.demo ? ' · set by HARBORDECK_HOME, which wins over the field below' : ''),
-    dir.row, root.row,
+    dir.row, root.row, hosts.row,
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'On answer'), h('span', { class: 'set-in col' }, h('label', { class: 'set-check' }, hookOn, ' Run a command after every line written to answers.jsonl'), hookCmd)),
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'Demo'), h('span', { class: 'set-in' },
       h('button', { class: 'tbtn', type: 'button', onclick: async () => { commitPending(); closeModal(); applySnapshot(await bridge.demo(true)); toast('Demo data loaded (fresh day)'); } }, cur.demo ? 'Restart demo' : 'Load demo data'),
@@ -893,7 +903,7 @@ async function openSettings() {
     SNAP.errors?.length ? h('div', { class: 'flag-note' }, h('div', null, `${SNAP.errors.length} item file(s) skipped:`), SNAP.errors.slice(0, 8).map(e => h('div', null, `${e.file}: ${e.error}`))) : null);
   modal('settings-modal', 'Settings', content, [h('button', { class: 'pbtn ghost', onclick: closeModal }, 'Cancel'), h('button', { class: 'pbtn', onclick: async () => {
     commitPending();
-    const snap = await bridge.setSettings({ dataDir: dir.inp.value.trim(), artifactRoot: root.inp.value.trim(), onAnswer: { enabled: hookOn.checked, command: hookCmd.value.trim() } });
+    const snap = await bridge.setSettings({ dataDir: dir.inp.value.trim(), artifactRoot: root.inp.value.trim(), webHosts: hosts.inp.value, onAnswer: { enabled: hookOn.checked, command: hookCmd.value.trim() } });
     closeModal(); applySnapshot(snap); toast('Settings saved');
   } }, 'Save')]);
 }

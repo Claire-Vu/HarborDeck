@@ -528,3 +528,17 @@ body.tired .cook span { animation-duration: 4s; opacity: .6; }
 pre.diff { font: 12px/1.45 ui-monospace, Menlo, monospace; margin: 0; white-space: pre-wrap; overflow: auto; max-height: 340px; }
 pre.diff .add { color: #1f7a3a; background: rgba(46,160,67,.12); display: block; } pre.diff .del { color: #a3302c; background: rgba(248,81,73,.12); display: block; } pre.diff .hunk { color: #5a5fb0; display: block; }
 .gaps { margin-top: 16px; } .gap { padding: 8px 0; border-top: 1px dashed var(--ui-edge); font-size: 13px; }
+
+/* in-desk browser pane (web-pane.js): the page is a separate view laid over .web-mount */
+.modal.web .box { width: min(1240px, 100%); }
+.web-bar { display: flex; align-items: center; gap: 6px; padding: 4px 12px; font: 12px/1.6 ui-monospace, monospace; color: #f1e4c0; min-width: 0; }
+.web-addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
+.modal.web.loading .web-bar::before { content: '⟳'; animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.web-mount { height: 76vh; background: #fff; border-radius: 0 0 6px 6px; }
+.web-refused { height: 100%; display: grid; place-content: center; gap: 10px; text-align: center; color: #1b2633; padding: 20px; }
+.modal.web.full { padding: 0; }
+.modal.web.full .box { width: 100%; height: 100vh; max-height: 100vh; }
+.modal.web.full .box .content { flex: 1; display: flex; overflow: hidden; }
+.modal.web.full .web-frame { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.modal.web.full .web-mount { flex: 1; height: auto; }

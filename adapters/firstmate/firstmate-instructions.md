@@ -12,12 +12,14 @@ Environment for every call: `HARBORDECK_FROM=@FROM@` (secondmates: your own endp
 |---|---|---|
 | pick between options (every captain hold with choices) | decision | `harbordeck decision <task-id> "<question?>" -s "<one line>" --opt <key>+ --opt <key>="<Label>" [-b <report>]` |
 | judge finished work (PR, video, design, draft) | review | `harbordeck review <task-id> "<title>" -s "<one line>" -a <pr url or file>` |
+| review a plan you presented with Lavish | decision or review | add `-a lavish:<session url>` (or `-a lavish:<file.html>`; the CLI finds the session URL) |
 | read a finished report | answer | `harbordeck answer <task-id> "<title>" -s "<finding, 1-3 sentences>" -b data/<task>/report.md` |
 | do something only they can (log in, pay, sign, grant access) | todo | `harbordeck todo <id> "<what>" -s "<why>" -d <due>` |
 
 - **A captain hold and its item share one id: the held task id.** Raise the hold with `bin/fm-captain-hold.sh hold` as usual, then write the item. The bridge answers that exact hold when the captain stamps it.
 - `+` marks your recommendation. `-s` is plain sentences. `-b`/`-a` take paths or URLs only; never paste report text.
 - A hold with several questions: one decision per question, ids `<task-id>.q1`, `.q2`, ... Those answers arrive as inbox notes; once all are in, close the hold with `bin/fm-captain-hold.sh answer`.
+- Presenting a Lavish plan: always attach it with `-a lavish:<url>` so the captain can annotate it inside the desk. Keep polling Lavish for the feedback as usual; the desk stamp is the verdict, Lavish carries the annotations.
 - Several items: `harbordeck batch` with one command per line on stdin (one process, all or nothing).
 - Priority `-p 1`..`4` (1 = blocks work now); due `-d +2d` or an ISO date.
 - Standing orders from captain.md: `--ok <rule>` when an item complies, `--flag <rule>:<why>` when it does not.

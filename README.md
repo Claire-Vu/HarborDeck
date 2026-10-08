@@ -60,7 +60,7 @@ Any agent that can write a JSON file can join without the CLI: the format is in 
 
 The app never writes items or snapshots, and agents never write `answers.jsonl`. Unreadable item files are skipped and listed in Settings; they never break the desk.
 
-Artifact and body paths may be absolute, relative to the data directory, or (as a fallback) relative to the **Artifact root** setting. Local images, video, audio, PDFs, markdown and diffs are served to the window through a private `harbor://` protocol that only serves files referenced by current items. `http(s)` URLs open in your browser; PR and link artifacts render as cards.
+Artifact and body paths may be absolute, relative to the data directory, or (as a fallback) relative to the **Artifact root** setting. Local images, video, audio, PDFs, markdown and diffs are served to the window through a private `harbor://` protocol that only serves files referenced by current items. `http(s)` URLs open in your browser; PR and link artifacts render as cards. `web` and `lavish` artifacts on this machine (localhost, or a host listed in Settings → Web hosts) open in the desk's own browser pane with back, reload, open-in-browser and full-size controls, so a Lavish plan can be annotated without leaving the desk. The pane is a separate, sandboxed view with its own session: no bridge, no node, permissions denied, and off-machine links open in your browser.
 
 ## Answers
 
@@ -110,6 +110,7 @@ Open with ⌘, (or the gear icon). Stored in the app's user-data folder as `sett
 |---|---|---|
 | Data directory | `~/.harbordeck` | `HARBORDECK_HOME` overrides it for the session |
 | Artifact root | empty | extra base for relative artifact paths |
+| Web hosts | empty | hosts besides localhost the browser pane may show (`host` or `host:port`) |
 | On answer | off | command run per answer line (above) |
 | Demo | | load the synthetic demo day, or go back to your data |
 
@@ -117,7 +118,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 
 ## Demo
 
-`npm run demo` (or Settings → Load demo data, or File → Load Demo Data) seeds a separate demo directory inside the app's user-data folder with a synthetic day: 16 items across all four kinds, standing orders, a crew, stamina windows, a waiting order and an answered question. A pretend agent replies to your asks and orders and resolves stamped items through the same files, so the whole loop is visible. Your real data directory is never touched, and the demo is reseeded fresh on every launch.
+`npm run demo` (or Settings → Load demo data, or File → Load Demo Data) seeds a separate demo directory inside the app's user-data folder with a synthetic day: 17 items across all four kinds, standing orders, a crew, stamina windows, a waiting order and an answered question, plus a synthetic plan page served from `127.0.0.1` for the browser pane. A pretend agent replies to your asks and orders and resolves stamped items through the same files, so the whole loop is visible. Your real data directory is never touched, and the demo is reseeded fresh on every launch.
 
 ## Using the desk
 
@@ -147,7 +148,7 @@ Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, 
 
 ```sh
 npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed; then the garden gate
-npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security, queue-for-reset
+npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security, queue-for-reset, browser pane
 npm run check       # syntax check of main, preload, renderer and the scheduler module
 (cd cli && npm test)             # CLI + scheduler (parsing, claim/no-resend, retries, keep-awake, installer, wake presets)
 adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
@@ -156,7 +157,7 @@ test/evidence/run.sh demo        # recorded proof of the live round trip (ystack
 
 `npm run garden` runs the ystack garden gate (`.garden/`) when `~/.agents/skills/garden` is installed, and skips otherwise. It ratchets two rules: no new source files over 400 code lines (the renderer and the CLI dispatcher are grandfathered, so add features as new modules), and no generic module names (`utils`, `helpers`).
 
-Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (pure Node: store, watch, hook, settings), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
+Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (store, watch, hook, settings, and the browser pane: `web-pane.js` + `web-allow.js`), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
 
 ## Credits
 

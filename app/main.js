@@ -1,6 +1,6 @@
 'use strict';
 // Electron main process: owns the data directory (read, watch, append answers), the harbor:// file protocol,
-// settings, the optional on-answer hook and demo mode. The renderer only talks through preload.js.
+// settings, the optional on-answer hook, the in-desk browser pane and demo mode. The renderer only talks through preload.js.
 const { app, BrowserWindow, ipcMain, protocol, shell, dialog, Menu, nativeTheme } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +11,8 @@ const { runOnAnswer } = require('./lib/hook');
 const { loadSettings, saveSettings, effectiveHome } = require('./lib/settings');
 const { seedDemo } = require('./demo/seed');
 const { startDemoAgent } = require('./demo/agent');
+const { startStaticSite } = require('./demo/static-site');
+const { createWebPane } = require('./lib/web-pane');
 
 // Isolated profile (settings, desk state, demo dir) for tests and side-by-side runs.
 if (process.env.HARBORDECK_USER_DATA) app.setPath('userData', path.resolve(process.env.HARBORDECK_USER_DATA));
@@ -21,7 +23,7 @@ const DEMO_HOME = () => path.join(app.getPath('userData'), 'demo');
 // The limit-reset scheduler is the CLI's own module (ESM), so the app and `harbordeck tick` share one queue format.
 let sched = null;
 const schedReady = import('../cli/src/scheduler.js').then(m => { sched = m; }, e => log(`scheduler unavailable: ${e.message}`));
-let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, win = null, allowed = new Set(), logLines = [];
+let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, demoSite = null, win = null, allowed = new Set(), logLines = [];
 
 function log(msg) { logLines.push(`${new Date().toISOString()} ${msg}`); if (logLines.length > 200) logLines.shift(); if (!app.isPackaged) console.log('[harbordeck]', msg); }
 
@@ -41,7 +43,10 @@ function useHome(next, isDemo) {
   if (demo) demoAgent = startDemoAgent(home);
   log(`data directory: ${home}${demo ? ' (demo)' : ''}`);
 }
-function startDemo() { seedDemo(DEMO_HOME()); demoSeed = Date.now(); useHome(DEMO_HOME(), true); }
+async function startDemo() {
+  try { demoSite ??= await startStaticSite(path.join(__dirname, 'demo', 'assets', 'web')); } catch (e) { log(`demo web page unavailable: ${e.message}`); }
+  seedDemo(DEMO_HOME(), undefined, { webUrl: demoSite?.url }); demoSeed = Date.now(); useHome(DEMO_HOME(), true);
+}
 function reload() { if (win && !win.isDestroyed()) win.webContents.send('harbor:update', snapshot()); }
 
 // harbor://file/<encoded absolute path>: only files referenced by current items, with Range support for video.
@@ -70,9 +75,11 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) { e.preventDefault(); openExternal(url); } });
+  win.webContents.on('did-start-navigation', e => { if (e.isMainFrame && !e.isSameDocument) webPane.close(); }); // a renderer reload drops the pane's frame
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 function openExternal(url) { if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
+const webPane = createWebPane({ getWin: () => win, getHosts: () => settings.webHosts, openExternal, log });
 
 function buildMenu() {
   const isMac = process.platform === 'darwin';
@@ -128,17 +135,21 @@ ipcMain.handle('harbor:choose-dir', async (e, title) => {
   const r = await dialog.showOpenDialog(win, { title: String(title || 'Choose a folder'), properties: ['openDirectory', 'createDirectory'] });
   return r.canceled ? null : r.filePaths[0];
 });
-ipcMain.handle('harbor:demo', (e, on) => { if (on) startDemo(); else useHome(effectiveHome(settings), false); return snapshot(); });
+ipcMain.handle('harbor:demo', async (e, on) => { if (on) await startDemo(); else useHome(effectiveHome(settings), false); return snapshot(); });
 ipcMain.handle('harbor:diagnostics', () => logLines.slice(-50));
+ipcMain.handle('harbor:web-open', (e, url, rect) => webPane.open(url, rect));
+ipcMain.on('harbor:web-bounds', (e, rect) => webPane.setBounds(rect));
+ipcMain.handle('harbor:web-go', (e, cmd) => webPane.go(String(cmd)));
+ipcMain.handle('harbor:web-close', () => webPane.close());
 
 app.whenReady().then(async () => {
   await schedReady;
   settings = loadSettings(SETTINGS_FILE());
   const wantDemo = process.argv.includes('--demo') || process.env.HARBORDECK_DEMO === '1';
-  if (wantDemo) startDemo(); else useHome(effectiveHome(settings), false);
+  if (wantDemo) await startDemo(); else useHome(effectiveHome(settings), false);
   protocol.handle('harbor', serveFile);
   buildMenu(); createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('will-quit', () => { watcher?.close(); demoAgent?.stop(); });
+app.on('will-quit', () => { watcher?.close(); demoAgent?.stop(); demoSite?.close(); });

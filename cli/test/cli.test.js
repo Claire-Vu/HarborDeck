@@ -237,3 +237,29 @@ test('answers --wait --timeout returns empty when nothing lands', () => {
   const { hd } = setup();
   assert.equal(hd(['answers', '--since-offset', '0', '--wait', '--timeout', '1']).out, 'next=0\n');
 });
+
+test('web and lavish artifacts: URLs kept, lavish html path resolved to its session URL', () => {
+  const { home, cwd, item } = setup();
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-bin-'));
+  // stand-in for lavish-axi: prints a session block like the real one, and records its argv
+  fs.writeFileSync(path.join(bin, 'lavish-axi'), `#!/bin/sh\necho "$@" > "${bin}/argv"\necho 'session:'\necho '  url: "http://127.0.0.1:4387/session/abc123"'\n`, { mode: 0o755 });
+  fs.writeFileSync(path.join(cwd, 'plan.html'), '<h1>plan</h1>');
+  const run = (args, extra = {}) => spawnSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8', env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_PROJECT: 'demo', PATH: `${bin}:${process.env.PATH}`, ...extra } });
+  let r = run(['review', 'plan', 'Review the plan', '-a', 'web:http://localhost:5173/', '-a', 'lavish:http://127.0.0.1:4387/session/x', '-a', 'lavish:plan.html']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(item('plan').artifacts, [
+    { type: 'web', url: 'http://localhost:5173/' },
+    { type: 'lavish', url: 'http://127.0.0.1:4387/session/x' },
+    { type: 'lavish', url: 'http://127.0.0.1:4387/session/abc123' },
+  ]);
+  assert.equal(fs.readFileSync(path.join(bin, 'argv'), 'utf8').trim(), `${path.join(fs.realpathSync(cwd), 'plan.html')} --no-open`);
+  // no lavish (disabled here): the path is kept, with a warning
+  r = run(['review', 'plan2', 'Plan', '-a', 'lavish:plan.html'], { HARBORDECK_LAVISH: '0' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /no Lavish session URL/);
+  assert.deepEqual(item('plan2').artifacts, [{ type: 'lavish', path: path.join(fs.realpathSync(cwd), 'plan.html') }]);
+  // web needs a URL
+  r = run(['review', 'plan3', 'Plan', '-a', 'web:plan.html']);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /web needs a URL/);
+});

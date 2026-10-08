@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan: offline mode for boards</title>
+<style>
+  :root { --bg: #f6f1e4; --fg: #1d2a33; --muted: #5b6b75; --edge: #d8ccb0; --accent: #3b6f9e; --note: #fff4c2; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #17222c; --fg: #e6ecef; --muted: #9fb0ba; --edge: #2c3d4b; --accent: #7fb0dc; --note: #4a4020; } }
+  html, body { background: var(--bg); color: var(--fg); margin: 0; font: 15px/1.55 system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { font-size: 24px; margin: 0 0 4px; } .sub { color: var(--muted); margin: 0 0 22px; }
+  section { border: 1px solid var(--edge); border-radius: 8px; padding: 12px 16px; margin: 0 0 12px; cursor: pointer; }
+  section:hover { border-color: var(--accent); } section h2 { font-size: 16px; margin: 0 0 6px; }
+  .note { display: none; background: var(--note); border-radius: 6px; padding: 6px 10px; margin-top: 8px; font-size: 13px; }
+  section.noted .note { display: block; } footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Plan: offline mode for boards</h1>
+  <p class="sub">Synthetic demo plan served from 127.0.0.1. Click a step to pin a note to it.</p>
+  <section id="s1"><h2>1. Cache the last opened board</h2><p>Keep the board and its cards in local storage so it opens with no network.</p><div class="note">Noted: check storage limits on phones.</div></section>
+  <section id="s2"><h2>2. Queue edits while offline</h2><p>Edits go to a local queue and replay in order when the connection returns.</p><div class="note">Noted: what happens on a conflict?</div></section>
+  <section id="s3"><h2>3. Show a quiet offline badge</h2><p>A small badge in the top bar; no modal, no blocking.</p><div class="note">Noted: match the calm brand rule.</div></section>
+  <p id="count">0 notes pinned</p>
+  <footer>Background reading: <a id="ext" href="https://example.com/">example.com</a> (opens in your browser).</footer>
+</main>
+<script>
+  const count = document.getElementById('count');
+  document.querySelectorAll('section').forEach(s => s.addEventListener('click', () => {
+    s.classList.toggle('noted');
+    count.textContent = `${document.querySelectorAll('section.noted').length} notes pinned`;
+  }));
+</script>
+</body>
+</html>

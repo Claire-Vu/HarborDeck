@@ -6,6 +6,7 @@ import { tokenize, parseFlags } from './args.js';
 import { Store, SLUG, homeDir, writeAtomic } from './store.js';
 import { validate } from './schema.js';
 import { SCHEDULER_COMMANDS } from './scheduler-cli.js';
+import { lavishUrl } from './lavish.js';
 
 export const VERSION = '1.0.0';
 const KINDS = ['decision', 'answer', 'review', 'todo'];
@@ -20,6 +21,7 @@ Items (re-running with the same id rewrites it; created and thread are kept):
   hd review   <id> "<title>" [flags]       work to approve/reject/send back
   hd todo     <id> "<title>" [flags]       something only the user can do
   flags: -s/--sum "<one line>"  -b/--body <path|url>  -a/--art [type:]<path|url> (repeat)
+         -a web:<url> opens in the desk's browser pane; -a lavish:<url|file.html> stores a Lavish review page
          -p/--pri 1-4  -d/--due <epoch|ISO|+2d|+12h>  -f/--from <agent>  --project <p>  --stream <s>
          -r/--rule <key> (repeat)  --ok <rule>[:note]  --flag <rule>:<note>  (standing-order checks)
   hd reply <id> "<text>"     append to the item's thread (answers an ask, or a request id)
@@ -107,8 +109,14 @@ function parseArt(v, ctx) {
   if (isUrl(ref)) {
     return { type: type || (/\/pull\/\d+|\/merge_requests\/\d+/.test(ref) ? 'pr' : 'link'), url: ref };
   }
+  if (type === 'web') fail(`bad --art "${v}" (web needs a URL, e.g. web:http://localhost:3000/)`);
   const p = absPath(ref, ctx.cwd);
   if (!fs.existsSync(p)) ctx.warn(`warning: artifact not found: ${p}`);
+  if (type === 'lavish') {
+    const url = fs.existsSync(p) ? lavishUrl(p, ctx.env) : null;
+    if (url) return { type, url };
+    ctx.warn(`warning: no Lavish session URL for ${p}; stored the file path (run lavish-axi on it, or pass lavish:<url>)`);
+  }
   return { type: type || (EXT_TYPES.find(([re]) => re.test(p)) || [null, 'file'])[1], path: p };
 }
 
