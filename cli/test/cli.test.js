@@ -214,3 +214,26 @@ test('mcp: initialize, list, call', () => {
   assert.equal(byId[4].result.isError, false);
   assert.equal(item('t').title, 'Do it');
 });
+
+test('answers --wait returns as soon as the app appends a line', async () => {
+  const { home } = setup();
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, [BIN, 'answers', '-c', 'live', '--wait', '--timeout', '20'], {
+    env: { ...process.env, HARBORDECK_HOME: home },
+  });
+  let out = '';
+  child.stdout.on('data', (d) => { out += d; });
+  const started = Date.now();
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(out, '');
+  fs.appendFileSync(path.join(home, 'answers.jsonl'), '{"id":"a","action":"approve","at":1}\n');
+  const code = await new Promise((r) => child.on('exit', r));
+  assert.equal(code, 0);
+  assert.equal(out, '{"id":"a","action":"approve","at":1}\n');
+  assert.ok(Date.now() - started < 5000);
+});
+
+test('answers --wait --timeout returns empty when nothing lands', () => {
+  const { hd } = setup();
+  assert.equal(hd(['answers', '--since-offset', '0', '--wait', '--timeout', '1']).out, 'next=0\n');
+});

@@ -26,7 +26,8 @@ Items (re-running with the same id rewrites it; created and thread are kept):
   hd batch                   read commands from stdin, one per line (same syntax, no "hd")
 
 Reading back:
-  hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek]
+  hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek] [--wait [--timeout <s>]]
+                             --wait blocks until a new answer lands (live on-answer loops)
   hd ls [--all]              one line per item
 
 Snapshots and upkeep:
@@ -239,8 +240,27 @@ function cmdGap(argv, ctx) {
   ctx.out('ok gap');
 }
 
-function cmdAnswers(argv, ctx) {
-  const { pos, flags } = parseFlags(argv, { cursor: { alias: 'c' }, 'since-offset': {}, json: { bool: true }, peek: { bool: true } });
+// Resolves once answers.jsonl has a complete line past `off`, or after `timeout` seconds (0 = never).
+// Watches the data dir (the file may not exist yet) with a short poll as a fallback.
+function waitForAnswers(store, off, timeout) {
+  fs.mkdirSync(store.home, { recursive: true });
+  return new Promise((resolve) => {
+    let watcher = null;
+    const done = () => {
+      clearInterval(poll); clearTimeout(timer); watcher?.close(); resolve();
+    };
+    const check = () => { if (store.readAnswers(off).lines.length) done(); };
+    const poll = setInterval(check, 1000);
+    const timer = timeout > 0 ? setTimeout(done, timeout * 1000) : null;
+    try { watcher = fs.watch(store.home, check); } catch { /* poll only */ }
+    check();
+  });
+}
+
+async function cmdAnswers(argv, ctx) {
+  const { pos, flags } = parseFlags(argv, {
+    cursor: { alias: 'c' }, 'since-offset': {}, json: { bool: true }, peek: { bool: true }, wait: { bool: true }, timeout: {},
+  });
   if (pos.length) fail(`answers: unexpected "${pos[0]}"`);
   if (flags.cursor && flags['since-offset'] !== undefined) fail('answers: use --cursor or --since-offset, not both');
   if (flags.cursor) checkId(flags.cursor, 'cursor name');
@@ -250,6 +270,8 @@ function cmdAnswers(argv, ctx) {
     if (!/^\d+$/.test(flags['since-offset'])) fail('answers: --since-offset must be a byte count');
     off = Number(flags['since-offset']);
   }
+  if (flags.timeout !== undefined && !/^\d+$/.test(flags.timeout)) fail('answers: --timeout must be seconds');
+  if (flags.wait) await waitForAnswers(ctx.store, off, Number(flags.timeout || 0));
   const { lines, next, reset } = ctx.store.readAnswers(off);
   if (reset) ctx.warn('warning: answers.jsonl is shorter than the offset; reading from the start');
   if (flags.json) {

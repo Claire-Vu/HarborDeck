@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hd-bridge.sh - route HarborDeck answers into a firstmate home.
 #
-# Usage: FM_HOME=<firstmate home> hd-bridge.sh [--watch <seconds>] [--dry-run]
+# Usage: FM_HOME=<firstmate home> hd-bridge.sh [--follow | --watch <seconds>] [--dry-run]
 #
 # Reads answers.jsonl lines added since the last run (cursor:
 # <HARBORDECK_HOME>/cursors/firstmate-bridge, advanced one line at a time, so a
@@ -16,19 +16,23 @@
 # item stands for a captain hold. Each note ends with the exact `harbordeck
 # reply` command to answer on the desk.
 # --dry-run prints the firstmate commands instead of running them and does not
-# move the cursor. --watch repeats every <seconds>.
+# move the cursor. --follow stays running and routes each answer the moment
+# the app appends it (file watch via `harbordeck answers --wait`); this is the
+# live on-answer hook. --watch <seconds> polls instead.
 # Env: FM_HOME (required), HD (default: harbordeck).
 set -euo pipefail
 
 FM_HOME=${FM_HOME:?set FM_HOME to the firstmate home}
 HD=${HD:-harbordeck}
 watch=0
+follow=0
 dry=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --watch) shift; watch=${1:?--watch needs seconds} ;;
+    --follow) follow=1 ;;
     --dry-run) dry=1 ;;
-    *) echo "usage: hd-bridge.sh [--watch <seconds>] [--dry-run]" >&2; exit 2 ;;
+    *) echo "usage: hd-bridge.sh [--follow | --watch <seconds>] [--dry-run]" >&2; exit 2 ;;
   esac
   shift
 done
@@ -113,7 +117,18 @@ once() {
   done < <(jq -c '.lines[]' <<<"$batch")
 }
 
-if [ "$watch" = 0 ]; then
+if [ "$follow" = 1 ]; then
+  waiter=''
+  trap '[ -z "$waiter" ] || kill "$waiter" 2>/dev/null; exit 0' INT TERM
+  while :; do
+    once || sleep 5   # a failed route retries from the same line
+    # Background + wait so a stop signal is handled at once and the waiter goes with us.
+    "$HD" answers --since-offset "$(cat "$CURSOR" 2>/dev/null || echo 0)" --wait --timeout 300 >/dev/null &
+    waiter=$!
+    wait "$waiter" || true
+    waiter=''
+  done
+elif [ "$watch" = 0 ]; then
   once
 else
   while :; do once || true; sleep "$watch"; done

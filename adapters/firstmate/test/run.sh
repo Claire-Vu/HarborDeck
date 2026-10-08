@@ -98,4 +98,27 @@ before=$(wc -l < "$log")
 "$here/hd-bridge.sh" >/dev/null
 check "bridge: second run routes nothing" test "$(wc -l < "$log")" = "$before"
 
+# live: --follow routes a new answer without being re-run
+"$here/hd-bridge.sh" --follow >/dev/null 2>&1 &
+follower=$!
+sleep 1
+echo '{"id":"res-1","action":"comment","note":"live one","at":8}' >> "$HARBORDECK_HOME/answers.jsonl"
+for _ in $(seq 1 50); do grep -q 'hd-res-1-comment-8' "$log" && break; sleep 0.1; done
+kill "$follower" 2>/dev/null; wait "$follower" 2>/dev/null || true
+check "bridge --follow: new answer routed live" grep -q 'hd-res-1-comment-8' "$log"
+
+# hd-live: bridge follows, snapshots refresh, everything stops together
+rm -f "$HARBORDECK_HOME/fleet.json" "$HARBORDECK_HOME/rules.json"
+cp "$tmp/quota.json" "$tmp/qa.json"
+mkdir -p "$tmp/qbin"; printf '#!/usr/bin/env bash\ncat "%s"\n' "$tmp/qa.json" > "$tmp/qbin/quota-axi"; chmod +x "$tmp/qbin/quota-axi"
+PATH="$tmp/qbin:$PATH" HD_FLEET_EVERY=1 "$here/hd-live.sh" "$tmp/prefs.md" >/dev/null 2>&1 &
+live=$!
+sleep 1.5
+echo '{"id":"res-1","action":"ask","note":"live two","at":9}' >> "$HARBORDECK_HOME/answers.jsonl"
+for _ in $(seq 1 50); do grep -q 'hd-res-1-ask-9' "$log" && break; sleep 0.1; done
+check "hd-live: answer routed live" grep -q 'hd-res-1-ask-9' "$log"
+check "hd-live: fleet and rules written" test -s "$HARBORDECK_HOME/fleet.json" -a -s "$HARBORDECK_HOME/rules.json"
+kill "$live"; wait "$live" 2>/dev/null || true; sleep 0.3
+check "hd-live: no processes left behind" bash -c "! pgrep -f 'hd-bridge.sh --follow' >/dev/null"
+
 [ "$fails" = 0 ] && echo "all adapter tests passed" || { echo "$fails failed"; exit 1; }

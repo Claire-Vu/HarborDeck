@@ -49,6 +49,8 @@ EOF
 hd answers --cursor <your-name>     # only lines since your last read; prints nothing when there are none
 ```
 
+Running as a long-lived loop? `hd answers --cursor <your-name> --wait` blocks until the user acts and returns the new lines immediately. Items you write show up on the running desk at once.
+
 Each line is JSON: `{"id","action","key"?,"note"?,"anchor"?,"to"?,"at"}`. Act on it:
 
 | action | do |

@@ -18,7 +18,7 @@ Connecting an agent takes three things:
 
 1. **Install the CLI** (above) where the agent runs, and point it at the app's data dir with `HARBORDECK_HOME` if it is not `~/.harbordeck`. Set `HARBORDECK_FROM=<agent id>` so items and replies are signed.
 2. **Teach the agent**: install [`skill/SKILL.md`](../skill/SKILL.md) as an Agent Skill (Claude Code: copy `skill/` to `~/.claude/skills/harbordeck/`; Codex and other harnesses that read skills: their skills dir), or paste [`skill/AGENTS-snippet.md`](../skill/AGENTS-snippet.md) into the project's `AGENTS.md`/`CLAUDE.md`.
-3. **Read answers back** on a loop or at each turn: `hd answers --cursor <agent id>`. Agents with an orchestrator can route lines automatically; see [`adapters/firstmate`](../adapters/firstmate) for a complete example.
+3. **Read answers back** at each turn (`hd answers --cursor <agent id>`) or live: `hd answers --cursor <agent id> --wait` returns the moment the user acts. Agents with an orchestrator can route lines automatically; see [`adapters/firstmate`](../adapters/firstmate) for a complete example.
 
 Agents that prefer tools to a shell can use the MCP server instead: `hd mcp` (stdio). It exposes `harbordeck_batch`, `harbordeck_answers` and `harbordeck_gap`. Claude Code: `claude mcp add harbordeck -- harbordeck mcp`.
 
@@ -51,7 +51,7 @@ hd answer|review|todo <id> "<title>" [flags]
 hd reply <id> "<text>"            append to the item's thread (also answers a request id)
 hd resolve <id>...
 hd batch                          stdin, one command per line, all-or-nothing validation
-hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek]
+hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek] [--wait [--timeout <s>]]
 hd ls [--all]
 hd fleet|quota|rules <file|->     validate and install a snapshot
 hd gap "<text>" [--sample <path|url>] [--item <id>]
@@ -66,6 +66,7 @@ Behaviour worth knowing:
 - Relative paths are made absolute against the current directory. A missing file is a warning on stderr, not an error.
 - Artifact type is inferred: `/pull/N` and `/merge_requests/N` URLs are `pr`, other URLs `link`; by extension `video`, `image`, `audio`, `report` (md, txt, pdf, html), `diff`, else `file`. Prefix to override: `-a image:https://...`.
 - `--opt key*` also marks a recommendation, but `+` is safe from shell globbing.
+- `hd answers --wait [--timeout <s>]` blocks until the app appends an answer, then prints it: an on-answer hook is `while :; do hd answers -c me --wait | my-handler; done`.
 - `hd answers` without a cursor ends with `next=<offset>`; pass it back as `--since-offset`. `--json` returns `{"next", "lines": [{"end", "answer"}]}` with each line's end offset, for routers that commit per line.
 - Everything is written atomically (temp file + rename); JSONL appends are one write per line.
 

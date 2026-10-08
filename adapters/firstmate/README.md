@@ -7,7 +7,8 @@ Scripts that connect any firstmate home to HarborDeck without changing firstmate
 | `hd-fleet.sh` | `fleet.json` | `state/*.meta` + `bin/fm-crew-state.sh <id>` per endpoint |
 | `hd-quota.sh` | `quota.json` | `quota-axi --json` (cached reads) |
 | `hd-rules.sh <prefs.md>` | `rules.json` | a markdown preferences file such as `data/captain.md` |
-| `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` |
+| `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` (`--follow`: live, on every append) |
+| `hd-live.sh` | all of the above, continuously | runs the bridge in `--follow` mode and refreshes fleet (10 s), quota (120 s) and rules (on file change) |
 
 Requirements: bash, `jq`, the `harbordeck` CLI on `PATH` (or `HD=/path/to/harbordeck.js`), and `quota-axi` for the quota script.
 
@@ -22,10 +23,12 @@ A=/path/to/HarborDeck/adapters/firstmate
 "$A/hd-quota.sh"                                # stamina bars
 "$A/hd-fleet.sh"                                # crew scene
 "$A/hd-bridge.sh" --dry-run                     # preview how pending answers would route
-"$A/hd-bridge.sh" --watch 20                    # route answers every 20 s
+"$A/hd-live.sh"                                 # live: answers route the instant they land, snapshots stay fresh
 ```
 
-Snapshots can be refreshed on firstmate's heartbeat or a simple loop, e.g. `while :; do "$A/hd-fleet.sh"; "$A/hd-quota.sh"; sleep 120; done`. Each run replaces the file atomically.
+`hd-live.sh` is the normal way to run it: items and replies firstmate writes appear on the running desk immediately (the app watches the data dir), every user action reaches firstmate the moment it is appended, and crew, stamina and standing orders keep refreshing. Tune with `HD_FLEET_EVERY`/`HD_QUOTA_EVERY`. Run it under firstmate's process supervisor, launchd, or a terminal pane.
+
+Each snapshot run replaces its file atomically, so the app never sees a half-written file.
 
 ## Writing items from firstmate
 
@@ -36,7 +39,7 @@ Use the plain CLI (see `skill/SKILL.md`). Two conventions make the bridge work:
 
 ## How answers route
 
-`hd-bridge.sh` reads only lines added since its cursor (`$HARBORDECK_HOME/cursors/firstmate-bridge`), advancing it one line at a time; a failed route leaves the cursor on that line for the next run.
+`hd-bridge.sh --follow` waits on the answers file and routes each line as soon as it lands; without flags it routes what is pending and exits. It reads only lines added since its cursor (`$HARBORDECK_HOME/cursors/firstmate-bridge`), advancing it one line at a time; a failed route leaves the cursor on that line for the next run.
 
 | Answer | firstmate call |
 |---|---|

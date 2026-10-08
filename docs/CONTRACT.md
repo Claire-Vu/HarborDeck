@@ -197,6 +197,10 @@ When an agent has a response it cannot map onto an item kind (or can only squeez
 
 `text` says what did not fit and why; `sample` points at an example; `item` names the item it was squeezed into, if any. The app lists gaps so HarborDeck can grow new item shapes from real cases.
 
+## Live feed
+
+HarborDeck is a live view, not an import. Agents write at any time; the app watches the data directory (items, snapshots, gaps) and updates the running desk without a restart or refresh. Agents get answers the same way: `harbordeck answers --cursor <name> --wait` blocks until the app appends a line and returns it at once, which is the on-answer hook for any agent loop (`adapters/firstmate/hd-bridge.sh --follow` is a complete one). Demo data is for first run only; once agents write to the data directory, only their data shows.
+
 ## Versioning
 
 This is contract v1. Additive changes (new optional fields, new artifact types, new actions that older agents can ignore) keep v1. A breaking change bumps the schema `$id` path and this title.
