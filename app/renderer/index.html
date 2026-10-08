@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' harbor: data: blob: https:; media-src harbor: blob: https:; frame-src harbor:; object-src 'none'; connect-src 'self' harbor: blob:; base-uri 'none'; form-action 'none'">
+<title>Harbor Deck</title>
+<meta name="description" content="A desk for everything your agents need from you. Renders only from item JSON in the data directory; writes JSONL answers.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-inspect" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M8 10h4M10 8v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-orders" viewBox="0 0 24 24"><path d="M4 4h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h6M8 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 8l3-3v14l-3 1" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-ledger" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 7h-1M5 12h-1M5 17h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 9l3 3-3 3M12 15h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plain" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-desk" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 17v3M18 17v3M7 11h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M14.5 9.5c0-1-1-1.5-2.5-1.5S9.5 8.8 9.5 10s1 1.5 2.5 1.8 2.5.8 2.5 2-1 1.7-2.5 1.7-2.5-.6-2.5-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L5 13h6l-1 9 9-12h-6z" fill="currentColor"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7zM18 5v14" fill="currentColor"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <div class="brand">&#9875; <span class="brand-name">Harbor Deck</span> <span class="shift" id="shift-label"></span></div>
+  <div class="status">
+    <span class="clock" id="clock" title="Local time">--:--</span>
+    <button class="stat" id="cash" title="Cash earned by clearing the desk" aria-label="Cash"><svg class="ic"><use href="#i-cash"/></svg><span id="cash-n">$0</span></button>
+    <button class="stamina-cluster" id="stamina-cluster" title="Subscription stamina: left and time to refill" aria-label="Stamina per subscription window"></button>
+  </div>
+  <nav class="tools" aria-label="Desk tools">
+    <button class="ibtn-top" id="btn-inspect" aria-pressed="false" aria-label="Inspect mode (I)" title="Inspect: pair a claim with evidence (I)"><svg class="ic"><use href="#i-inspect"/></svg></button>
+    <button class="ibtn-top" id="btn-orders" aria-label="Standing orders (R)" title="Standing orders: your saved preferences (R)"><svg class="ic"><use href="#i-orders"/></svg><span class="badge warn" id="orders-flag" hidden>0</span></button>
+    <button class="ibtn-top" id="btn-vault" aria-label="Archive" title="Archive: stamped and filed items"><svg class="ic"><use href="#i-archive"/></svg><span class="badge" id="vault-count">0</span></button>
+    <button class="ibtn-top" id="btn-ledger" aria-label="Shift report (L)" title="Shift report (L)"><svg class="ic"><use href="#i-ledger"/></svg></button>
+    <button class="ibtn-top" id="btn-log" aria-label="Agent log" title="Agent log: the JSONL lines sent to firstmate"><svg class="ic"><use href="#i-log"/></svg><span class="badge" id="log-count">0</span></button>
+    <button class="ibtn-top" id="btn-plain" aria-pressed="false" aria-label="Plain mode (P)" title="Plain mode: flat list (P)"><svg class="ic"><use href="#i-plain"/></svg></button>
+    <span class="sep"></span>
+    <button class="ibtn-top" id="btn-sound" aria-pressed="false" aria-label="Desk sounds" title="Desk sounds (stamps, paper, bell)"><svg class="ic"><use href="#i-sound"/></svg></button>
+    <button class="ibtn-top" id="btn-music" aria-pressed="false" aria-label="Harbor music" title="Calm harbor music, generated on the spot"><svg class="ic"><use href="#i-music"/></svg></button>
+    <input type="range" id="music-vol" class="vol" min="0" max="100" value="40" aria-label="Music volume" title="Music volume">
+    <button class="ibtn-top" id="btn-theme" aria-label="Theme" title="Theme: auto / light / dark"><svg class="ic"><use href="#i-auto"/></svg></button>
+    <button class="ibtn-top" id="btn-settings" aria-label="Settings" title="Settings: data directory, artifact root, on-answer hook, demo (⌘,)"><svg class="ic"><use href="#i-gear"/></svg></button>
+  </nav>
+</header>
+
+<main id="desk-mode">
+  <aside class="window-col">
+    <div class="window-frame" aria-hidden="true">
+      <svg class="scene" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+        <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky-1)"/><stop offset="1" stop-color="var(--sky-2)"/></linearGradient></defs>
+        <rect width="320" height="240" fill="url(#sky)"/>
+        <circle cx="262" cy="46" r="16" fill="#ffe08a" opacity=".9"/>
+        <g fill="#7fa6bd" opacity=".55"><rect x="0" y="96" width="60" height="14"/><rect x="40" y="90" width="80" height="20"/><rect x="110" y="98" width="70" height="12"/><rect x="200" y="94" width="120" height="16"/></g>
+        <rect x="0" y="110" width="320" height="130" fill="var(--sea-1)"/>
+        <g class="waves" fill="var(--sea-foam)" opacity=".5"><rect x="-16" y="118" width="12" height="2"/><rect x="24" y="118" width="12" height="2"/><rect x="64" y="118" width="12" height="2"/><rect x="104" y="118" width="12" height="2"/><rect x="144" y="118" width="12" height="2"/><rect x="184" y="118" width="12" height="2"/><rect x="224" y="118" width="12" height="2"/><rect x="264" y="118" width="12" height="2"/><rect x="304" y="118" width="12" height="2"/><rect x="4" y="134" width="10" height="2"/><rect x="52" y="134" width="10" height="2"/><rect x="100" y="134" width="10" height="2"/><rect x="148" y="134" width="10" height="2"/><rect x="196" y="134" width="10" height="2"/><rect x="244" y="134" width="10" height="2"/><rect x="292" y="134" width="10" height="2"/></g>
+        <g class="waves slow" fill="var(--sea-2)" opacity=".8"><rect x="-8" y="150" width="20" height="3"/><rect x="40" y="150" width="20" height="3"/><rect x="88" y="150" width="20" height="3"/><rect x="136" y="150" width="20" height="3"/><rect x="184" y="150" width="20" height="3"/><rect x="232" y="150" width="20" height="3"/><rect x="280" y="150" width="20" height="3"/></g>
+        <g class="boat" fill="#3a2a1a"><rect x="40" y="128" width="30" height="8"/><rect x="52" y="104" width="2" height="24"/><rect x="54" y="106" width="12" height="14" fill="#f1e4c0"/></g>
+        <g class="boat" style="animation-delay:-1.4s" fill="#2a3a4a"><rect x="230" y="136" width="42" height="10"/><rect x="244" y="118" width="14" height="18" fill="#9aa"/><rect x="246" y="112" width="4" height="6"/></g>
+        <g fill="var(--wood-edge)"><rect x="0" y="176" width="320" height="64"/></g>
+        <g fill="var(--wood-1)"><rect x="0" y="176" width="320" height="4"/><rect x="0" y="190" width="320" height="2" opacity=".5"/><rect x="0" y="206" width="320" height="2" opacity=".5"/><rect x="0" y="222" width="320" height="2" opacity=".5"/></g>
+      </svg>
+      <div class="pier-queue" id="pier-queue" role="list" aria-label="Waiting outside the window"></div>
+      <div class="at-window" id="at-window"></div>
+    </div>
+    <div class="yard" id="yard" aria-label="Galley and pier"></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="window" aria-selected="true">Window <span class="badge" id="tab-window-count">0</span></button>
+      <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests</button>
+      <button class="tab" role="tab" data-tab="crew" aria-selected="false">Crew <span class="badge warn" id="tab-crew-flag" hidden>!</span></button>
+    </div>
+    <section class="tabpane" data-pane="window">
+      <div class="filters" id="filters"></div>
+      <ul class="queue" id="queue" aria-label="Waiting at the window"></ul>
+      <div class="queue-actions"><button class="tbtn" id="btn-next" title="Next at the window (N)"><svg class="ic"><use href="#i-next"/></svg> Next <span class="kbd">N</span></button></div>
+    </section>
+    <section class="tabpane" data-pane="requests" hidden><div class="pane-scroll" id="requests-pane"></div></section>
+    <section class="tabpane" data-pane="crew" hidden><div class="pane-scroll" id="crew-pane"></div></section>
+  </aside>
+
+  <section class="desk" id="desk" aria-label="Desk">
+    <div class="rail" id="rail" role="toolbar" aria-label="Ticket rail: things you asked for" data-count="0"></div>
+    <div class="desk-surface" id="desk-surface"></div>
+    <div class="inspect-banner" id="inspect-banner" hidden></div>
+  </section>
+
+  <aside class="stamp-tray" id="stamps" aria-label="Stamps" data-open="true">
+    <button class="tray-handle" id="tray-handle" title="Show or hide the stamps (Tab)" aria-label="Toggle stamps (Tab)">Stamps <span class="kbd">Tab</span></button>
+    <div class="tray-body">
+      <button class="stamp approve" data-verdict="approve" aria-label="Approve"><span class="handle"></span><span class="base"><span class="lbl">Approve</span></span></button>
+      <button class="stamp reject" data-verdict="reject" aria-label="Reject"><span class="handle"></span><span class="base"><span class="lbl">Reject</span></span></button>
+      <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
+      <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
+      <div class="keys">1-4 stamp · U undo · T tickets · N next · I inspect · R orders · Esc</div>
+    </div>
+  </aside>
+</main>
+
+<main id="plain-mode" hidden></main>
+
+<aside class="drawer orders" id="orders" aria-label="Standing orders">
+  <header><h2>Standing orders</h2><span class="legend" id="orders-legend"></span><button class="ibtn-top" data-close="orders" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button></header>
+  <div class="content" id="orders-content"></div>
+</aside>
+<aside class="drawer vault" id="vault" aria-label="Archive">
+  <header><h2>Archive</h2><button class="ibtn-top" data-close="vault" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button></header>
+  <div class="content" id="vault-content"></div>
+</aside>
+<aside class="drawer agentlog" id="agentlog" aria-label="Agent log">
+  <header><h2>Agent log</h2><button class="tbtn" id="btn-log-copy">Copy</button><button class="tbtn" id="btn-log-export">Export</button><button class="ibtn-top" data-close="agentlog" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button></header>
+  <div class="content">
+    <p class="legend">One line of <code id="answers-path">answers.jsonl</code> per action. Your agent tails this file; nothing else crosses the wire.</p>
+    <pre id="log-lines" class="loglines"></pre>
+    <section id="gaps" class="gaps"></section>
+  </div>
+</aside>
+
+<div id="modal-root"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

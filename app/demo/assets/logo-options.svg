@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 240" width="600" height="240">
+  <rect width="600" height="240" fill="#f6f1e4"/>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#33404d" text-anchor="middle">
+    <g transform="translate(100 110)">
+      <circle r="62" fill="#1d4e6b"/>
+      <path d="M-30 18 h60 l-10 16 h-40z" fill="#f6f1e4"/>
+      <path d="M0 -38 v52 M0 -36 l26 40 h-26z" stroke="#f6f1e4" stroke-width="4" fill="#f6f1e4"/>
+      <text y="96">A · Roundel</text>
+    </g>
+    <g transform="translate(300 110)">
+      <rect x="-62" y="-62" width="124" height="124" rx="18" fill="#e0b23a"/>
+      <path d="M-34 10 q17 -16 34 0 t34 0" stroke="#1b2633" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M-34 30 q17 -16 34 0 t34 0" stroke="#1b2633" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <rect x="-6" y="-44" width="12" height="40" fill="#1b2633"/>
+      <text y="96">B · Tide mark</text>
+    </g>
+    <g transform="translate(500 110)">
+      <path d="M0 -64 L56 32 H-56z" fill="#c8552d"/>
+      <circle cy="6" r="16" fill="#f6f1e4"/>
+      <circle cy="6" r="6" fill="#c8552d"/>
+      <text y="96">C · Beacon</text>
+    </g>
+  </g>
+</svg>
