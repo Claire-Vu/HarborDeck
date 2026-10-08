@@ -7,13 +7,15 @@ const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
 const ROOT = path.join(__dirname, '..', '..');
-let app, page, home, profile;
+let app, page, home, profile, caffeinate;
 test.describe.configure({ mode: 'serial' }); // one app instance walks through the day
 
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-smoke-'));
   home = seedDemo(path.join(tmp, 'home')); profile = path.join(tmp, 'profile');
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile } });
+  // keep-awake runs a stub, never the real caffeinate
+  caffeinate = path.join(tmp, 'caffeinate-stub'); fs.writeFileSync(caffeinate, '#!/bin/sh\nsleep 120\n'); fs.chmodSync(caffeinate, 0o755);
+  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile, HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 760));
 });
@@ -105,4 +107,43 @@ test('an ask becomes a ticket, and the agent reply turns it green live', async (
   it.thread = [...(it.thread || []), { from: 'Web mate', text: 'Never locally; only on the slow runner.', at: askAt }];
   fs.writeFileSync(itemFile, JSON.stringify(it));
   await expect(page.locator('#rail .ticket.replied.new', { hasText: 'Quarantine' })).toBeVisible({ timeout: 8000 });
+});
+
+test('queue for after reset: countdown ticket, delivered by tick, then replied', async () => {
+  const t = Math.floor(Date.now() / 1000);
+  const reset = t + 2 * 3600 + 14 * 60 + 30;
+  fs.writeFileSync(path.join(home, 'quota.json'), JSON.stringify([{ name: 'Solo', window: '5h', used_pct: 100, resets_at: reset }]));
+  await page.locator('.tab[data-tab="requests"]').click();
+  await page.locator('#requests-pane textarea').fill('Write the weekly digest');
+  await page.getByRole('button', { name: 'Queue for after reset' }).click();
+  const ticket = page.locator('#rail .ticket.queued', { hasText: 'Write the weekly digest' });
+  await expect(ticket).toBeVisible();
+  await expect(ticket.locator('.tk-foot')).toHaveText(/waiting for reset · 2h 1[56]m/);
+  await expect(page.locator('#sched-chip')).toContainText('1 queued');
+  await expect(page.locator('#sched-chip')).toContainText('☕');
+  await expect(page.locator('#requests-pane .slip-row.queued')).toContainText('waiting for reset');
+  await expect(page.locator('#requests-pane')).toContainText('Keeping this Mac awake until');
+  await page.screenshot({ path: path.join(os.tmpdir(), 'harbordeck-queued.png') });
+  for (const width of [1280, 1180, 960, 1280]) {
+    await app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 760), width);
+    await page.waitForFunction(w => window.innerWidth === w, width);
+    expect(await page.evaluate(() => document.querySelector('.topbar').getBoundingClientRect().height)).toBeLessThan(50);
+    expect(await page.evaluate(() => document.querySelector('.topbar').scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  // nothing reached the agent yet
+  const file = path.join(home, 'answers.jsonl');
+  expect(fs.readFileSync(file, 'utf8')).not.toContain('Write the weekly digest');
+  // the reset passes: one tick delivers it with no prompt
+  const sched = await import(path.join(ROOT, 'cli', 'src', 'scheduler.js'));
+  const r = await sched.tick(home, { ...process.env, HARBORDECK_WAKE_COMMAND: 'true', HARBORDECK_CAFFEINATE: caffeinate }, reset + 91);
+  expect(r.delivered).toEqual([`limit-${reset}`, expect.stringMatching(/^reset-req-/)]);
+  const line = fs.readFileSync(file, 'utf8').trim().split('\n').map(l => JSON.parse(l)).find(a => a.note === 'Write the weekly digest');
+  expect(line).toMatchObject({ action: 'request' });
+  const sent = page.locator('#rail .ticket.waiting', { hasText: 'Write the weekly digest' });
+  await expect(sent).toBeVisible({ timeout: 8000 });
+  await expect(sent.locator('.tk-foot')).toContainText('sent');
+  await expect(page.locator('#rail .ticket.queued')).toHaveCount(0);
+  // the agent replies with an item carrying the request id
+  fs.writeFileSync(path.join(home, 'items', `${line.id}.json`), JSON.stringify({ id: line.id, kind: 'answer', project: 'x', title: 'Weekly digest', summary: 'Drafted.', created: Math.floor(Date.now() / 1000), status: 'open' }));
+  await expect(page.locator('#rail .ticket.replied', { hasText: 'Write the weekly digest' })).toBeVisible({ timeout: 8000 });
 });

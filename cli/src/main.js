@@ -5,6 +5,7 @@ import path from 'node:path';
 import { tokenize, parseFlags } from './args.js';
 import { Store, SLUG, homeDir, writeAtomic } from './store.js';
 import { validate } from './schema.js';
+import { SCHEDULER_COMMANDS } from './scheduler-cli.js';
 
 export const VERSION = '1.0.0';
 const KINDS = ['decision', 'answer', 'review', 'todo'];
@@ -36,6 +37,19 @@ Snapshots and upkeep:
   hd validate [--json]       check the whole data dir
   hd path                    print the data dir
   hd mcp                     run a stdio MCP server exposing the same verbs
+
+Limit-reset scheduler (deliver later, through the wake command):
+  hd schedule <HH:MM|+30m|ISO|@epoch|reset> "<msg>" [--item <id>] [--request [--to <agent>]]
+                             reset = after the usage limit resets; --request also writes
+                             the request line to answers.jsonl at delivery
+  hd schedule list [--json] | cancel <id|item id>
+  hd limit record            Claude Code StopFailure hook (hook JSON on stdin; never fails)
+  hd limit snapshot          statusline tee (statusline JSON on stdin)
+  hd limit set --reset <time> [--window <name>]   any agent: record a known reset
+  hd tick                    deliver due items (run every 60s; see scheduler install)
+  hd scheduler status [--json] | on | off
+  hd scheduler config [--wake-command <cmd>] [--margin <s>] [--max-attempts <n>] [--keep-awake on|off]
+  hd scheduler install [--no-load] [--interval <s>] | uninstall [--no-load]
 `;
 
 class UsageError extends Error {}
@@ -422,6 +436,7 @@ async function cmdMcp(argv, ctx) {
 const COMMANDS = {
   reply: cmdReply, resolve: cmdResolve, gap: cmdGap, answers: cmdAnswers, ls: cmdLs,
   validate: cmdValidate, batch: cmdBatch, '-': cmdBatch, mcp: cmdMcp,
+  ...SCHEDULER_COMMANDS,
   path: (argv, ctx) => { parseFlags(argv, {}); ctx.out(ctx.store.home); },
 };
 for (const k of KINDS) COMMANDS[k] = (argv, ctx) => saveItem(buildItem(k, argv, ctx), ctx);

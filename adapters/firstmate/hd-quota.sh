@@ -3,7 +3,8 @@
 #
 # Usage: hd-quota.sh [--print] [--from-json <quota-axi --json output file>]
 #
-# One entry per independent window that has a reset time and a length:
+# One entry per independent window that has a reset time and a length
+# (windowSeconds, else inferred: five_hour/session 5h, seven_day/weekly 7d, model:* weekly 7d):
 # {name, window: "<n>h|<n>d", used_pct, resets_at}. Shared sub-windows
 # (shareOf) and windows without a percentage are skipped. Reads are cached by
 # quota-axi for HD_QUOTA_MAX_AGE (default 5m), so frequent runs stay cheap.
@@ -35,11 +36,20 @@ quota=$(jq '
   def names: {claude: "Claude", codex: "OpenAI Codex", cursor: "Cursor", copilot: "GitHub Copilot"};
   def window: if . % 86400 == 0 then "\(. / 86400)d" else "\((. / 3600) | ceil)h" end;
   def epoch: sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601;
+  # Newer quota-axi reports omit windowSeconds; infer it from the window id/kind/label.
+  def length_of:
+    if .id == "five_hour" or .kind == "session" then 18000
+    elif .id == "seven_day" or .kind == "weekly" then 604800
+    elif .kind == "model" and (((.label // "") | test("week"; "i")) or ((.id // "") | startswith("model:"))) then 604800
+    else null end;
+  def model_name: ((.id // "") | sub("^model:"; "")) as $m
+    | if $m != "" and $m != .id then ($m[:1] | ascii_upcase) + $m[1:] else (.label // .id) end;
   [.providers[] | .provider as $p | (.windows // [])[]
-   | select(.shareOf == null and .resetsAt != null and (.windowSeconds // 0) > 0)
+   | (.windowSeconds // length_of) as $len
+   | select(.shareOf == null and .resetsAt != null and ($len // 0) > 0)
    | select(.percentUsed != null or .percentRemaining != null)
-   | {name: ((names[$p] // $p) + (if .kind == "model" then " \(.label)" else "" end)),
-      window: (.windowSeconds | window),
+   | {name: ((names[$p] // $p) + (if .kind == "model" then " \(model_name)" else "" end)),
+      window: ($len | window),
       used_pct: ((.percentUsed // (100 - .percentRemaining)) | if . < 0 then 0 elif . > 100 then 100 else . end),
       resets_at: (.resetsAt | epoch)}]
 ' <<<"$raw")

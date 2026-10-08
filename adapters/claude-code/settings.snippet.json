@@ -1,0 +1,8 @@
+{
+  "hooks": {
+    "StopFailure": [
+      { "matcher": "rate_limit", "hooks": [{ "type": "command", "command": "harbordeck limit record" }] }
+    ]
+  },
+  "statusLine": { "type": "command", "command": "/path/to/HarborDeck/adapters/claude-code/statusline-tee.sh" }
+}

@@ -54,6 +54,17 @@ EOF
 "$here/hd-quota.sh" --from-json "$tmp/quota.json" >/dev/null
 check "quota: windows converted" test "$(jq -c '.' "$HARBORDECK_HOME/quota.json")" = \
   '[{"name":"Claude","window":"5h","used_pct":62,"resets_at":1791453600},{"name":"Claude","window":"7d","used_pct":41,"resets_at":1791763200}]'
+# newer quota-axi: no windowSeconds; length inferred from id/kind, model windows kept
+cat > "$tmp/quota-new.json" <<'EOF'
+{"providers":[
+ {"provider":"claude","windows":[
+   {"id":"five_hour","label":"session","kind":"session","resetsAt":"2026-10-08T13:09:59.985382+00:00","percentRemaining":80},
+   {"id":"seven_day","label":"weekly","kind":"weekly","resetsAt":"2026-10-08T11:59:59.985404+00:00","percentRemaining":84},
+   {"id":"model:fable","label":"Fable week","kind":"model","resetsAt":"2026-10-08T11:59:59.985563+00:00","percentRemaining":75}]},
+ {"provider":"codex","windows":[]}]}
+EOF
+check "quota: windows without windowSeconds" test "$("$here/hd-quota.sh" --print --from-json "$tmp/quota-new.json" 2>/dev/null | jq -c '.')" = \
+  '[{"name":"Claude","window":"5h","used_pct":20,"resets_at":1791464999},{"name":"Claude","window":"7d","used_pct":16,"resets_at":1791460799},{"name":"Claude Fable","window":"7d","used_pct":25,"resets_at":1791460799}]'
 
 # rules
 printf '# Prefs\n\n- Never ship a release on Fridays.\n- Keep infra under $30/mo. {#budget-30}\n  - nested detail is ignored\n* Never ship a release on Fridays, holidays too.\n' > "$tmp/prefs.md"

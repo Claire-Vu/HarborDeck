@@ -8,12 +8,12 @@
 const bridge = window.harbor;
 if (!bridge) { document.body.textContent = 'Harbor Deck must run inside the desktop app (preload bridge missing).'; return; }
 let SNAP = await bridge.snapshot();
-let ITEMS = [], RULES = {}, FLEET = {}, QUOTA = [], FILES = {}, byId = {};
+let ITEMS = [], RULES = {}, FLEET = {}, QUOTA = [], FILES = {}, SCHED = null, byId = {};
 function setData(snap) {
   SNAP = snap; ITEMS = snap.items || []; RULES = snap.rules || {}; QUOTA = Array.isArray(snap.quota) ? snap.quota : [];
   FLEET = Object.assign({ firstmates: [], crew: [], regulars: [], tools: [], counts: {} }, snap.fleet || {});
   if (!FLEET.firstmates.length) FLEET.firstmates = [{ id: 'mate', label: 'First Mate', domain: 'everything' }];
-  FILES = snap.files || {}; byId = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+  FILES = snap.files || {}; SCHED = snap.scheduler || null; byId = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 }
 setData(SNAP);
 const KIND = { decision: 'Decision', review: 'Review', answer: 'Dispatch', todo: 'Notice' };
@@ -153,6 +153,12 @@ const winSecs = w => { const m = String(w).match(/^(\d+)\s*([hdw])$/i); return m
 function quotaView(q) { const w = winSecs(q.window); let r = q.resets_at; const t = now(); if (r < t) r += Math.ceil((t - r) / w) * w; return { ...q, left: Math.max(0, 100 - (q.used_pct || 0)), resets: r, in: r - t }; }
 const staminaMin = () => QUOTA.length ? Math.min(...QUOTA.map(q => quotaView(q).left)) : null;
 const tired = () => { const m = staminaMin(); return m != null && m < 20; };
+
+// scheduler: requests queued for after the usage-limit reset or a time (scheduler.json via the main process)
+const queuedRequests = () => (SCHED?.pending || []).filter(p => p.request && !S.answers.some(a => a.action === 'request' && a.id === p.request.id));
+const awakeUntil = () => (SCHED?.keep_awake && SCHED.keep_awake.until > now() ? SCHED.keep_awake.until : null);
+const { dur, nextClockEpoch } = window.HarborSchedule;
+const queuedLabel = p => window.HarborSchedule.queuedLabel(p, SCHED, now(), fmtTime);
 
 // ------------------------------------------------------------ audio: desk sounds + generated harbor music
 let actx = null;
@@ -530,7 +536,8 @@ function tickets() {
     else { item = byId[a.id]; title = item?.title || a.id; const th = item?.thread || []; reply = th.filter(m => m.at >= a.at && m.from !== 'captain').sort((x, y) => x.at - y.at)[0] || null; }
     out.push({ key, a, title, reply, item, seen: !!S.tickets.seen[key] });
   }
-  return out.sort((x, y) => ((y.reply && !y.seen) - (x.reply && !x.seen)) || ((!!y.reply) - (!!x.reply)) || x.a.at - y.a.at);
+  for (const p of queuedRequests()) out.push({ key: `queued:${p.id}`, a: { id: p.request.id, action: 'request', note: p.request.note, to: p.request.to, at: p.queued_at }, title: `Order to ${mateLabel(p.request.to)}`, reply: null, item: null, queued: p, seen: true });
+  return out.sort((x, y) => ((y.reply && !y.seen) - (x.reply && !x.seen)) || ((!!y.reply) - (!!x.reply)) || (!!x.queued - !!y.queued) || x.a.at - y.a.at);
 }
 function renderRail(ring) {
   const rail = $('#rail'); if (!rail) return; const list = tickets(); const t0 = now();
@@ -538,10 +545,11 @@ function renderRail(ring) {
   if (!list.length) { rail.append(h('span', { class: 'rail-empty' }, 'Asks and orders you send clip here')); rail.dataset.count = 0; return; }
   list.forEach((t, i) => {
     const unread = t.reply && !t.seen;
-    rail.append(h('button', { class: `ticket ${t.reply ? 'replied' : 'waiting'} ${unread ? 'new' : ''} ${t.a.action}`, dataset: { key: t.key, i }, tabindex: i === railFocus ? 0 : -1, 'aria-label': `${t.title}: ${t.a.note}. ${t.reply ? (unread ? 'reply waiting' : 'replied') : 'waiting ' + age(t0 - t.a.at)}`, onclick: e => openTicket(t, e.currentTarget), onfocus: () => { railFocus = i; } },
+    const state = t.queued ? queuedLabel(t.queued) : t.reply ? (unread ? 'reply waiting' : 'replied') : 'waiting ' + age(t0 - t.a.at);
+    rail.append(h('button', { class: `ticket ${t.queued ? 'queued' : t.reply ? 'replied' : 'waiting'} ${unread ? 'new' : ''} ${t.a.action}`, dataset: { key: t.key, i }, tabindex: i === railFocus ? 0 : -1, 'aria-label': `${t.title}: ${t.a.note}. ${state}`, onclick: e => openTicket(t, e.currentTarget), onfocus: () => { railFocus = i; } },
       h('span', { class: 'tk-head' }, h('span', { class: `tk-kind ${t.a.action}` }, { ask: 'ask', 'needs-work': 'rework', request: 'order' }[t.a.action]), h('span', { class: 'tk-title' }, t.title), unread ? h('span', { class: 'tk-badge' }, '1') : null),
       h('span', { class: 'tk-note' }, t.a.note),
-      h('span', { class: 'tk-foot' }, t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` waiting ${age(t0 - t.a.at)}`])));
+      h('span', { class: 'tk-foot' }, t.queued ? `⏳ ${state}` : t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` sent · waiting ${age(t0 - t.a.at)}`])));
   });
   rail.dataset.count = list.filter(t => t.reply && !t.seen).length;
   if (ring) { const first = rail.querySelector('.ticket.new'); if (first) { first.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } }
@@ -552,7 +560,9 @@ function openTicket(t, el) {
   const r = el.getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note),
-    t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
+    t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)
+      : t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
+    t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); toast(r.ok ? 'Queued order withdrawn' : 'Already sent', r.ok ? '' : 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
     h('div', { class: 'row' }, t.item && statusOf(t.item) === 'open' ? h('button', { class: 'pbtn', onclick: () => { pop.remove(); if (S.prefs.plain) { S.prefs.plain = false; save(); } stepUp(t.item.id); } }, 'Open item') : null, h('button', { class: 'pbtn ghost', onclick: () => { S.tickets.done[t.key] = true; save(); pop.remove(); snd('flip'); renderRail(); } }, 'Done'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')));
   document.body.append(pop);
   pop.style.left = Math.max(8, Math.min(window.innerWidth - 328, r.left)) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
@@ -654,10 +664,32 @@ function renderRequests() {
   const picks = h('div', { class: 'counter' }, mates.map(m => h('button', { class: `mate-pick ${m.id === to ? 'sel' : ''}`, onclick: e => { to = m.id; picks.querySelectorAll('.mate-pick').forEach(b => b.classList.toggle('sel', b === e.currentTarget)); snd('tick'); }, title: m.domain || '' },
     h('div', { html: spriteSVG(m.id, 'slip', { mate: true, tired: tired() }) }), h('div', { class: 'mate-name' }, m.label), h('div', { class: 'mate-dom' }, m.domain || ''))));
   const send = () => { const v = ta.value.trim(); if (!v) { ta.focus(); return; } const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); ta.value = ''; snd('ding'); toast(`Order handed to ${mateLabel(to)}`); renderRequests(); renderRail(); };
+  // Queued orders wait in the scheduler and go out by themselves (harbordeck tick), no prompt needed.
+  const queue = async when => {
+    const v = ta.value.trim(); if (!v) { ta.focus(); return; }
+    const id = `req-${now()}-${hash(v) % 1000}`;
+    const r = await bridge.schedule({ when, request: { id, note: v, to } });
+    if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return; }
+    S.prefs.lastMate = to; save(); ta.value = ''; snd('slide');
+    toast(when === 'reset' ? `Queued for ${mateLabel(to)} after the usage limit resets` : `Queued for ${mateLabel(to)} at ${fmtTime(when)}`);
+    applySnapshot(r.snapshot);
+  };
+  const at = h('input', { type: 'time', class: 'order-time', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
+  const atBtn = h('button', { class: 'pbtn ghost', disabled: true, onclick: () => { if (at.value) queue(nextClockEpoch(at.value)); } }, 'Queue at time');
+  at.addEventListener('input', () => { atBtn.disabled = !at.value; });
   ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send(); });
-  pane.append(h('p', { class: 'legend' }, 'Write an order slip and hand it across the counter. The first mate decides who cooks it.'), picks, h('div', { class: 'order-slip' }, ta, h('div', { class: 'row' }, h('span', { class: 'legend' }, '⌘/Ctrl+Enter sends'), h('button', { class: 'pbtn', onclick: send }, 'Hand it over'))));
+  const sched = SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable';
+  pane.append(h('p', { class: 'legend' }, 'Write an order slip and hand it across the counter. The first mate decides who cooks it. Out of stamina? Queue it: it goes out by itself once the usage limit resets.'), picks,
+    h('div', { class: 'order-slip' }, ta,
+      h('div', { class: 'row' }, h('span', { class: 'legend' }, '⌘/Ctrl+Enter sends now'), h('button', { class: 'pbtn', onclick: send }, 'Send now')),
+      h('div', { class: 'row when-row' }, h('button', { class: 'pbtn ghost', onclick: () => queue('reset') }, 'Queue for after reset'), h('span', { class: 'at-group' }, at, atBtn)),
+      sched ? h('div', { class: 'legend sched-note' }, sched) : null,
+      awakeUntil() ? h('div', { class: 'legend sched-note' }, `☕ Keeping this Mac awake until ${fmtTime(awakeUntil())} so queued work goes out (display can still sleep).`) : null));
+  const queued = queuedRequests();
   const sent = S.answers.filter(a => a.action === 'request').slice().reverse();
-  if (sent.length) pane.append(h('h3', { class: 'oh' }, 'On the counter'), ...sent.map(a => h('div', { class: 'slip-row' }, h('div', null, a.note), h('div', { class: 'si-meta' }, `${mateLabel(a.to)} · ${fmtDate(a.at)} ${fmtTime(a.at)} · ${a.at >= S.dayStart ? 'handed over, waiting for an item to come back' : 'earlier'}`))));
+  if (queued.length || sent.length) pane.append(h('h3', { class: 'oh' }, 'On the counter'),
+    ...queued.map(p => h('div', { class: 'slip-row queued' }, h('div', null, p.request.note), h('div', { class: 'si-meta' }, `${mateLabel(p.request.to)} · ⏳ ${queuedLabel(p)}`))),
+    ...sent.map(a => h('div', { class: 'slip-row' }, h('div', null, a.note), h('div', { class: 'si-meta' }, `${mateLabel(a.to)} · ${fmtDate(a.at)} ${fmtTime(a.at)} · ${byId[a.id] ? 'replied' : a.at >= S.dayStart ? 'handed over, waiting for an item to come back' : 'earlier'}`))));
 }
 function renderCrewPane() {
   const pane = $('#crew-pane'); pane.replaceChildren(staminaPanel());
@@ -684,7 +716,13 @@ function staminaPanel() {
   }
   return box;
 }
+function renderSchedChip() {
+  const c = $('#sched-chip'); const v = window.HarborSchedule.chip(SCHED, queuedRequests().length, now(), { fmtTime, fmtDate });
+  c.hidden = !v; if (!v) return;
+  c.classList.toggle('off', v.off); c.replaceChildren(h('span', null, v.text)); c.title = v.title;
+}
 function renderStaminaMini() {
+  renderSchedChip();
   const m = staminaMin(); const box = $('#stamina-cluster'); box.replaceChildren();
   if (m == null) { box.append(h('span', { class: 'dim' }, 'no quota')); return; }
   const views = QUOTA.map(quotaView); const shortest = views.reduce((a, b) => a.in < b.in ? a : b);
@@ -865,7 +903,7 @@ bridge.onMenu(async what => {
 });
 
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
-tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); } }, 30000);
+tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-orders').onclick = () => $('#orders').classList.contains('open') ? closeDrawers() : openDrawer('orders');
@@ -873,6 +911,7 @@ $('#btn-vault').onclick = () => $('#vault').classList.contains('open') ? closeDr
 $('#btn-log').onclick = () => $('#agentlog').classList.contains('open') ? closeDrawers() : openDrawer('agentlog');
 $('#btn-ledger').onclick = openLedger;
 $('#btn-settings').onclick = openSettings;
+$('#sched-chip').onclick = () => { if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('requests'); };
 $('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('crew'); };
 $('#cash').onclick = openLedger;
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
