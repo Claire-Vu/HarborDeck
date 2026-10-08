@@ -54,6 +54,8 @@ Any agent that can write a JSON file can join without the CLI: the format is in 
   fleet.json        optional      crew scene: who is cooking, waiting, idle
   quota.json        optional      stamina bars and refill countdowns
   rules.json        optional      standing orders that items are checked against
+  scheduler.json    scheduler     queued work, next reset, keep-awake (docs/SCHEDULER.md)
+  schedule/         scheduler     queue, history, config and log of the limit-reset scheduler
 ```
 
 The app never writes items or snapshots, and agents never write `answers.jsonl`. Unreadable item files are skipped and listed in Settings; they never break the desk.
@@ -86,6 +88,19 @@ tmux send-keys -t agent "answers waiting" Enter       # nudge an agent pane
 ```
 
 Agents that run a loop can skip the hook and block on `hd answers --cursor <name> --wait` instead; [`adapters/firstmate/hd-live.sh`](adapters/firstmate) does exactly that.
+
+## Queue work for after the usage reset
+
+Out of stamina? In **Requests**, write the order and press **Queue for after reset** (or pick a time and **Queue at time**). The order clips to the ticket rail as *waiting for reset · 2h 14m*, flips to *sent* when the scheduler hands it over, and to *replied* when the agent answers. The chip next to the stamina bars shows queued count, time to reset and, on macOS, how long the Mac is kept awake (`caffeinate -i`, display still sleeps). Withdraw a queued order from its ticket.
+
+Delivery needs the scheduler job and a wake command once:
+
+```sh
+hd scheduler config --wake-command "<how to wake your agent>"
+hd scheduler install            # launchd tick every 60 s (macOS); prints the Claude Code hook
+```
+
+Details, presets (generic, firstmate) and safety rules: [`docs/SCHEDULER.md`](docs/SCHEDULER.md).
 
 ## Settings
 
@@ -132,8 +147,9 @@ Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, 
 
 ```sh
 npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed; then the garden gate
-npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security
-npm run check       # syntax check of main, preload and renderer
+npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security, queue-for-reset
+npm run check       # syntax check of main, preload, renderer and the scheduler module
+(cd cli && npm test)             # CLI + scheduler (parsing, claim/no-resend, retries, keep-awake, installer, wake presets)
 adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
 test/evidence/run.sh demo        # recorded proof of the live round trip (ystack evidence runner)
 ```

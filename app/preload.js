@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('harbor', {
   appendAnswer: line => ipcRenderer.sendSync('harbor:answer', line),
   onUpdate: fn => ipcRenderer.on('harbor:update', (e, snap) => fn(snap)),
   onMenu: fn => ipcRenderer.on('harbor:menu', (e, what) => fn(what)),
+  schedule: req => ipcRenderer.invoke('harbor:schedule', req),
+  cancelScheduled: id => ipcRenderer.invoke('harbor:schedule-cancel', id),
   openExternal: url => ipcRenderer.invoke('harbor:open-external', url),
   openPath: url => ipcRenderer.invoke('harbor:open-path', url),
   getSettings: () => ipcRenderer.invoke('harbor:get-settings'),

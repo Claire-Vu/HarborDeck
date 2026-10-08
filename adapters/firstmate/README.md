@@ -11,6 +11,7 @@ Scripts that connect any firstmate home to HarborDeck without changing firstmate
 | `hd-rules.sh <prefs.md>` | `rules.json` | a markdown preferences file such as `data/captain.md` |
 | `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` (`--follow`: live, on every append) |
 | `install.sh` | CLI links, app settings, launchd agent, firstmate instructions | see [SETUP.md](SETUP.md) |
+| `wake.sh` | one typed message to the primary firstmate pane (`bin/fm-send.sh`) | the scheduler's wake command ([`docs/SCHEDULER.md`](../../docs/SCHEDULER.md)) |
 | `hd-live.sh` | all of the above, continuously | runs the bridge in `--follow` mode and refreshes fleet (10 s), quota (120 s) and rules (on file change) |
 
 Requirements: bash, `jq`, the `harbordeck` CLI on `PATH` (or `HD=/path/to/harbordeck.js`), and `quota-axi` for the quota script.

@@ -17,12 +17,14 @@ The JSON Schemas in [`../schema/`](../schema) are normative. This page explains 
 | `quota.json` | agent/adapter (optional) | app | [`quota`](../schema/quota.schema.json) |
 | `rules.json` | agent/adapter (optional) | app | [`rules`](../schema/rules.schema.json) |
 | `cursors/<name>` | agent | agent | byte offset into `answers.jsonl` |
+| `scheduler.json` | scheduler | app, tools | [scheduler status](#scheduler) |
+| `schedule/` | scheduler, app (queue only) | scheduler | [scheduler](#scheduler) |
 
 File rules:
 
 - Whole-file writes are atomic: write `.<name>.<random>.tmp` in the same directory, then rename. Readers ignore dotfiles and must tolerate a file appearing or being replaced at any time.
 - JSONL files are appended one complete line per write (`\n`-terminated). A reader consumes only complete lines; a trailing partial line is still being written.
-- The app never writes items or snapshots. Agents never write `answers.jsonl`.
+- The app never writes items or snapshots. Agents never write `answers.jsonl`; the HarborDeck scheduler appends a `request` line on the user's behalf when a request the user queued is delivered.
 - Unknown fields are allowed everywhere and ignored, so producers can add fields before the app reads them.
 - Relative paths inside items (`body`, artifact `path`) resolve against the data directory. The CLI always writes absolute paths.
 
@@ -200,6 +202,47 @@ When an agent has a response it cannot map onto an item kind (or can only squeez
 ## Live feed
 
 HarborDeck is a live view, not an import. Agents write at any time; the app watches the data directory (items, snapshots, gaps) and updates the running desk without a restart or refresh. Agents get answers the same way: `harbordeck answers --cursor <name> --wait` blocks until the app appends a line and returns it at once, which is the on-answer hook for any agent loop (`adapters/firstmate/hd-bridge.sh --follow` is a complete one). Demo data is for first run only; once agents write to the data directory, only their data shows.
+
+## Scheduler
+
+The limit-reset scheduler (user guide: [`SCHEDULER.md`](SCHEDULER.md)) holds messages and requests until a time or until the agent's usage limit resets, then delivers each once. `harbordeck tick` (every 60 s) is the only deliverer.
+
+```
+schedule/queue/<id>.json     pending items        schedule/sent/<id>.json, schedule/failed/<id>.json   history
+schedule/config.json         {"wake_command", "margin", "max_attempts", "wake_timeout", "keep_awake"}
+schedule/rate-limits.json    last status-line rate_limits per account     schedule/keep-awake.json   {"pid", "until"}
+schedule/off                 off switch           schedule/scheduler.log    log
+```
+
+A queue item:
+
+```json
+{"id": "reset-req-1791448100-512", "kind": "reset", "message": "Add a dark theme", "queued_at": 1791448100,
+ "item": "req-1791448100-512", "request": {"id": "req-1791448100-512", "note": "Add a dark theme", "to": "mate-web"}}
+```
+
+| `kind` | Due |
+|---|---|
+| `at` | `due` (epoch) |
+| `reset` | after every known exhausted window resets (pending `limit` items and `quota.json` windows at 100 %), else the soonest `quota.json` reset, else now; plus `margin` |
+| `limit` | the wake itself: `reset` + `margin`. Fields `reset`, `source` (`statusline`, `message`, `quota`, `manual`), `window`, `hit_at`, `stalled` (`[{pane, cwd, session}]`). Records within 15 min of each other are one reset. |
+
+An item with `request` is written to `answers.jsonl` at delivery as `{"id", "action": "request", "note", "to", "queued_at", "at"}`. The app writes queue files only to add or cancel a queued request; ids are stable, so queuing the same thing twice is one entry.
+
+`scheduler.json` is rewritten atomically on every change (times are epoch seconds, `null` = none):
+
+```json
+{"version": 1, "updated_at": 1791448540, "enabled": true, "wake_command": true,
+ "next_reset": 1791452122, "reset_due": 1791452212,
+ "limits": [{"window": "five_hour", "reset": 1791452122, "wake": 1791452212, "source": "statusline", "id": "limit-1791452122"}],
+ "pending": [{"id": "reset-req-1791448100-512", "kind": "reset", "due": 1791452212, "message": "Add a dark theme",
+              "item": "req-1791448100-512", "request": {"id": "req-1791448100-512", "note": "Add a dark theme", "to": "mate-web"}, "queued_at": 1791448100}],
+ "keep_awake": {"pid": 4242, "until": 1791452512},
+ "last_delivery": {"id": "at-1791440000-3fa1c2", "kind": "at", "item": null, "delivered_at": 1791440031},
+ "sent": [], "failed": []}
+```
+
+`limits` lists one entry per known reset (per window); `next_reset` is the latest of them, the time work can resume. `sent` and `failed` hold the last 10.
 
 ## Versioning
 

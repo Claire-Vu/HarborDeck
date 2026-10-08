@@ -58,7 +58,15 @@ hd gap "<text>" [--sample <path|url>] [--item <id>]
 hd validate [--json]
 hd path
 hd mcp
+
+hd schedule <HH:MM|+30m|ISO|@epoch|reset> "<msg>" [--item <id>] [--request [--to <agent>]]
+hd schedule list [--json] | cancel <id>
+hd limit record | snapshot | set --reset <time> [--window <name>]
+hd tick
+hd scheduler status [--json] | on | off | config [...] | install [--no-load] | uninstall
 ```
+
+The `schedule`/`limit`/`tick`/`scheduler` commands are the limit-reset scheduler: hold work until the usage limit resets, then wake the agent through a configurable command. See [`docs/SCHEDULER.md`](../docs/SCHEDULER.md).
 
 Behaviour worth knowing:
 

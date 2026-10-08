@@ -18,6 +18,9 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'harbor', privileges: { standard
 
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
 const DEMO_HOME = () => path.join(app.getPath('userData'), 'demo');
+// The limit-reset scheduler is the CLI's own module (ESM), so the app and `harbordeck tick` share one queue format.
+let sched = null;
+const schedReady = import('../cli/src/scheduler.js').then(m => { sched = m; }, e => log(`scheduler unavailable: ${e.message}`));
 let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, win = null, allowed = new Set(), logLines = [];
 
 function log(msg) { logLines.push(`${new Date().toISOString()} ${msg}`); if (logLines.length > 200) logLines.shift(); if (!app.isPackaged) console.log('[harbordeck]', msg); }
@@ -25,7 +28,9 @@ function log(msg) { logLines.push(`${new Date().toISOString()} ${msg}`); if (log
 function snapshot() {
   const snap = store.snapshot(home, { artifactRoot: settings.artifactRoot });
   allowed = new Set(Object.values(snap.files).filter(f => f && f.exists).map(f => f.abs));
-  return Object.assign(snap, { demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
+  let scheduler = null;
+  try { scheduler = sched ? sched.statusData(home) : null; } catch (e) { log(`scheduler status: ${e.message}`); }
+  return Object.assign(snap, { scheduler, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
 }
 const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '' });
 
@@ -96,6 +101,21 @@ ipcMain.on('harbor:answer', (e, line) => {
     e.returnValue = { ok: true, line: text };
   } catch (err) { log(`answer rejected: ${err.message}`); e.returnValue = { ok: false, error: err.message }; }
 });
+// Queue a request for after the usage-limit reset (when: 'reset') or a time (epoch); `harbordeck tick` delivers it.
+ipcMain.handle('harbor:schedule', (e, req) => {
+  try {
+    if (!sched) throw new Error('scheduler unavailable');
+    const r = req && req.request;
+    if (!r || typeof r.note !== 'string') throw new Error('invalid request');
+    const when = req.when === 'reset' ? 'reset' : Math.floor(+req.when);
+    const out = sched.enqueue(home, { when, request: { id: String(r.id), note: r.note, to: r.to ? String(r.to) : undefined } });
+    log(`queued ${out.id}`);
+    return { ok: true, id: out.id, snapshot: snapshot() };
+  } catch (err) { log(`schedule rejected: ${err.message}`); return { ok: false, error: err.message }; }
+});
+ipcMain.handle('harbor:schedule-cancel', (e, id) => {
+  try { const hits = sched ? sched.cancel(home, String(id)) : []; return { ok: hits.length > 0, snapshot: snapshot() }; } catch (err) { return { ok: false, error: err.message }; }
+});
 ipcMain.handle('harbor:open-external', (e, url) => openExternal(String(url)));
 ipcMain.handle('harbor:open-path', (e, url) => { const abs = store.pathFromUrl(url); if (abs && allowed.has(abs)) return shell.openPath(abs); return 'not allowed'; });
 ipcMain.handle('harbor:get-settings', () => publicSettings());
@@ -111,7 +131,8 @@ ipcMain.handle('harbor:choose-dir', async (e, title) => {
 ipcMain.handle('harbor:demo', (e, on) => { if (on) startDemo(); else useHome(effectiveHome(settings), false); return snapshot(); });
 ipcMain.handle('harbor:diagnostics', () => logLines.slice(-50));
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await schedReady;
   settings = loadSettings(SETTINGS_FILE());
   const wantDemo = process.argv.includes('--demo') || process.env.HARBORDECK_DEMO === '1';
   if (wantDemo) startDemo(); else useHome(effectiveHome(settings), false);
