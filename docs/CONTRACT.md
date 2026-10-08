@@ -13,6 +13,7 @@ The JSON Schemas in [`../schema/`](../schema) are normative. This page explains 
 | `items/<id>.json` | agent | app | [`item`](../schema/item.schema.json) |
 | `answers.jsonl` | app (append only) | agent | [`answer`](../schema/answer.schema.json) |
 | `gaps.jsonl` | agent (append only) | app, maintainers | [`gap`](../schema/gap.schema.json) |
+| `notes.jsonl` | agent (append only) | app, agents | [`note`](../schema/note.schema.json) |
 | `fleet.json` | agent/adapter (optional) | app | [`fleet`](../schema/fleet.schema.json) |
 | `quota.json` | agent/adapter (optional) | app | [`quota`](../schema/quota.schema.json) |
 | `rules.json` | agent/adapter (optional) | app | [`rules`](../schema/rules.schema.json) |
@@ -38,6 +39,8 @@ One file per item, `items/<id>.json`, file name = `id`. Rewrite the same file to
   "kind": "decision",
   "project": "weather-app",
   "stream": "releases",
+  "topic": "release-2-4",
+  "rel": ["flaky-test"],
   "from": "mate-main",
   "title": "Ship release 2.4 to the store?",
   "summary": "Release 2.4 adds hourly radar. All 212 tests pass.",
@@ -71,6 +74,8 @@ Required: `id`, `kind`, `title`, `created`, `status`.
 | `id` | slug `[A-Za-z0-9][A-Za-z0-9._-]{0,127}` | Stable key. Answers refer to it. When an item stands for an agent-side task, use that task's id. |
 | `kind` | `decision` \| `answer` \| `review` \| `todo` | See [kinds](#kinds). |
 | `project`, `stream` | string | Grouping. `stream` is a finer lane inside a project. |
+| `topic` | slug | What the item is about, shared by every item and [note](#topics-and-notes) on the same subject. Agents should always set it. |
+| `rel` | `[item id]` | Related items, possibly in other topics. |
 | `from` | string | Agent id that raised it (matches `fleet.json` `firstmates[].id` when present). |
 | `title` | string ≤ 300 | One line. Phrase decisions as a question. |
 | `summary` | string ≤ 2000 | One to three plain sentences. The app treats each sentence as an inspectable claim. |
@@ -151,6 +156,34 @@ Reading answers cheaply: remember the byte offset after the last complete line y
 
 - Reply to an `ask`, `comment` or `needs-work` by appending `{from, text, at}` to the item's `thread` (`harbordeck reply <id> "<text>"`). The app shows the reply on the ticket rail.
 - Reply to a `request` by writing an item whose `id` equals the request id. `harbordeck reply <request-id> "<text>"` creates a minimal `answer` item titled from the request when none exists yet; rewrite it with a richer item later if needed.
+
+## Topics and notes
+
+A **topic** is a short slug naming one subject (a release, a feature, a vendor). It ties together everything about that subject so nothing said about it gets lost in chat:
+
+- Items carry it in `topic`; `rel` links an item to related items. A topic exists once an item or a note names it.
+- **Notes** are what an agent says about an existing item or topic after the fact (a status change, a fact learned, a correction). The agent appends one line to `notes.jsonl` instead of leaving it only in chat:
+
+```json
+{"item": "release-2-4", "topic": "release-2-4", "text": "Store review passed; the build is ready to go out.", "from": "mate-main", "at": 1791431700}
+{"topic": "release-2-4", "text": "Marketing wants the release notes a day early.", "artifact": {"type": "report", "path": "/abs/path/notes-request.md"}, "from": "mate-main", "at": 1791431800}
+```
+
+| Field | Meaning |
+|---|---|
+| `item` | Item the note is about. At least one of `item`, `topic`. |
+| `topic` | Topic it belongs to. With `item`, the item's topic when written; if the item later moves topic, the note follows the item. The first note on an unknown topic creates it. |
+| `text` | One or two plain sentences (≤ 2000). |
+| `artifact` | Optional evidence, same shape as an item artifact. |
+| `from`, `at` | Agent id; epoch seconds. Required: `text`, `at`. |
+
+When a remark fits no item or topic, log a [gap](#gaps) instead.
+
+The app derives each topic from items, answers and notes (shared code: `cli/src/topics.js`; `harbordeck topic <slug>` prints the same timeline):
+
+- **Topic page**: what is still open, then a timeline oldest first of items raised, the user's stamps, asks and comments, agent replies, notes and resolutions, with their artifacts, and related topics (topics whose items are linked by `rel`).
+- **Bundles**: open items that share a topic or are linked by `rel` (either way, transitively) arrive at the desk together, as one visitor with several papers. One bundle stamp writes the usual line per item (`decide` with the chosen or recommended option, `approve` for reviews, `file` otherwise), held and undone together.
+- Notes appear live on the topic page and, for item notes, in the item's correspondence.
 
 ## Snapshots (optional)
 

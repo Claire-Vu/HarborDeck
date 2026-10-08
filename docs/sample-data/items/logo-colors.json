@@ -1,6 +1,7 @@
 {
  "id": "logo-colors",
  "kind": "decision",
+ "topic": "brand",
  "project": "bakery-site",
  "stream": "branding",
  "title": "Logo palette: warm or cool?",

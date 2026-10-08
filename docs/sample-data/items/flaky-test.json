@@ -1,6 +1,7 @@
 {
  "id": "flaky-test",
  "kind": "answer",
+ "topic": "release-2-4",
  "project": "weather-app",
  "stream": "quality",
  "title": "Why the radar test was flaky",

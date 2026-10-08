@@ -17,12 +17,24 @@ Environment for every call: `HARBORDECK_FROM=@FROM@` (secondmates: your own endp
 | do something only they can (log in, pay, sign, grant access) | todo | `harbordeck todo <id> "<what>" -s "<why>" -d <due>` |
 
 - **A captain hold and its item share one id: the held task id.** Raise the hold with `bin/fm-captain-hold.sh hold` as usual, then write the item. The bridge answers that exact hold when the captain stamps it.
+- **Always set `-t <topic>`**: a short slug for the subject (the project feature, release, vendor, or the task family), reused by every item about it; add `--rel <id>,<id>` for related items in other topics. Items sharing a topic or link reach the captain as one bundle. `harbordeck topics` lists existing topics: reuse one before inventing a new one.
 - `+` marks your recommendation. `-s` is plain sentences. `-b`/`-a` take paths or URLs only; never paste report text.
 - A hold with several questions: one decision per question, ids `<task-id>.q1`, `.q2`, ... Those answers arrive as inbox notes; once all are in, close the hold with `bin/fm-captain-hold.sh answer`.
 - Presenting a Lavish plan: always attach it with `-a lavish:<url>` so the captain can annotate it inside the desk. Keep polling Lavish for the feedback as usual; the desk stamp is the verdict, Lavish carries the annotations.
 - Several items: `harbordeck batch` with one command per line on stdin (one process, all or nothing).
 - Priority `-p 1`..`4` (1 = blocks work now); due `-d +2d` or an ISO date.
 - Standing orders from captain.md: `--ok <rule>` when an item complies, `--flag <rule>:<why>` when it does not.
+
+## Mentions go on the item, not only in chat
+
+Whenever you tell the captain (chat, status, summary) anything about an existing item or topic, also attach it:
+
+```sh
+harbordeck note <id> "<one or two sentences>" [-a <path|url>]     # about one item
+harbordeck note topic:<slug> "<text>"                             # about the subject; a new slug creates the topic
+```
+
+It lands live on the topic page and the item's correspondence, so it is not lost in the scroll. Before acting on a topic, `harbordeck topic <slug>` gives its timeline (open items, stamps, replies, notes). If a remark belongs to no item or topic, `harbordeck gap "<what and why>"` instead.
 
 ## Answers come back by themselves
 
@@ -45,4 +57,4 @@ Examples: a live progress feed, a ranking, a form with many fields, a calendar, 
 
 ## Keep it cheap
 
-One short line per item (about 50 tokens), one `ok` line back. Batch a whole reply. Never `cat` answers.jsonl; the bridge reads it for you.
+One short line per item (about 50 tokens), one note about 20, one `ok` line back. Batch a whole reply, notes included. Never `cat` answers.jsonl; the bridge reads it for you.

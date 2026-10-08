@@ -17,6 +17,7 @@ export class Store {
     this.items = path.join(home, 'items');
     this.answers = path.join(home, 'answers.jsonl');
     this.gaps = path.join(home, 'gaps.jsonl');
+    this.notes = path.join(home, 'notes.jsonl');
     this.cursors = path.join(home, 'cursors');
   }
 
@@ -42,6 +43,15 @@ export class Store {
   appendLine(file, obj) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.appendFileSync(file, JSON.stringify(obj) + '\n');
+  }
+
+  // Parsed complete lines of a JSONL file; unreadable lines are skipped.
+  readJsonl(file) {
+    let text;
+    try { text = fs.readFileSync(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return []; throw e; }
+    return text.slice(0, text.lastIndexOf('\n') + 1).split('\n').flatMap((raw) => {
+      try { return raw.trim() ? [JSON.parse(raw)] : []; } catch { return []; }
+    });
   }
 
   readCursor(name) {

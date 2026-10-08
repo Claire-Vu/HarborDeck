@@ -1,6 +1,10 @@
 {
  "id": "release-2-4",
  "kind": "decision",
+ "topic": "release-2-4",
+ "rel": [
+  "flaky-test"
+ ],
  "project": "weather-app",
  "stream": "releases",
  "title": "Ship release 2.4 to the store?",

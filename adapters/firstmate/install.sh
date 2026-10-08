@@ -148,7 +148,7 @@ strip_block
 {
   [ ! -s "$prefs" ] || [ -z "$(tail -c 1 "$prefs")" ] || echo
   echo "$BEGIN"
-  echo "- HarborDeck is the captain's desk: put every captain-facing decision, review, report and todo on it with the \`harbordeck\` CLI as data/harbordeck.md says (a captain hold's item uses the held task id), and log anything that fits no item with \`harbordeck gap\`. {#harbordeck}"
+  echo "- HarborDeck is the captain's desk: put every captain-facing decision, review, report and todo on it with the \`harbordeck\` CLI as data/harbordeck.md says (a captain hold's item uses the held task id; always \`-t <topic>\`; later mentions of an item or topic also go on it with \`harbordeck note\`), and log anything that fits no item with \`harbordeck gap\`. {#harbordeck}"
   echo "$END"
 } >> "$prefs"
 say "firstmate: instructions in $instructions; standing order {#harbordeck} in $prefs"

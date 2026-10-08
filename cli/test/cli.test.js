@@ -209,7 +209,7 @@ test('mcp: initialize, list, call', () => {
   const res = r.out.trim().split('\n').map((l) => JSON.parse(l));
   const byId = Object.fromEntries(res.map((m) => [m.id, m]));
   assert.equal(byId[1].result.serverInfo.name, 'harbordeck');
-  assert.deepEqual(byId[2].result.tools.map((t) => t.name), ['harbordeck_batch', 'harbordeck_answers', 'harbordeck_gap']);
+  assert.deepEqual(byId[2].result.tools.map((t) => t.name), ['harbordeck_batch', 'harbordeck_answers', 'harbordeck_gap', 'harbordeck_topic']);
   assert.equal(byId[3].result.content[0].text, 'ok todo t');
   assert.equal(byId[4].result.isError, false);
   assert.equal(item('t').title, 'Do it');

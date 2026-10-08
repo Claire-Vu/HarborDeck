@@ -6,7 +6,8 @@ import { tokenize, parseFlags } from './args.js';
 import { Store, SLUG, homeDir, writeAtomic } from './store.js';
 import { validate } from './schema.js';
 import { SCHEDULER_COMMANDS } from './scheduler-cli.js';
-import { lavishUrl } from './lavish.js';
+import { TOPIC_COMMANDS, NOTE_FLAGS } from './topics-cli.js';
+import { parseArt, isUrl, absPath } from './artifacts.js';
 
 export const VERSION = '1.0.0';
 const KINDS = ['decision', 'answer', 'review', 'todo'];
@@ -24,9 +25,16 @@ Items (re-running with the same id rewrites it; created and thread are kept):
          -a web:<url> opens in the desk's browser pane; -a lavish:<url|file.html> stores a Lavish review page
          -p/--pri 1-4  -d/--due <epoch|ISO|+2d|+12h>  -f/--from <agent>  --project <p>  --stream <s>
          -r/--rule <key> (repeat)  --ok <rule>[:note]  --flag <rule>:<note>  (standing-order checks)
+         -t/--topic <slug>  --rel <id>[,<id>]   what it is about; related items (kept on rewrite)
   hd reply <id> "<text>"     append to the item's thread (answers an ask, or a request id)
   hd resolve <id>...         mark resolved
   hd batch                   read commands from stdin, one per line (same syntax, no "hd")
+
+Topics (one subject across items, stamps, replies and notes):
+  hd note <id|topic:slug> "<text>" [-a <artifact>]   keep a remark with its item/topic, not just in chat
+                             a new topic:slug is created by its first note
+  hd topics [--json]         one line per topic: open/items, notes, last activity, related
+  hd topic <slug> [--json]   the topic's timeline, oldest first, open items on top
 
 Reading back:
   hd answers [--cursor <name> | --since-offset <n>] [--json] [--peek] [--wait [--timeout <s>]]
@@ -88,38 +96,6 @@ function parseOpt(v) {
   return o;
 }
 
-const EXT_TYPES = [
-  [/\.(mp4|mov|webm|mkv|m4v)$/i, 'video'],
-  [/\.(png|jpe?g|gif|webp|svg|avif)$/i, 'image'],
-  [/\.(mp3|wav|m4a|ogg|flac)$/i, 'audio'],
-  [/\.(md|markdown|txt|pdf|html?)$/i, 'report'],
-  [/\.(diff|patch)$/i, 'diff'],
-];
-
-function isUrl(v) { return /^[a-z][a-z0-9+.-]*:\/\//i.test(v); }
-
-function absPath(p, cwd) { return path.isAbsolute(p) ? p : path.resolve(cwd, p); }
-
-// "[type:]<path|url>" -> { type, url } | { type, path }
-function parseArt(v, ctx) {
-  let type = null;
-  let ref = v;
-  const m = /^([a-z][a-z0-9-]{0,31}):(.+)$/s.exec(v);
-  if (m && !m[2].startsWith('//')) { type = m[1]; ref = m[2]; }
-  if (isUrl(ref)) {
-    return { type: type || (/\/pull\/\d+|\/merge_requests\/\d+/.test(ref) ? 'pr' : 'link'), url: ref };
-  }
-  if (type === 'web') fail(`bad --art "${v}" (web needs a URL, e.g. web:http://localhost:3000/)`);
-  const p = absPath(ref, ctx.cwd);
-  if (!fs.existsSync(p)) ctx.warn(`warning: artifact not found: ${p}`);
-  if (type === 'lavish') {
-    const url = fs.existsSync(p) ? lavishUrl(p, ctx.env) : null;
-    if (url) return { type, url };
-    ctx.warn(`warning: no Lavish session URL for ${p}; stored the file path (run lavish-axi on it, or pass lavish:<url>)`);
-  }
-  return { type: type || (EXT_TYPES.find(([re]) => re.test(p)) || [null, 'file'])[1], path: p };
-}
-
 function parseCheck(v, ok) {
   const i = v.indexOf(':');
   const rule = checkId(i < 0 ? v : v.slice(0, i), 'rule key');
@@ -139,6 +115,7 @@ const ITEM_FLAGS = {
   sum: { alias: 's' }, body: { alias: 'b' }, opt: { alias: 'o', multi: true }, art: { alias: 'a', multi: true },
   pri: { alias: 'p' }, due: { alias: 'd' }, from: { alias: 'f' }, project: {}, stream: {},
   rule: { alias: 'r', multi: true }, ok: { multi: true }, flag: { multi: true },
+  topic: { alias: 't' }, rel: { multi: true },
 };
 
 function buildItem(kind, argv, ctx) {
@@ -150,6 +127,8 @@ function buildItem(kind, argv, ctx) {
   const item = { id, kind, title };
   item.project = flags.project || ctx.env.HARBORDECK_PROJECT || findProject(ctx.cwd);
   if (flags.stream) item.stream = flags.stream;
+  if (flags.topic) item.topic = checkId(flags.topic, 'topic');
+  if (flags.rel) item.rel = [...new Set(flags.rel.flatMap((v) => v.split(',')).map((r) => checkId(r.trim(), 'rel id')))];
   if (flags.sum) item.summary = flags.sum;
   if (flags.body) {
     if (isUrl(flags.body)) item.body = flags.body;
@@ -184,6 +163,7 @@ function saveItem(item, ctx) {
   const t = now();
   item.created = prev?.created ?? t;
   if (prev?.thread) item.thread = prev.thread;
+  for (const k of ['topic', 'rel']) if (item[k] === undefined && prev?.[k] !== undefined) item[k] = prev[k];
   if (prev) item.updated = t;
   item.status = 'open';
   const errs = validate('item', item);
@@ -338,7 +318,7 @@ function cmdLs(argv, ctx) {
     try { it = JSON.parse(fs.readFileSync(path.join(ctx.store.items, name), 'utf8')); } catch { ctx.out(`${name} (unreadable)`); continue; }
     if (it.status === 'resolved' && !flags.all) continue;
     const reply = it.thread?.length ? ` +${it.thread.length}` : '';
-    ctx.out(`${it.id} ${it.kind} p${it.priority ?? 3} ${it.status}${reply} ${it.title}`);
+    ctx.out(`${it.id} ${it.kind} p${it.priority ?? 3} ${it.status}${reply}${it.topic ? ` #${it.topic}` : ''} ${it.title}`);
   }
 }
 
@@ -375,6 +355,7 @@ function cmdValidate(argv, ctx) {
     counts[name] = 1;
   }
   const ids = new Set();
+  const rels = [];
   counts.items = 0;
   for (const name of store.listItems()) {
     counts.items++;
@@ -383,14 +364,17 @@ function cmdValidate(argv, ctx) {
     for (const e of validate('item', it)) errors.push(`items/${name}: ${e}`);
     if (it.id && `${it.id}.json` !== name) errors.push(`items/${name}: id "${it.id}" does not match file name`);
     ids.add(it.id);
+    for (const r of it.rel || []) rels.push([name, r]);
     if (rules) {
       for (const k of new Set([...(it.rules || []), ...(it.checks || []).map((c) => c.rule)])) {
         if (!(k in rules)) warnings.push(`items/${name}: rule "${k}" not in rules.json`);
       }
     }
   }
+  for (const [name, r] of rels) if (!ids.has(r)) warnings.push(`items/${name}: rel "${r}" is not an item`);
   counts.answers = validateJsonl(store.answers, 'answer', errors);
   counts.gaps = validateJsonl(store.gaps, 'gap', errors);
+  counts.notes = validateJsonl(store.notes, 'note', errors);
   if (flags.json) ctx.out(JSON.stringify({ ok: errors.length === 0, counts, errors, warnings }));
   else {
     for (const e of errors) ctx.out(`error ${e}`);
@@ -401,7 +385,7 @@ function cmdValidate(argv, ctx) {
   return errors.length ? 1 : 0;
 }
 
-const BATCH_FLAGS = { reply: REPLY_FLAGS, resolve: {}, gap: GAP_FLAGS };
+const BATCH_FLAGS = { reply: REPLY_FLAGS, resolve: {}, gap: GAP_FLAGS, note: NOTE_FLAGS };
 const BATCH_VERBS = new Set([...KINDS, ...Object.keys(BATCH_FLAGS)]);
 
 function cmdBatch(argv, ctx) {
@@ -444,7 +428,7 @@ async function cmdMcp(argv, ctx) {
 const COMMANDS = {
   reply: cmdReply, resolve: cmdResolve, gap: cmdGap, answers: cmdAnswers, ls: cmdLs,
   validate: cmdValidate, batch: cmdBatch, '-': cmdBatch, mcp: cmdMcp,
-  ...SCHEDULER_COMMANDS,
+  ...SCHEDULER_COMMANDS, ...TOPIC_COMMANDS,
   path: (argv, ctx) => { parseFlags(argv, {}); ctx.out(ctx.store.home); },
 };
 for (const k of KINDS) COMMANDS[k] = (argv, ctx) => saveItem(buildItem(k, argv, ctx), ctx);

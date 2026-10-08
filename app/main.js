@@ -23,6 +23,8 @@ const DEMO_HOME = () => path.join(app.getPath('userData'), 'demo');
 // The limit-reset scheduler is the CLI's own module (ESM), so the app and `harbordeck tick` share one queue format.
 let sched = null;
 const schedReady = import('../cli/src/scheduler.js').then(m => { sched = m; }, e => log(`scheduler unavailable: ${e.message}`));
+let topicsMod = null; // topic derivation shared with `harbordeck topic`
+const topicsReady = import('../cli/src/topics.js').then(m => { topicsMod = m; }, e => log(`topics unavailable: ${e.message}`));
 let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, demoSite = null, win = null, allowed = new Set(), logLines = [];
 
 function log(msg) { logLines.push(`${new Date().toISOString()} ${msg}`); if (logLines.length > 200) logLines.shift(); if (!app.isPackaged) console.log('[harbordeck]', msg); }
@@ -32,7 +34,8 @@ function snapshot() {
   allowed = new Set(Object.values(snap.files).filter(f => f && f.exists).map(f => f.abs));
   let scheduler = null;
   try { scheduler = sched ? sched.statusData(home) : null; } catch (e) { log(`scheduler status: ${e.message}`); }
-  return Object.assign(snap, { scheduler, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
+  const topics = topicsMod ? topicsMod.buildTopics(snap) : {};
+  return Object.assign(snap, { scheduler, topics, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
 }
 const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '' });
 
@@ -143,7 +146,7 @@ ipcMain.handle('harbor:web-go', (e, cmd) => webPane.go(String(cmd)));
 ipcMain.handle('harbor:web-close', () => webPane.close());
 
 app.whenReady().then(async () => {
-  await schedReady;
+  await schedReady; await topicsReady;
   settings = loadSettings(SETTINGS_FILE());
   const wantDemo = process.argv.includes('--demo') || process.env.HARBORDECK_DEMO === '1';
   if (wantDemo) await startDemo(); else useHome(effectiveHome(settings), false);

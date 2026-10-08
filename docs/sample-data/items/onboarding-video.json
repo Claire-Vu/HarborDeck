@@ -1,6 +1,7 @@
 {
  "id": "onboarding-video",
  "kind": "review",
+ "topic": "onboarding",
  "project": "bakery-site",
  "stream": "content",
  "title": "Review: 45 s onboarding video",

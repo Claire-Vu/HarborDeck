@@ -1,5 +1,5 @@
 'use strict';
-// Data directory: items/*.json, optional fleet.json / quota.json / rules.json, append-only answers.jsonl.
+// Data directory: items/*.json, optional fleet.json / quota.json / rules.json, append-only answers.jsonl, gaps.jsonl, notes.jsonl.
 // Pure Node (no Electron) so it is unit-testable.
 const fs = require('fs');
 const path = require('path');
@@ -101,7 +101,7 @@ function resolvePath(p, { home, artifactRoot }) {
 }
 
 // One entry per referenced path: {abs, url, mime, exists, text?}. url uses the harbor:// protocol.
-function resolveFiles(items, opts) {
+function resolveFiles(items, opts, notes = []) {
   const files = {};
   const add = p => {
     if (!p || files[p] !== undefined) return;
@@ -115,6 +115,7 @@ function resolveFiles(items, opts) {
     files[p] = f;
   };
   for (const it of items) { add(it.body); for (const a of it.artifacts || []) add(a.path); }
+  for (const n of notes) add(n.artifact?.path);
   return files;
 }
 function readHead(file, n) { const fd = fs.openSync(file, 'r'); try { const b = Buffer.alloc(n); fs.readSync(fd, b, 0, n, 0); return b.toString('utf8'); } finally { fs.closeSync(fd); } }
@@ -124,6 +125,7 @@ const pathFromUrl = url => { const m = String(url).match(/^harbor:\/\/file\/(.+)
 function snapshot(home, opts = {}) {
   const { items, errors } = loadItems(home);
   const ro = { home, artifactRoot: opts.artifactRoot };
+  const notes = readJsonl(path.join(home, 'notes.jsonl')).filter(n => n && n.text && (n.item || n.topic));
   return {
     home,
     items,
@@ -133,7 +135,8 @@ function snapshot(home, opts = {}) {
     quota: readJson(path.join(home, 'quota.json'), []),
     answers: readAnswers(home),
     gaps: readJsonl(path.join(home, 'gaps.jsonl')).filter(g => g && g.text),
-    files: resolveFiles(items, ro)
+    notes,
+    files: resolveFiles(items, ro, notes)
   };
 }
 

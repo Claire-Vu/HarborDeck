@@ -10,6 +10,8 @@
     "kind": { "enum": ["decision", "answer", "review", "todo"] },
     "project": { "type": "string", "maxLength": 200 },
     "stream": { "type": "string", "maxLength": 200 },
+    "topic": { "$ref": "#/$defs/slug", "description": "What this item is about, as a short slug shared by every item and note on the same subject. The desk groups by it: a topic page, and open items of one topic arrive together." },
+    "rel": { "type": "array", "items": { "$ref": "#/$defs/slug" }, "description": "Ids of related items, possibly in other topics. Related open items arrive together; links across topics relate the topics." },
     "title": { "type": "string", "minLength": 1, "maxLength": 300 },
     "summary": { "type": "string", "maxLength": 2000 },
     "body": { "type": "string", "minLength": 1, "description": "Path (absolute, or relative to HARBORDECK_HOME) or http(s) URL of a markdown/text file. Never inline prose." },

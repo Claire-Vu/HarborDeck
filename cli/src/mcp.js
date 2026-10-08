@@ -8,8 +8,8 @@ const TOOLS = [
   {
     name: 'harbordeck_batch',
     description: 'Write HarborDeck items. One command per line, same syntax as the hd CLI without "hd": '
-      + 'decision|answer|review|todo <id> "<title>" [-s "<one line>"] [-b <path>] [--opt key+] [-a type:<path|url>] [-p 1-4] [-d +2d]; '
-      + 'reply <id> "<text>"; resolve <id>; gap "<what did not fit>". Nothing is written if any line is invalid.',
+      + 'decision|answer|review|todo <id> "<title>" [-s "<one line>"] [-b <path>] [--opt key+] [-a type:<path|url>] [-p 1-4] [-d +2d] [-t <topic>] [--rel <id>,<id>]; '
+      + 'reply <id> "<text>"; resolve <id>; note <id|topic:slug> "<text>" [-a <path|url>]; gap "<what did not fit>". Nothing is written if any line is invalid.',
     inputSchema: {
       type: 'object',
       properties: { lines: { type: 'string', description: 'Commands, one per line.' } },
@@ -40,6 +40,14 @@ const TOOLS = [
       required: ['text'],
     },
   },
+  {
+    name: 'harbordeck_topic',
+    description: 'Without slug: list topics (open/items, notes, last activity, related). With slug: that topic\'s timeline of items, stamps, replies and notes, oldest first.',
+    inputSchema: {
+      type: 'object',
+      properties: { slug: { type: 'string', description: 'Topic slug.' } },
+    },
+  },
 ];
 
 async function callTool(name, args, ctx) {
@@ -57,6 +65,8 @@ async function callTool(name, args, ctx) {
     if (args.sample) argv.push('--sample', String(args.sample));
     if (args.item) argv.push('--item', String(args.item));
     code = await run(argv, io);
+  } else if (name === 'harbordeck_topic') {
+    code = await run(args.slug ? ['topic', String(args.slug)] : ['topics'], io);
   } else {
     return { content: [{ type: 'text', text: `unknown tool ${name}` }], isError: true };
   }

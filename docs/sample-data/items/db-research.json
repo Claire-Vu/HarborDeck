@@ -1,6 +1,7 @@
 {
  "id": "db-research",
  "kind": "answer",
+ "topic": "database",
  "project": "weather-app",
  "stream": "infra",
  "title": "Research: hosted Postgres options",
