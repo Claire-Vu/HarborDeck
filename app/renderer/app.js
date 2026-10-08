@@ -319,7 +319,7 @@ function renderDesk() {
   const surf = $('#desk-surface'); surf.replaceChildren();
   const it = byId[S.current];
   if (!it || statusOf(it) !== 'open') {
-    surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent, or load the demo from Settings (⌘,).') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
+    surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
     renderTray(null); return;
   }
   const s = st(it.id); const papers = []; const claims = sentences(it.summary); const m = mateFor(it); const c = crewFor(it);
@@ -332,7 +332,7 @@ function renderDesk() {
     h('p', { class: 'claims' }, claims.map((cl, i) => h('span', { class: `fact ${s.flags[i] === 'match' ? 'matched' : s.flags[i] === 'flag' ? 'flagged' : ''}`, onclick: e => pickFact({ type: 'claim', label: cl, anchor: { claim: cl }, idx: i }, e.currentTarget) }, cl, ' ')))
   ], 'm'));
   const seen = new Set();
-  const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => a.path === it.body)) arts.unshift({ type: 'report', path: it.body, isBody: true });
+  const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body, true));
   arts.forEach((a, i) => { const key = a.path || a.url; if (seen.has(key)) return; seen.add(key); const p = artifactPaper(it, a, i); if (p) papers.push(p); });
   const thread = threadFor(it);
   if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: 'msg' }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, JSON.stringify(x.anchor)))), 't'));
@@ -347,7 +347,7 @@ function renderDesk() {
 }
 function threadFor(it) {
   const s = st(it.id);
-  return [...(it.thread || []), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
+  return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
 }
 function defaultPos(pid, i, W, H) {
   if (pid === 'm') return { x: 24, y: 24 };
@@ -359,15 +359,20 @@ function paper(cls, label, kids, pid, extraGrip) {
   return h('div', { class: `paper ${cls}`, dataset: { pid } }, h('div', { class: 'grip' }, h('span', null, label), h('span', { class: 'spacer' }), extraGrip || null, h('span', { class: 'drag-only', title: 'drag' }, '⋮⋮')), ...kids);
 }
 const fileFor = path => { const f = FILES[path]; return f && f.exists ? f : null; };
-const EXT_TYPE = { png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image', mp4: 'video', m4v: 'video', webm: 'video', mov: 'video', pdf: 'pdf', md: 'report', markdown: 'report', txt: 'report', log: 'report', json: 'report', csv: 'report', yaml: 'report', yml: 'report' };
+const EXT_TYPE = { png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image', mp4: 'video', m4v: 'video', webm: 'video', mov: 'video', mp3: 'audio', wav: 'audio', m4a: 'audio', pdf: 'pdf', diff: 'diff', patch: 'diff', md: 'report', markdown: 'report', txt: 'report', log: 'report', json: 'report', csv: 'report', yaml: 'report', yml: 'report' };
 // The renderer understands pr | video | image | pdf | report | link; anything else is guessed from the path, or shown as a link/file card.
 function artType(a) {
   const t = String(a.type || '').toLowerCase();
-  if (['pr', 'video', 'image', 'pdf', 'report'].includes(t)) return t;
+  if (['pr', 'video', 'image', 'pdf', 'report', 'audio', 'diff'].includes(t)) return t;
+  if (a.url && /^(link|file)$/.test(t)) return 'link';
   if (a.path) return EXT_TYPE[(a.path.split('.').pop() || '').toLowerCase()] || 'file';
   return /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(a.url || '') ? 'pr' : 'link';
 }
 const openUrl = url => bridge.openExternal(url);
+const webUrl = u => (/^https?:\/\//i.test(u || '') ? u : null);
+// local file (served via harbor://) or a web URL for media
+const srcFor = a => fileFor(a.path)?.url || webUrl(a.url);
+const bodyArtifact = (body, isBody) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(body) ? { type: 'link', url: body, label: 'Dispatch', isBody } : { type: artType({ path: body }) === 'pdf' ? 'pdf' : 'report', path: body, isBody });
 function artifactPaper(it, a, i) {
   const pid = `a${i}`; const f = fileFor(a.path); const type = artType(a);
   if (type === 'link') {
@@ -389,24 +394,33 @@ function artifactPaper(it, a, i) {
       h('dl', { class: 'pr-meta' }, h('dt', null, 'repo'), h('dd', null, m ? `${m[1]}/${m[2]}` : '-'), h('dt', null, 'link'), h('dd', null, h('a', { href: a.url, onclick: e => { e.preventDefault(); openUrl(a.url); } }, a.url)))
     ], pid, h('button', { class: 'ibtn', onclick: () => openUrl(a.url) }, 'Open'));
   }
+  if (type === 'audio') {
+    const src = srcFor(a); const au = h('audio', { controls: true, preload: 'metadata', src: src || '' });
+    const mark = h('button', { class: 'ibtn', onclick: e => pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${au.currentTime.toFixed(1)}s`, anchor: { artifact: a.path || a.url, t: Math.round(au.currentTime * 10) / 10 } }, e.currentTarget) }, 'Mark moment');
+    return paper('monitor', a.label || 'Recording', [src ? au : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid);
+  }
   if (type === 'video') {
-    const v = h('video', { controls: true, preload: 'metadata', src: f?.url || '' });
-    const mark = h('button', { class: 'ibtn', onclick: e => pickFact({ type: 'point', label: `${base(a.path)} @ ${v.currentTime.toFixed(1)}s`, anchor: { artifact: a.path, t: Math.round(v.currentTime * 10) / 10 } }, e.currentTarget) }, 'Mark moment');
-    return paper('monitor', 'Monitor', [f ? v : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Full'));
+    const v = h('video', { controls: true, preload: 'metadata', src: srcFor(a) || '' });
+    const mark = h('button', { class: 'ibtn', onclick: e => pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${v.currentTime.toFixed(1)}s`, anchor: { artifact: a.path || a.url, t: Math.round(v.currentTime * 10) / 10 } }, e.currentTarget) }, 'Mark moment');
+    return paper('monitor', 'Monitor', [srcFor(a) ? v : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Full'));
   }
   if (type === 'image') {
-    const img = h('img', { src: f?.url || '', alt: base(a.path), loading: 'lazy', onclick: e => {
-      if (document.body.classList.contains('inspect')) { const r = img.getBoundingClientRect(); pickFact({ type: 'point', label: `${base(a.path)} @ ${Math.round((e.clientX - r.left) / r.width * 100)}%,${Math.round((e.clientY - r.top) / r.height * 100)}%`, anchor: { artifact: a.path, x: +((e.clientX - r.left) / r.width).toFixed(2), y: +((e.clientY - r.top) / r.height).toFixed(2) } }, img); }
+    const img = h('img', { src: srcFor(a) || '', alt: base(a.path || a.url), loading: 'lazy', onclick: e => {
+      if (document.body.classList.contains('inspect')) { const r = img.getBoundingClientRect(); pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${Math.round((e.clientX - r.left) / r.width * 100)}%,${Math.round((e.clientY - r.top) / r.height * 100)}%`, anchor: { artifact: a.path || a.url, x: +((e.clientX - r.left) / r.width).toFixed(2), y: +((e.clientY - r.top) / r.height).toFixed(2) } }, img); }
       else openViewer(a);
     } });
-    return paper('photo', 'Photo', [f ? img : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('p', { class: 'cap' }, base(a.path))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Zoom'));
+    return paper('photo', 'Photo', [srcFor(a) ? img : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('p', { class: 'cap' }, a.label || base(a.path || a.url))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Zoom'));
   }
   const text = f?.text;
+  if (type === 'diff' && text != null) return paper('report', a.label || 'Diff', [h('div', { class: 'meta' }, a.path), diffView(text.split('\n').slice(0, 80).join('\n'))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
   if (f && text == null) return paper('report', 'File', [h('div', { class: 'meta' }, a.path), h('p', { class: 'meta' }, f.mime || 'file')], pid, h('button', { class: 'ibtn', onclick: () => bridge.openPath(f.url) }, 'Open'));
   const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 40).join('\n')) : `<p class="meta">not available locally: ${esc(a.path)}</p>` });
   ex.querySelectorAll('.mdh').forEach(hd => hd.classList.add('fact'));
   ex.addEventListener('click', e => { const hd = e.target.closest('.mdh'); if (hd && document.body.classList.contains('inspect')) pickFact({ type: 'point', label: `${base(a.path)} § ${hd.dataset.heading}`, anchor: { artifact: a.path, heading: hd.dataset.heading } }, hd); });
   return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Dispatch' : 'Report', [h('div', { class: 'meta' }, a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
+}
+function diffView(text) {
+  return h('pre', { class: 'diff' }, text.split('\n').map(l => h('span', { class: /^\+(?!\+\+)/.test(l) ? 'add' : /^-(?!--)/.test(l) ? 'del' : /^@@/.test(l) ? 'hunk' : '' }, l + '\n')));
 }
 function askSlip(it) {
   const s = st(it.id); const kids = [];
@@ -536,7 +550,7 @@ function openTicket(t, el) {
   const r = el.getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note),
-    t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${t.reply.from || 'firstmate'} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
+    t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
     h('div', { class: 'row' }, t.item && statusOf(t.item) === 'open' ? h('button', { class: 'pbtn', onclick: () => { pop.remove(); if (S.prefs.plain) { S.prefs.plain = false; save(); } stepUp(t.item.id); } }, 'Open item') : null, h('button', { class: 'pbtn ghost', onclick: () => { S.tickets.done[t.key] = true; save(); pop.remove(); snd('flip'); renderRail(); } }, 'Done'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')));
   document.body.append(pop);
   pop.style.left = Math.max(8, Math.min(window.innerWidth - 328, r.left)) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
@@ -595,7 +609,13 @@ function renderVault() {
     h('div', { class: `v ink-${v?.action === 'reject' ? 'reject' : v?.action === 'file' ? 'file' : 'approve'}` }, v ? ACTION_LABEL[v.action] : 'resolved', v?.key ? `: ${v.key}` : ''), h('div', null, i.title), h('div', { class: 'c' }, `${KIND[i.kind]} · ${i.stream || i.project} · ${v ? fmtDate(v.at) + ' ' + fmtTime(v.at) : ''}`)))) :
     h('p', { class: 'legend' }, 'Nothing filed yet.'));
 }
-function renderLog() { $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${JSON.stringify(pending.line)}` : ''); $('#log-count').textContent = S.answers.length; }
+// gaps.jsonl: responses an agent could not fit into an item kind. Listed so HarborDeck can grow new shapes.
+function renderGaps() {
+  const gaps = (SNAP.gaps || []).slice().reverse();
+  $('#gaps').replaceChildren(h('h3', { class: 'oh' }, `Gaps (${gaps.length})`), h('p', { class: 'legend' }, 'Responses an agent could not fit into a decision, review, dispatch or notice. Each one is a case for a new desk item.'),
+    ...(gaps.length ? gaps.map(g => h('div', { class: 'gap' }, h('div', null, g.text), h('div', { class: 'si-meta' }, [g.from && mateLabel(g.from), g.item && `squeezed into ${g.item}`, g.at && `${fmtDate(g.at)} ${fmtTime(g.at)}`].filter(Boolean).join(' · ')), g.sample ? h('div', { class: 'si-meta' }, 'sample: ', g.sample) : null)) : [h('p', { class: 'legend' }, 'None yet.')]));
+}
+function renderLog() { renderGaps(); $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${JSON.stringify(pending.line)}` : ''); $('#log-count').textContent = S.answers.length; }
 function modal(cls, titleText, content, footer, headerExtra) {
   closeModal();
   const m = h('div', { class: `modal ${cls}`, onclick: e => { if (e.target === m) closeModal(); } },
@@ -606,8 +626,9 @@ function closeModal() { $('#modal-root').replaceChildren(); }
 function openViewer(a) {
   const f = fileFor(a.path); let body, cls = 'dossier'; const type = artType(a);
   if (type === 'pdf') body = h('div', { class: 'mount' }, f ? h('iframe', { class: 'pdf-full', src: f.url, title: base(a.path) }) : h('p', null, `not available locally: ${a.path}`));
-  else if (type === 'image') body = h('div', { class: 'mount' }, f ? h('img', { src: f.url, alt: base(a.path) }) : h('p', null, `not available locally: ${a.path}`));
-  else if (type === 'video') body = h('div', { class: 'mount' }, f ? h('video', { src: f.url, controls: true, autoplay: true }) : h('p', null, `not available locally: ${a.path}`));
+  else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : h('p', null, `not available locally: ${a.path}`));
+  else if (type === 'diff' && f?.text != null) body = h('article', { class: 'sheet' }, diffView(f.text));
+  else if (type === 'video') body = h('div', { class: 'mount' }, srcFor(a) ? h('video', { src: srcFor(a), controls: true, autoplay: true }) : h('p', null, `not available locally: ${a.path}`));
   else body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text) : `<p>not available locally: ${esc(a.path)}</p>` });
   let zoom = 1; const apply = () => { body.style.setProperty('--zoom', zoom); };
   const zoomer = h('div', { class: 'zoomer' }, h('button', { class: 'tbtn', 'aria-label': 'Smaller', onclick: () => { zoom = Math.max(.7, zoom - .1); apply(); } }, 'A−'), h('button', { class: 'tbtn', 'aria-label': 'Larger', onclick: () => { zoom = Math.min(1.8, zoom + .1); apply(); } }, 'A+'));
@@ -716,14 +737,14 @@ function actionsFor(it) {
 }
 function plainCard(it, openByDefault) {
   const s = st(it.id); const resolved = statusOf(it) === 'resolved';
-  const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => a.path === it.body)) arts.unshift({ type: 'report', path: it.body });
+  const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body));
   const thread = threadFor(it); const flagged = (it.checks || []).filter(x => x.ok === false);
   const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open && !s.read) { s.read = true; save(); } } },
     h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), it.title, flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
     h('div', { class: 'body' },
       h('p', { class: 'summary-text' }, it.summary),
       flagged.length ? h('div', { class: 'flag-note' }, flagged.map(x => h('div', null, `⚠ ${x.rule}: ${x.note}`))) : null,
-      arts.length ? h('div', { class: 'ev-row' }, arts.map(a => { const f = fileFor(a.path); return h('button', { class: 'ev-thumb', onclick: () => a.url ? openUrl(a.url) : openViewer(a) }, artType(a) === 'image' && f ? h('img', { src: f.url, alt: '' }) : artType(a) === 'video' && f ? h('video', { src: f.url, muted: true, preload: 'metadata' }) : h('div', { class: 'ph' }, artType(a) === 'pr' ? 'PR' : a.url ? '↗' : '¶'), h('span', null, a.url ? (a.url.match(/pull\/\d+/) || [a.url.replace(/^https?:\/\//, '')])[0] : base(a.path))); })) : null,
+      arts.length ? h('div', { class: 'ev-row' }, arts.map(a => { const f = fileFor(a.path); return h('button', { class: 'ev-thumb', onclick: () => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }, artType(a) === 'image' && srcFor(a) ? h('img', { src: srcFor(a), alt: '' }) : artType(a) === 'video' && srcFor(a) ? h('video', { src: srcFor(a), muted: true, preload: 'metadata' }) : h('div', { class: 'ph' }, artType(a) === 'pr' ? 'PR' : a.url ? '↗' : '¶'), h('span', null, a.url ? (a.url.match(/pull\/\d+/) || [a.url.replace(/^https?:\/\//, '')])[0] : base(a.path))); })) : null,
       it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', null, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'))))) : null,
       resolved ? h('div', { class: 'verdict' }, s.verdict ? consequence(s.verdict) : 'Resolved by the agent.') : h('div', { class: 'actions' }, actionsFor(it)),
       thread.length ? h('div', { class: 'thread' }, thread.map(x => h('div', { class: `msg ${x.me || x.from === 'captain' ? 'me' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.text))) : null,
@@ -781,8 +802,8 @@ function syncItems(prevById) {
   let replies = 0; const fresh = [];
   for (const it of ITEMS) {
     const s = st(it.id);
-    // a verdict hides an item locally; the agent brings it back by re-submitting it with a newer `created`
-    if (s.status === 'resolved' && it.status === 'open' && s.verdict && it.created > s.verdict.at) { s.status = null; s.verdict = null; s.read = false; }
+    // a verdict hides an item locally; per the contract, the agent rewriting it as open (newer `updated`) reopens it
+    if (s.status === 'resolved' && it.status === 'open' && s.verdict && (it.updated || it.created) > s.verdict.at) { s.status = null; s.verdict = null; s.read = false; }
     const was = s.awaiting; s.awaiting = statusOf(it) === 'open' && computeAwaiting(it);
     if (was && !s.awaiting) replies++;
     if (prevById && !prevById[it.id] && it.status === 'open') fresh.push(it);
@@ -819,7 +840,7 @@ async function openSettings() {
     return { inp, row: h('label', { class: 'set-row' }, h('span', { class: 'set-l' }, label), h('span', { class: 'set-in' }, inp, choose ? h('button', { class: 'tbtn', type: 'button', onclick: async () => { const d = await bridge.chooseDir(label); if (d) inp.value = d; } }, 'Choose…') : null)) };
   };
   const dir = field('Data directory', cur.dataDir, '~/.harbordeck', true);
-  const root = field('Artifact root', cur.artifactRoot, 'relative artifact paths resolve here first, then in the data directory', true);
+  const root = field('Artifact root', cur.artifactRoot, 'optional: relative paths not found in the data directory resolve here', true);
   const hookOn = h('input', { type: 'checkbox', checked: !!cur.onAnswer.enabled });
   const hookCmd = h('textarea', { rows: 2, placeholder: 'e.g. ~/bin/wake-agent.sh   (the JSON line arrives on stdin and in $HARBORDECK_LINE)', value: cur.onAnswer.command || '', spellcheck: false });
   const content = h('div', { class: 'settings' },

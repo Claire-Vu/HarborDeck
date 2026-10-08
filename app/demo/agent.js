@@ -8,7 +8,8 @@ const now = () => Math.floor(Date.now() / 1000);
 function rewrite(home, id, fn) {
   const file = path.join(home, 'items', `${id}.json`);
   let it; try { it = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return; }
-  fn(it); const tmp = file + '.tmp';
+  fn(it); it.updated = now();
+  const tmp = path.join(path.dirname(file), `.${id}.${process.pid}.tmp`); // dotfile: readers ignore it mid-write
   fs.writeFileSync(tmp, JSON.stringify(it, null, 1) + '\n'); fs.renameSync(tmp, file);
 }
 function mateLabel(home, id) {
@@ -30,7 +31,8 @@ function startDemoAgent(home, { replyMs = 6000, resolveMs = 1500 } = {}) {
     } else if (a.action === 'request') {
       later(replyMs + 2000, () => {
         const it = { id: a.id, kind: 'answer', project: 'orders', from: a.to, priority: 3, title: `Order received: ${a.note.slice(0, 48)}`, summary: `Filed in the backlog and assigned. I will bring the result here when it is ready. (demo reply)`, created: now(), status: 'open' };
-        fs.writeFileSync(path.join(home, 'items', `${a.id}.json`), JSON.stringify(it, null, 1) + '\n');
+        const tmp = path.join(home, 'items', `.${a.id}.${process.pid}.tmp`);
+        fs.writeFileSync(tmp, JSON.stringify(it, null, 1) + '\n'); fs.renameSync(tmp, path.join(home, 'items', `${a.id}.json`));
       });
     } else if (['decide', 'approve', 'reject', 'file'].includes(a.action)) {
       later(resolveMs, () => rewrite(home, a.id, it => { it.status = 'resolved'; }));

@@ -186,6 +186,7 @@ function seedDemo(home, now = Math.floor(Date.now() / 1000)) {
   writeJson(path.join(home, 'fleet.json'), fleet(now));
   writeJson(path.join(home, 'quota.json'), quota(now));
   fs.writeFileSync(path.join(home, 'answers.jsonl'), answers(now).map(a => JSON.stringify(a)).join('\n') + '\n');
+  fs.writeFileSync(path.join(home, 'gaps.jsonl'), JSON.stringify({ text: 'A live progress feed for a long render has no item kind; squeezed into a review', item: 'promo-cut-v2', from: 'mate-growth', at: now - 2 * H }) + '\n');
   fs.writeFileSync(path.join(home, '.demo'), 'synthetic demo data; safe to delete\n');
   return home;
 }

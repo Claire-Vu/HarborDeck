@@ -97,3 +97,12 @@ test('demo seed is complete and refuses to wipe a real directory', () => {
   assert.throws(() => seedDemo(real), /refusing/);
   assert.ok(fs.existsSync(path.join(real, 'items/mine.json')));
 });
+
+test('reads the contract sample directory (docs/sample-data) cleanly', () => {
+  const home = path.join(__dirname, '..', '..', 'docs', 'sample-data');
+  const snap = store.snapshot(home);
+  assert.ok(snap.items.length > 0);
+  assert.deepStrictEqual(snap.errors, []);
+  assert.ok(snap.gaps.length >= 1);
+  for (const [p, f] of Object.entries(snap.files)) if (f) assert.ok(f.exists, `missing ${p}`);
+});

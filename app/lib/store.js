@@ -62,13 +62,16 @@ function normalize(x, mtime) {
   return it;
 }
 
-function readAnswers(home) {
+// JSONL readers consume complete lines only; a trailing partial line is still being written.
+function readJsonl(file) {
   let raw = '';
-  try { raw = fs.readFileSync(path.join(home, 'answers.jsonl'), 'utf8'); } catch (e) { return []; }
+  try { raw = fs.readFileSync(file, 'utf8'); } catch (e) { return []; }
+  raw = raw.slice(0, raw.lastIndexOf('\n') + 1);
   const out = [];
-  for (const ln of raw.split('\n')) { if (!ln.trim()) continue; try { out.push(JSON.parse(ln)); } catch (e) { /* skip a torn line */ } }
+  for (const ln of raw.split('\n')) { if (!ln.trim()) continue; try { out.push(JSON.parse(ln)); } catch (e) { /* skip a bad line */ } }
   return out;
 }
+const readAnswers = home => readJsonl(path.join(home, 'answers.jsonl'));
 
 const ACTIONS = new Set(['decide', 'approve', 'reject', 'needs-work', 'comment', 'ask', 'file', 'request']);
 // Validates and appends one answer line; returns the exact line written (without newline).
@@ -86,12 +89,13 @@ function appendAnswer(home, line) {
   return text;
 }
 
-// Artifact/body path resolution: URLs stay URLs; absolute paths as-is; relative ones against artifactRoot, then home.
+// Artifact/body path resolution (docs/CONTRACT.md): URLs stay URLs; absolute paths as-is; relative ones against the
+// data directory, then the optional artifactRoot setting.
 function resolvePath(p, { home, artifactRoot }) {
   if (!p || /^[a-z][a-z0-9+.-]*:\/\//i.test(p)) return null;
   const q = expandHome(p);
   if (path.isAbsolute(q)) return path.normalize(q);
-  const roots = [artifactRoot && expandHome(artifactRoot), home].filter(Boolean);
+  const roots = [home, artifactRoot && expandHome(artifactRoot)].filter(Boolean);
   for (const r of roots) { const abs = path.resolve(r, q); if (fs.existsSync(abs)) return abs; }
   return path.resolve(roots[0], q);
 }
@@ -128,8 +132,9 @@ function snapshot(home, opts = {}) {
     fleet: readJson(path.join(home, 'fleet.json'), null),
     quota: readJson(path.join(home, 'quota.json'), []),
     answers: readAnswers(home),
+    gaps: readJsonl(path.join(home, 'gaps.jsonl')).filter(g => g && g.text),
     files: resolveFiles(items, ro)
   };
 }
 
-module.exports = { defaultHome, ensureHome, expandHome, loadItems, readAnswers, appendAnswer, resolvePath, resolveFiles, snapshot, mimeFor, fileUrl, pathFromUrl, ACTIONS };
+module.exports = { defaultHome, ensureHome, expandHome, loadItems, readAnswers, readJsonl, appendAnswer, resolvePath, resolveFiles, snapshot, mimeFor, fileUrl, pathFromUrl, ACTIONS };
