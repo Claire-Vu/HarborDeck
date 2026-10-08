@@ -32,7 +32,7 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$", "description": "pr | video | image | report | audio | link | file | diff | ... ; unknown types render as a link" },
+          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$", "description": "pr | video | image | report | audio | link | file | diff | web | lavish | ... ; unknown types render as a link. web/lavish: a url shown in the desk's browser pane when its host is allowed (loopback by default)" },
           "url": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*:" },
           "path": { "type": "string", "minLength": 1 },
           "label": { "type": "string", "maxLength": 200 }

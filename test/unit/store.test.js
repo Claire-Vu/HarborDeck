@@ -106,3 +106,26 @@ test('reads the contract sample directory (docs/sample-data) cleanly', () => {
   assert.ok(snap.gaps.length >= 1);
   for (const [p, f] of Object.entries(snap.files)) if (f) assert.ok(f.exists, `missing ${p}`);
 });
+
+test('web pane allow-list: loopback http(s) only, plus hosts from settings', () => {
+  const { isAllowedWebUrl } = require('../../app/lib/web-allow');
+  for (const u of ['http://localhost:5173/', 'https://127.0.0.1:4387/session/x', 'http://[::1]:8080/', 'http://LOCALHOST/']) assert.ok(isAllowedWebUrl(u), u);
+  for (const u of ['https://example.com/', 'http://127.0.0.2/', 'http://localhost.evil.test/', 'http://user:pw@localhost/', 'file:///etc/hosts', 'javascript:alert(1)', 'harbor://file/x', 'not a url', '']) assert.ok(!isAllowedWebUrl(u), u);
+  assert.ok(isAllowedWebUrl('http://devbox.lan:8080/', ['devbox.lan:8080']));
+  assert.ok(!isAllowedWebUrl('http://devbox.lan:9090/', ['devbox.lan:8080']));
+  assert.ok(isAllowedWebUrl('https://devbox.lan/', 'other.lan, DevBox.lan'));
+});
+
+test('settings keep a clean webHosts list', () => {
+  const file = path.join(tmp(), 'settings.json');
+  assert.deepStrictEqual(loadSettings(file).webHosts, []);
+  assert.deepStrictEqual(saveSettings(file, { webHosts: ' a.lan, B.lan:8080  a.lan ' }).webHosts, ['a.lan', 'b.lan:8080']);
+  assert.deepStrictEqual(loadSettings(file).webHosts, ['a.lan', 'b.lan:8080']);
+});
+
+test('demo seed adds the browser-pane item only when given a local site URL', () => {
+  assert.ok(!fs.existsSync(path.join(seedDemo(path.join(tmp(), 'd')), 'items', 'plan-offline.json')));
+  const home = seedDemo(path.join(tmp(), 'd'), undefined, { webUrl: 'http://127.0.0.1:1234/' });
+  const it = JSON.parse(fs.readFileSync(path.join(home, 'items', 'plan-offline.json'), 'utf8'));
+  assert.deepStrictEqual(it.artifacts, [{ type: 'web', url: 'http://127.0.0.1:1234/plan.html', label: 'Plan page' }]);
+});

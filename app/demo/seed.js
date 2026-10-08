@@ -6,7 +6,7 @@ const path = require('path');
 
 const H = 3600, D = 86400;
 
-function items(t) {
+function items(t, webUrl) {
   return [
     { id: 'pr-142-checkout', kind: 'decision', project: 'board-app', stream: 'checkout', from: 'mate-web', priority: 1, due: t + 20 * H,
       title: 'Merge PR 142 (calmer checkout)?',
@@ -88,9 +88,14 @@ function items(t) {
     { id: 'todo-receipts', kind: 'todo', project: 'captain', from: 'mate-main', priority: 4,
       title: 'Forward September receipts to the bookkeeper',
       summary: 'Six receipts in the shared inbox.', created: t - 4 * D },
+    webUrl && { id: 'plan-offline', kind: 'review', project: 'board-app', stream: 'design', from: 'mate-web', priority: 3,
+      title: 'Review the offline-mode plan',
+      summary: 'Three steps: cache the last board, queue edits offline, show a quiet badge. Pin a note on any step you want changed.',
+      artifacts: [{ type: 'web', url: `${webUrl}plan.html`, label: 'Plan page' }],
+      created: t - 1 * H },
     { id: 'release-1-3', kind: 'answer', project: 'board-app', stream: 'release', from: 'mate-web', priority: 3, status: 'resolved',
       title: 'Release 1.3 notes', summary: 'Keyboard shortcuts, faster boards, weekly digest.', created: t - 6 * D }
-  ].map(it => Object.assign({ status: 'open' }, it));
+  ].filter(Boolean).map(it => Object.assign({ status: 'open' }, it));
 }
 
 const rules = {
@@ -174,14 +179,15 @@ function copyDir(src, dst) {
 
 const writeJson = (file, v) => fs.writeFileSync(file, JSON.stringify(v, null, 1) + '\n');
 
-function seedDemo(home, now = Math.floor(Date.now() / 1000)) {
+// webUrl: base URL of the demo's local static site (static-site.js); adds an item that opens in the browser pane.
+function seedDemo(home, now = Math.floor(Date.now() / 1000), { webUrl } = {}) {
   // Only ever wipe a directory this function created (marked by .demo) or an empty one.
   if (fs.existsSync(home) && fs.readdirSync(home).length && !fs.existsSync(path.join(home, '.demo'))) throw new Error(`refusing to seed non-demo directory: ${home}`);
   fs.rmSync(home, { recursive: true, force: true });
   fs.mkdirSync(path.join(home, 'items'), { recursive: true });
   copyDir(path.join(__dirname, 'assets'), path.join(home, 'assets'));
   fs.writeFileSync(path.join(home, 'assets', 'analytics-one-pager.pdf'), onePagePdf(['Analytics one-pager', 'Hosted service A: $9/mo, EU hosting, funnels.', 'No cookies, no consent banner.', 'Synthetic demo document.']));
-  for (const it of items(now)) writeJson(path.join(home, 'items', `${it.id}.json`), it);
+  for (const it of items(now, webUrl)) writeJson(path.join(home, 'items', `${it.id}.json`), it);
   writeJson(path.join(home, 'rules.json'), rules);
   writeJson(path.join(home, 'fleet.json'), fleet(now));
   writeJson(path.join(home, 'quota.json'), quota(now));

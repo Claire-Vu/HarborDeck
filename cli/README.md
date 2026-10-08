@@ -73,6 +73,7 @@ Behaviour worth knowing:
 - Writing an item with an existing id rewrites it, keeps `created` and `thread`, sets `updated`, and reopens it.
 - Relative paths are made absolute against the current directory. A missing file is a warning on stderr, not an error.
 - Artifact type is inferred: `/pull/N` and `/merge_requests/N` URLs are `pr`, other URLs `link`; by extension `video`, `image`, `audio`, `report` (md, txt, pdf, html), `diff`, else `file`. Prefix to override: `-a image:https://...`.
+- `-a web:<url>` shows a local page (dev server, local report) in the desk's browser pane. `-a lavish:<url>` does the same for a Lavish review page; `-a lavish:<file.html>` runs `lavish-axi <file> --no-open` to start or resume its session and stores the session URL (the path, with a warning, when `lavish-axi` is missing or `HARBORDECK_LAVISH=0`).
 - `--opt key*` also marks a recommendation, but `+` is safe from shell globbing.
 - `hd answers --wait [--timeout <s>]` blocks until the app appends an answer, then prints it: an on-answer hook is `while :; do hd answers -c me --wait | my-handler; done`.
 - `hd answers` without a cursor ends with `next=<offset>`; pass it back as `--since-offset`. `--json` returns `{"next", "lines": [{"end", "answer"}]}` with each line's end offset, for routers that commit per line.

@@ -105,6 +105,8 @@ If a response fits none of these, write the closest item if one is useful and al
 | Type | Rendered as |
 |---|---|
 | `pr` | pull/merge request card (`url`) |
+| `web` | page shown in the desk's browser pane (`url`); see below |
+| `lavish` | a Lavish review page (`url`), shown like `web` so the user can annotate and send feedback from the desk |
 | `video` | in-desk player; comments can anchor to a time `t` |
 | `image` | photo; comments can anchor to a spot `x,y` |
 | `report` | readable sheet (markdown/text), dossier reader |
@@ -113,6 +115,8 @@ If a response fits none of these, write the closest item if one is useful and al
 | `link`, `file` | link / file reference |
 
 Exactly one of `url` (any `scheme://`) or `path` is required.
+
+`web` and `lavish` pages render inside the app only when the URL is `http(s)` on this machine (`localhost`, `127.0.0.1`, `[::1]`) or on a host the user added in Settings → Web hosts; anything else is offered in the system browser. The page runs in its own session with no access to the desk, every permission request is denied, and links or popups that leave the allowed hosts open in the system browser. A `lavish` artifact with a `path` instead of a `url` (no running Lavish session) shows as a file card. Older apps show both types as link cards.
 
 ## Answers
 

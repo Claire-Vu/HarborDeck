@@ -16,5 +16,13 @@ contextBridge.exposeInMainWorld('harbor', {
   setSettings: s => ipcRenderer.invoke('harbor:set-settings', s),
   chooseDir: title => ipcRenderer.invoke('harbor:choose-dir', title),
   demo: on => ipcRenderer.invoke('harbor:demo', on),
-  diagnostics: () => ipcRenderer.invoke('harbor:diagnostics')
+  diagnostics: () => ipcRenderer.invoke('harbor:diagnostics'),
+  // In-desk browser pane (app/lib/web-pane.js): the page itself runs in a separate view without this bridge.
+  web: {
+    open: (url, rect) => ipcRenderer.invoke('harbor:web-open', url, rect),
+    bounds: rect => ipcRenderer.send('harbor:web-bounds', rect),
+    go: cmd => ipcRenderer.invoke('harbor:web-go', cmd),
+    close: () => ipcRenderer.invoke('harbor:web-close'),
+    onState: fn => ipcRenderer.on('harbor:web-state', (e, s) => fn(s))
+  }
 });
