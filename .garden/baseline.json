@@ -1,12 +1,12 @@
 {
-  "at": "2026-10-08T08:57:34.604Z",
+  "at": "2026-10-08T09:29:26.335Z",
   "counts": {
     "tsc": 0,
     "file-length": 0,
     "generated-merge": 1,
     "instructions-length": 0,
     "agents-md": 2,
-    "verify-skill": 2,
+    "verify-skill": 0,
     "ci-gate": 1,
     "garden-manifest": 0,
     "library-rules": 0,

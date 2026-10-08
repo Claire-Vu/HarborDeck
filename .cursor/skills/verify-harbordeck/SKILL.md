@@ -18,6 +18,7 @@ All paths below are relative to the worktree root. `H=.cursor/skills/verify-harb
 ## Isolation rules
 
 - Only synthetic data. Never point anything at `~/.harbordeck`, a firstmate home, the installed app at `~/.local/share/harbordeck-app`, `~/Library/LaunchAgents`, or launchd. `hdv` sets `HARBORDECK_HOME`, `HARBORDECK_USER_DATA`, `HARBORDECK_CAFFEINATE` and `HARBORDECK_LAUNCHD_DIR` to its own state dir for every app and CLI call it makes.
+- Never click anything that calls the system browser (`Browser ↗`, `Open in your browser`, off-machine links in a pane page): it acts on the user's desktop.
 - Never run a bare `hd`/`harbordeck` (it defaults to `~/.harbordeck`): go through `$H hd ...`, or `eval "$($H env)"` first.
 - Never run `hd scheduler install` or `uninstall`, and never the real `caffeinate`. `hdv` installs a stub caffeinate and a stub wake command that only logs.
 - One instance per worktree (state dir `/tmp/hdv-<hash of worktree path>`, override `HDV_STATE`). Two worktrees run side by side on different CDP ports. `launch` refuses to start over a live instance.
@@ -28,11 +29,11 @@ Once per worktree: `npm install` (if Electron reports `failed to install correct
 
 ```bash
 H=.cursor/skills/verify-harbordeck/scripts/hdv
-$H launch            # seeded synthetic data dir (16 items, fleet, quota, rules, 2 answers); no pretend agent
+$H launch            # seeded synthetic data dir (17 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
 ```
 
-Ready when it prints `ready  pid=<pid>  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). It opens a visible window; CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
+Ready when it prints `ready  pid=<pid>  site=http://127.0.0.1:<port>/  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). It opens a visible window; CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
 
 ## Doctor
 
@@ -61,6 +62,7 @@ $U fill --css '.modal.noteslip textarea' --value 'why?'
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]
 $U text --css '#desk-surface .paper.manifest h3'     # print matching text
 $U aria --out f.aria.yml ; $U shot f.png ; $U eval 'document.title'   # inspection only
+$U text --pane --css h1 ; $U click --pane --css '#s2' ; $U shot --pane p.png   # inside the open browser pane
 ```
 
 Stable handles (from `app/renderer/index.html` and `app.js`):
@@ -79,6 +81,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .mini-sub`, `#yard .yc.cook` | stamina bars, crew sprites (from quota.json / fleet.json) |
+| `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
 
 `chrome-devtools-axi` also attaches (`eval "$($H env)"` sets its browser URL and a per-instance session) and is fine for reading (`snapshot`, `screenshot`, `console`). Do not click with its `@uid` refs: the desk re-renders every second (clock, animations), so refs go `STALE_REF` between the snapshot and the click. Use `ui.mjs` for every action.
 
@@ -120,8 +123,8 @@ Recorded proof (video, contact sheet, manifest) of the live round trip including
 $H cleanup
 ```
 
-Kills only what `launch` started (the recorded Electron pid, after it the stub caffeinate pid the scheduler recorded, verified by command line) and stops this instance's chrome-devtools-axi bridge, then deletes the state dir (synthetic data dir, profile, logs). Evidence under `~/.local/share/verify-harbordeck/` stays. Never `pkill`/`killall` Electron or Harbor Deck: the user's installed copy may be running. Run cleanup after every failed iteration too, then confirm: `lsof -nP -iTCP:<port> -sTCP:LISTEN` prints nothing.
+Kills only what `launch` started (the recorded Electron pid, the demo web page server, and the stub caffeinate pid the scheduler recorded, each verified by command line) and stops this instance's chrome-devtools-axi bridge, then deletes the state dir (synthetic data dir, profile, logs). Evidence under `~/.local/share/verify-harbordeck/` stays. Never `pkill`/`killall` Electron or Harbor Deck: the user's installed copy may be running. Run cleanup after every failed iteration too, then confirm: `lsof -nP -iTCP:<port> -sTCP:LISTEN` prints nothing.
 
 ## Extending
 
-New user-facing surface (an embedded browser pane, topics, a new item kind): add `features/<feature>.md` in the README's contract shape and list it in the README index; put any new stable handle in the Drive table; give `ui.mjs`/`hdv` a subcommand only when a recipe cannot be driven with the existing ones. When routes, selectors or behavior change, run `/maintain-verification-skill` and update this skill in the same change.
+New user-facing surface (topics, a new item kind, a new artifact type): add `features/<feature>.md` in the README's contract shape and list it in the README index; put any new stable handle in the Drive table; give `ui.mjs`/`hdv` a subcommand only when a recipe cannot be driven with the existing ones. When routes, selectors or behavior change, run `/maintain-verification-skill` and update this skill in the same change.

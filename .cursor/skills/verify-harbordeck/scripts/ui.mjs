@@ -10,6 +10,7 @@
 //   ui.mjs aria [--out <file>]                 ARIA snapshot of the whole window (YAML)
 //   ui.mjs shot <file.png>                     screenshot of the window
 //   ui.mjs eval '<js expression>'              read-only inspection; never use it to change app state
+// --pane on any command acts inside the in-desk browser pane's page instead of the desk.
 // The CDP url comes from `hdv env` (CHROME_DEVTOOLS_AXI_BROWSER_URL) or --cdp <url>.
 import { createRequire } from 'node:module';
 import { writeFileSync } from 'node:fs';
@@ -22,7 +23,7 @@ const { chromium } = createRequire(`${root}/package.json`)('playwright-core');
 const [cmd, ...rest] = process.argv.slice(2);
 const opt = {}; const pos = [];
 for (let i = 0; i < rest.length; i++) {
-  if (rest[i] === '--gone' || rest[i] === '--exact') opt[rest[i].slice(2)] = true;
+  if (['--gone', '--exact', '--pane'].includes(rest[i])) opt[rest[i].slice(2)] = true;
   else if (rest[i].startsWith('--')) opt[rest[i].slice(2)] = rest[++i];
   else pos.push(rest[i]);
 }
@@ -32,8 +33,11 @@ const timeout = Number(opt.timeout || 10000);
 
 const browser = await chromium.connectOverCDP(cdp);
 try {
-  const page = browser.contexts().flatMap((c) => c.pages()).find((p) => p.url().endsWith('/renderer/index.html'));
-  if (!page) throw new Error('no Harbor Deck window on ' + cdp);
+  // --pane: the in-desk browser pane's page (a separate WebContentsView) instead of the desk itself.
+  const all = browser.contexts().flatMap((c) => c.pages());
+  const desk = (p) => p.url().endsWith('/renderer/index.html');
+  const page = opt.pane ? all.find((p) => !desk(p) && /^https?:/.test(p.url())) : all.find(desk);
+  if (!page) throw new Error(opt.pane ? 'no browser pane open' : 'no Harbor Deck window on ' + cdp);
   page.setDefaultTimeout(timeout);
   const target = () => {
     let l = opt.role ? page.getByRole(opt.role, { name: opt.name, exact: !!opt.exact }) : opt.css ? page.locator(opt.css) : null;

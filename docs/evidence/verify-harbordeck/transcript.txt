@@ -1,23 +1,23 @@
 $ .cursor/skills/verify-harbordeck/scripts/hdv launch
-ready  pid=52135  cdp=http://127.0.0.1:9340  home=/tmp/hdv-4575d59221/home  run=20261008-022338-1c7a699
+ready  pid=76083  site=http://127.0.0.1:61763/  cdp=http://127.0.0.1:9340  home=/tmp/hdv-4575d59221/home  run=20261008-022809-a64fd6a
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv doctor
-ok    app pid 52135 alive
+ok    app pid 76083 alive
 ok    pid runs this worktree's electron
 ok    CDP :9340 owned by our pid tree
 ok    window is the Harbor Deck desk
 ok    data dir is synthetic (/tmp/hdv-4575d59221/home)
 ok    app reads that data dir
 ok    wake command is the stub
-build  fm/hd-verify-skill@1c7a699
-items  16   answers 2
+build  fm/hd-verify-skill@a64fd6a
+items  17   answers 2
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Open the office
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal --gone
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv capture live-feed before
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.{png,aria.yml,state/}
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.{png,aria.yml,state/}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv hd decision hdv-palette Which palette for the launch page? -s Warm tested better. --opt warm+ --opt cool -p 1
 ok decision hdv-palette
@@ -25,7 +25,7 @@ ok decision hdv-palette
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css #queue li --text Which palette
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv capture live-feed after
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.{png,aria.yml,state/}
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.{png,aria.yml,state/}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Which palette
 [exit 0]
@@ -39,10 +39,10 @@ $ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css .toast.undo
 lines during hold: +0
 lines after hold: +1
 $ tail -1 /tmp/hdv-4575d59221/home/answers.jsonl
-{"id":"hdv-palette","action":"decide","key":"warm","note":"","at":1791451423}
+{"id":"hdv-palette","action":"decide","key":"warm","note":"","at":1791451695}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv capture stamp after
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.{png,aria.yml,state/}
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.{png,aria.yml,state/}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv hd quota -
 ok quota
@@ -59,33 +59,33 @@ $ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --css #rail .ticket.queue
 ⏳ waiting for reset · 1m
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --css #sched-chip
-⏳ 1 queued · ↻ 1m · ☕ 02:29 AM
+⏳ 1 queued · ↻ 1m · ☕ 02:33 AM
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv hd schedule list
-limit-1791451455 limit due Thu 02:24 [harbordeck] usage limit reset at Thu 02:24 (hit Thu 02:23). Resume work: check sessions stalled by the limit.
-reset-req-1791451430-595 reset due Thu 02:24 item=req-1791451430-595 Write the weekly digest
+limit-1791451727 limit due Thu 02:28 [harbordeck] usage limit reset at Thu 02:28 (hit Thu 02:28). Resume work: check sessions stalled by the limit.
+reset-req-1791451703-595 reset due Thu 02:28 item=req-1791451703-595 Write the weekly digest
 [exit 0]
 0
 (0 = not delivered yet)
-$ ps -o pid=,command= -p 53358
-53358 /bin/sh /tmp/hdv-4575d59221/bin/caffeinate -i -t 325
+$ ps -o pid=,command= -p 77296
+77296 /bin/sh /tmp/hdv-4575d59221/bin/caffeinate -i -t 324
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv capture scheduler queued
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.{png,aria.yml,state/}
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.{png,aria.yml,state/}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv tick
 [exit 0]
 waiting for reset
 $ .cursor/skills/verify-harbordeck/scripts/hdv tick
-delivered limit-1791451455
-delivered reset-req-1791451430-595
+delivered limit-1791451727
+delivered reset-req-1791451703-595
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/hdv wake-log
-1791451460	limit	-	[harbordeck] usage limit reset at Thu 02:24 (hit Thu 02:23). Resume work: check sessions stalled by the limit. 
-1791451460	reset	req-1791451430-595	[harbordeck] request req-1791451430-595 for mate-main, queued for after the usage-limit reset: Write the weekly digest 
+1791451732	limit	-	[harbordeck] usage limit reset at Thu 02:28 (hit Thu 02:28). Resume work: check sessions stalled by the limit. 
+1791451732	reset	req-1791451703-595	[harbordeck] request req-1791451703-595 for mate-main, queued for after the usage-limit reset: Write the weekly digest 
 [exit 0]
 $ tail -1 /tmp/hdv-4575d59221/home/answers.jsonl
-{"id":"req-1791451430-595","action":"request","note":"Write the weekly digest","to":"mate-main","queued_at":1791451430,"at":1791451460}
+{"id":"req-1791451703-595","action":"request","note":"Write the weekly digest","to":"mate-main","queued_at":1791451703,"at":1791451732}
 [exit 0]
 $ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css #rail .ticket.waiting --text Write the weekly digest
 [exit 0]
@@ -100,39 +100,77 @@ $ .cursor/skills/verify-harbordeck/scripts/hdv tick
 [exit 0]
 (second tick: nothing)
 $ .cursor/skills/verify-harbordeck/scripts/hdv capture scheduler delivered
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.{png,aria.yml,state/}
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.{png,aria.yml,state/}
 [exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --css .tab[data-tab="window"]
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text offline-mode plan
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --css #desk-surface .paper.prcard button --text View
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.web
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --css .modal.web .web-addr
+http://127.0.0.1:61763/plan.html
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --pane --css h1
+Plan: offline mode for boards
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --pane --css #s2
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --pane --css #count
+1 notes pinned
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/hdv capture browser-pane open
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.{png,aria.yml,state/}
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs click --css .modal.web [aria-label=Close]
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.web --gone
+[exit 0]
+$ .cursor/skills/verify-harbordeck/scripts/ui.mjs text --pane --css h1
+ui text: no browser pane open
+[exit 1]
+(expected: no browser pane open)
 $ .cursor/skills/verify-harbordeck/scripts/hdv cleanup
-cleaned /tmp/hdv-4575d59221 (evidence kept under ~/.local/share/verify-harbordeck/20261008-022338-1c7a699)
+cleaned /tmp/hdv-4575d59221 (evidence kept under ~/.local/share/verify-harbordeck/20261008-022809-a64fd6a)
 [exit 0]
 port 9340 free
+demo web page server gone
 caffeinate stub gone
-$ find ~/.local/share/verify-harbordeck/20261008-022338-1c7a699 -type f
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.aria.yml
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.state/items.tsv
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.state/answers.jsonl
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.state/scheduler.json
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.state/wake.log
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.state/items.tsv
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.state/answers.jsonl
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.state/scheduler.json
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.state/wake.log
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.png
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/delivered.png
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/scheduler/queued.aria.yml
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.aria.yml
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.png
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.png
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.state/items.tsv
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.state/answers.jsonl
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.state/wake.log
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.state/items.tsv
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.state/answers.jsonl
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/after.state/wake.log
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/live-feed/before.aria.yml
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.aria.yml
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.png
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.state/items.tsv
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.state/answers.jsonl
-~/.local/share/verify-harbordeck/20261008-022338-1c7a699/stamp/after.state/wake.log
+$ find ~/.local/share/verify-harbordeck/20261008-022809-a64fd6a -type f
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.state/scheduler.json
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.state/wake.log
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.state/scheduler.json
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.state/wake.log
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/delivered.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/scheduler/queued.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.pane.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.state/scheduler.json
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.state/wake.log
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/browser-pane/open.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.state/wake.log
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/after.state/wake.log
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/live-feed/before.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.aria.yml
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.png
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.state/items.tsv
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.state/answers.jsonl
+~/.local/share/verify-harbordeck/20261008-022809-a64fd6a/stamp/after.state/wake.log
 [exit 0]
