@@ -7,6 +7,7 @@
 # {name, window: "<n>h|<n>d", used_pct, resets_at}. Shared sub-windows
 # (shareOf) and windows without a percentage are skipped. Reads are cached by
 # quota-axi for HD_QUOTA_MAX_AGE (default 5m), so frequent runs stay cheap.
+# Set-up providers with no reading are reported on stderr with quota-axi's fix.
 # Env: HD (default: harbordeck), HD_QUOTA_MAX_AGE.
 set -euo pipefail
 
@@ -42,6 +43,10 @@ quota=$(jq '
       used_pct: ((.percentUsed // (100 - .percentRemaining)) | if . < 0 then 0 elif . > 100 then 100 else . end),
       resets_at: (.resetsAt | epoch)}]
 ' <<<"$raw")
+
+# Say why a set-up provider has no bars (e.g. Claude needs a one-time keychain grant).
+jq -r '.providers[] | select((.notSetUp // false) | not) | select((.windows // []) == [])
+  | "hd-quota.sh: no reading for \(.provider): \(.state.status // "unknown") (\(.state.error // "-"))\(if .state.remedyCommand then "; fix: \(.state.remedyCommand)" else "" end)"' <<<"$raw" >&2
 
 if [ "$print" = 1 ]; then
   printf '%s\n' "$quota"

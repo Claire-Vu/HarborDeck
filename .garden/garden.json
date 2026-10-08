@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "name": "HarborDeck",
+  "mode": "garden",
+  "stacks": [
+    "javascript"
+  ],
+  "src": ".",
+  "accepted": [
+    "any-check-file-growth",
+    "any-check-generic-module-names"
+  ],
+  "settings": {},
+  "fileLengthLimit": 800
+}

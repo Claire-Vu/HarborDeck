@@ -12,7 +12,7 @@ The app is a live view, not an import: it watches the data directory, so new ite
 | Data contract + JSON Schemas | [`docs/CONTRACT.md`](docs/CONTRACT.md), [`schema/`](schema) | anyone writing or reading the files |
 | Agent CLI `harbordeck` / `hd` (+ MCP server) | [`cli/`](cli) | agents: write items cheaply, read answers |
 | Agent skill | [`skill/`](skill) | teaching any agent to use the desk |
-| firstmate adapter | [`adapters/firstmate`](adapters/firstmate) | a complete live integration example |
+| firstmate adapter | [`adapters/firstmate`](adapters/firstmate), setup in [`SETUP.md`](adapters/firstmate/SETUP.md) | a complete live integration: `install.sh` wires a firstmate home in one command |
 
 ## Install and run
 
@@ -131,10 +131,14 @@ Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, 
 ## Development
 
 ```sh
-npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed
+npm test            # unit tests: data loading, answer writing, path resolution, hook, watcher, demo seed; then the garden gate
 npm run test:smoke  # launches the real app with Playwright: render, stamp + undo, live updates, security
 npm run check       # syntax check of main, preload and renderer
+adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
+test/evidence/run.sh demo        # recorded proof of the live round trip (ystack evidence runner)
 ```
+
+`npm run garden` runs the ystack garden gate (`.garden/`) when `~/.agents/skills/garden` is installed, and skips otherwise. It ratchets two rules: no new source files over 400 code lines (the renderer and the CLI dispatcher are grandfathered, so add features as new modules), and no generic module names (`utils`, `helpers`).
 
 Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (pure Node: store, watch, hook, settings), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
 

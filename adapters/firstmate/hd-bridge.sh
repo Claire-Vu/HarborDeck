@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hd-bridge.sh - route HarborDeck answers into a firstmate home.
 #
-# Usage: FM_HOME=<firstmate home> hd-bridge.sh [--follow | --watch <seconds>] [--dry-run]
+# Usage: FM_HOME=<firstmate home> hd-bridge.sh [--follow | --watch <seconds>] [--dry-run | --echo]
 #
 # Reads answers.jsonl lines added since the last run (cursor:
 # <HARBORDECK_HOME>/cursors/firstmate-bridge, advanced one line at a time, so a
@@ -16,10 +16,14 @@
 # item stands for a captain hold. Each note ends with the exact `harbordeck
 # reply` command to answer on the desk.
 # --dry-run prints the firstmate commands instead of running them and does not
-# move the cursor. --follow stays running and routes each answer the moment
+# move the cursor. --echo is a safe live mode: firstmate commands are printed
+# (one timestamped "would run:" line each) instead of run, while HarborDeck-side
+# effects (resolve) happen and a separate cursor (firstmate-bridge.echo)
+# advances, so --follow --echo can run unattended. --follow stays running and routes each answer the moment
 # the app appends it (file watch via `harbordeck answers --wait`); this is the
 # live on-answer hook. --watch <seconds> polls instead.
-# Env: FM_HOME (required), HD (default: harbordeck).
+# Env: FM_HOME (required), HD (default: harbordeck), HD_BRIDGE_MODE (live|echo:
+# same as passing --echo when "echo").
 set -euo pipefail
 
 FM_HOME=${FM_HOME:?set FM_HOME to the firstmate home}
@@ -27,28 +31,43 @@ HD=${HD:-harbordeck}
 watch=0
 follow=0
 dry=0
+echo_mode=0
+[ "${HD_BRIDGE_MODE:-live}" != echo ] || echo_mode=1
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --watch) shift; watch=${1:?--watch needs seconds} ;;
     --follow) follow=1 ;;
     --dry-run) dry=1 ;;
-    *) echo "usage: hd-bridge.sh [--follow | --watch <seconds>] [--dry-run]" >&2; exit 2 ;;
+    --echo) echo_mode=1 ;;
+    *) echo "usage: hd-bridge.sh [--follow | --watch <seconds>] [--dry-run | --echo]" >&2; exit 2 ;;
   esac
   shift
 done
 
 HD_HOME=$("$HD" path)
 CURSOR="$HD_HOME/cursors/firstmate-bridge"
+[ "$echo_mode" = 0 ] || CURSOR="$CURSOR.echo"
 SOURCE=harbordeck
 
+would() {  # prefix for a command that is printed instead of run
+  [ "$echo_mode" = 0 ] || printf '%s ' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'would run:'
+}
+
 run() {  # print in dry-run, else execute
-  if [ "$dry" = 1 ]; then printf 'would run:'; printf ' %q' "$@"; printf '\n'; else "$@"; fi
+  if [ "$dry" = 1 ]; then would; printf ' %q' "$@"; printf '\n'; else "$@"; fi
+}
+
+fm() {  # a firstmate command: also only printed in echo mode
+  if [ "$echo_mode" = 1 ] && [ "$dry" = 0 ]; then would; printf ' %q' "$@"; printf '\n'; else run "$@"; fi
 }
 
 keyed() {  # <id> <answer> <label> <mode> -> 0 when the hold was closed
   local out rc=0
-  if [ "$dry" = 1 ]; then
-    printf 'would run: printf %q | %q answers --source %s\n' "$1	$2	$3	$4" "$FM_HOME/bin/fm-captain-hold.sh" "$SOURCE"
+  if [ "$dry" = 1 ] || [ "$echo_mode" = 1 ]; then
+    # Echo mirrors live routing: ask the read-only predicate whether the hold is open.
+    [ "$echo_mode" = 0 ] || "$FM_HOME/bin/fm-captain-hold.sh" open "$1" </dev/null >/dev/null 2>&1 || return 1
+    would; printf ' printf %q | %q answers --source %s\n' "$1	$2	$3	$4" "$FM_HOME/bin/fm-captain-hold.sh" "$SOURCE"
     return 0
   fi
   out=$(printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" | "$FM_HOME/bin/fm-captain-hold.sh" answers --source "$SOURCE" 2>&1) || rc=$?
@@ -57,7 +76,7 @@ keyed() {  # <id> <answer> <label> <mode> -> 0 when the hold was closed
 }
 
 note() {  # <request-id> <text>
-  run "$FM_HOME/bin/fm-inbox.sh" note --request-id "$1" -- "$2"
+  fm "$FM_HOME/bin/fm-inbox.sh" note --request-id "$1" -- "$2"
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
