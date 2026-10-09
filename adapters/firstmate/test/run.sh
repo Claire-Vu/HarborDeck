@@ -15,7 +15,7 @@ check() {  # <description> <command...>
 mkdir -p "$FM_HOME/bin" "$FM_HOME/state"
 cat > "$FM_HOME/bin/fm-captain-hold.sh" <<'EOF'
 #!/usr/bin/env bash
-if [ "$1" = open ]; then case $2 in held-1|held-2|held-3) exit 0 ;; *) exit 1 ;; esac; fi
+if [ "$1" = open ]; then case $2 in held-1|held-2|held-3|held-4) exit 0 ;; *) exit 1 ;; esac; fi
 if [ "$1" = hold ]; then printf 'hold %s\n' "$*" >> "$FM_HOME/calls.log"; exit 0; fi
 in=$(cat); printf 'hold %s | %s\n' "$*" "$in" >> "$FM_HOME/calls.log"
 id=${in%%$'\t'*}
@@ -122,6 +122,7 @@ answer res-1 "Research"
 todo td-1 "Sign form"
 decision held-3.q2 "Hosting?" --opt edge+ --opt mac
 decision free-2 "Later maybe?" --opt yes+ --opt no
+decision held-4 "Rollout?" --opt now+ --opt later
 EOF
 cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"held-1","action":"decide","key":"ship","note":"","at":1}
@@ -131,8 +132,9 @@ cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"res-1","action":"file","note":"","at":5}
 {"id":"td-1","action":"file","note":"","at":6}
 {"id":"req-9","action":"request","note":"Add dark theme","to":"sm","at":7}
-{"id":"held-3.q2","action":"defer","until":1791540000,"note":"","at":10}
-{"id":"free-2","action":"defer","until":1791540000,"note":"","at":11}
+{"id":"held-3.q2","action":"defer","until":UNTIL_EVENING,"note":"","at":10}
+{"id":"free-2","action":"defer","until":UNTIL_RESET,"note":"","at":11}
+{"id":"held-4","action":"defer","until":UNTIL_MIDNIGHT,"note":"","at":11}
 {"id":"req-10","action":"request","note":"Never use max effort","to":"sm","rule":true,"at":12}
 {"id":"res-1","action":"needs-work","note":"always cite sources","rule":true,"at":13}
 {"id":"res-1","action":"comment","note":"see [1] overlap","attachments":[{"type":"image","path":"/hd/attachments/2026-10/aa.png","marked":"/hd/attachments/2026-10/aa.marked.png"},{"type":"image","path":"/hd/attachments/2026-10/bb.png"}],"at":15}
@@ -140,7 +142,9 @@ cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"held-1","action":"reject","note":"","attachments":[{"type":"image","path":"/hd/attachments/2026-10/dd.png"}],"at":17}
 {"id":"res-1","action":"comment","note":"match: Host B is cheaper","anchor":{"claim":"Host B is cheaper"},"at":18}
 EOF
-day=$(date -r 1791540000 +%Y-%m-%d 2>/dev/null || date -d @1791540000 +%Y-%m-%d)
+# Later times in local time: an evening at a month's end, a reset in the small hours, a midnight
+epoch() { date -j -f '%Y-%m-%d %H:%M:%S' "$1:00" +%s 2>/dev/null || date -d "$1" +%s; }
+sed -i.bak "s/UNTIL_EVENING/$(epoch '2026-10-31 18:00')/; s/UNTIL_RESET/$(epoch '2026-11-03 04:31')/; s/UNTIL_MIDNIGHT/$(epoch '2026-11-05 00:00')/" "$HARBORDECK_HOME/answers.jsonl" && rm "$HARBORDECK_HOME/answers.jsonl.bak"
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
 check "bridge: dry run touches nothing" test ! -e "$FM_HOME/calls.log"
 check "bridge: dry run lists routes" grep -q "fm-inbox.sh note --request-id req-9" "$tmp/dry.txt"
@@ -169,8 +173,9 @@ check "bridge: rule note names the answer id" grep -qF "(answer id req-10)" "$lo
 check "bridge: rule on needs-work carries Standing order" grep -qE "request-id hd-res-1-needs-work-13 -- .*always cite sources\. Standing order:" "$log"
 check "bridge: plain request has no Standing order" test "$(grep -F 'request-id req-9 ' "$log" | grep -c 'Standing order')" = 0
 check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/items/held-1.json")" = resolved
-check "bridge: Later on a question defers its held task" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until $day --until $day" "$log"
-check "bridge: Later on an unheld item is a note" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk $day" "$log"
+check "bridge: Later on a question defers its held task, date rounded up" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until 2026-10-31 18:00 --until 2026-11-01" "$log"
+check "bridge: Later at midnight holds until that date" grep -qF "hold hold held-4 --reason captain deferred held-4 on HarborDeck until 2026-11-05 00:00 --until 2026-11-05" "$log"
+check "bridge: Later on an unheld item is a note with the exact time" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk 2026-11-03 04:31" "$log"
 check "bridge: comment lists its images, marked copy first" grep -qF "HarborDeck comment on res-1 \"Research\": see [1] overlap. Attached: /hd/attachments/2026-10/aa.marked.png, /hd/attachments/2026-10/bb.png. Reply: $HD reply res-1" "$log"
 check "bridge: request carries its image" grep -qF "request-id req-11 -- HarborDeck request for sm: Fix this. Attached: /hd/attachments/2026-10/cc.png. Reply:" "$log"
 check "bridge: keyed reject with an image also notes it" grep -qF "request-id hd-held-1-reject-17 -- HarborDeck reject on held-1 \"Ship 2.4?\". Attached: /hd/attachments/2026-10/dd.png" "$log"

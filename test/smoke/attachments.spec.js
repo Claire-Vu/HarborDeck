@@ -89,9 +89,12 @@ test('Add to… is off by default; picking the item at the desk sends a comment 
   await expect(page.locator('.addto-btn')).toBeVisible();
   await expect(page.locator('#phone .phone-q').first()).toBeEnabled();
   await page.locator('.addto-btn').click(); await page.locator('.addto-opt').first().click();
-  await fire('.phone-pad', 'paste', BLUE, 'image/png', 'b.png');
   await page.locator('.phone-pad').fill('also check the dark theme');
-  await page.locator('.phone-pad').press('Enter');
+  // Enter in the same tick as the paste, before the copy into attachments/ is done: the image still goes with it
+  const n = answers().length;
+  await fire('.phone-pad', 'paste', BLUE, 'image/png', 'b.png');
+  await page.evaluate(() => document.querySelector('.phone-pad').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+  await expect.poll(() => answers().length).toBe(n + 1);
   const line = answers().at(-1);
   expect(line).toMatchObject({ id: target, action: 'comment', note: 'also check the dark theme' });
   expect('to' in line).toBe(false);

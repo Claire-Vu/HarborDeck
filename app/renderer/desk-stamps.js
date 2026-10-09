@@ -42,12 +42,17 @@ function renderTray(it) {
   $('#stamps').dataset.open = String(S.prefs.tray);
 }
 function toggleTray(open) { S.prefs.tray = open ?? !S.prefs.tray; save(); if (!S.prefs.tray) closeStowView(); $('#stamps').dataset.open = String(S.prefs.tray); snd('flip'); }
-function stamp(verdict, toReset) {
+function stamp(verdict, toReset, pick) {
   const it = byId[S.current]; if (!it || statusOf(it) !== 'open') { toast('Nobody at the desk.'); return; }
   const s = st(it.id); if (s.awaiting) { toast('Already sent back; wait for the reply.'); return; }
   const cfg = trayConfig(it)[verdict]; if (!cfg?.show) return;
   if (!S.prefs.tray) toggleTray(true);
-  if (verdict === 'later') return later(it, toReset);
+  if (verdict === 'later' && pick) return laterSlip(it);
+  if (verdict === 'later') {
+    const until = toReset ? HarborLater.afterReset(now(), knownResets()) : HarborLater.tomorrowNine(now());
+    if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
+    return later(it, until);
+  }
   if (verdict === 'approve' && bundleOf(it).length > 1) return topicView.stampBundle(it, bundleOf(it));
   if (verdict === 'approve') {
     if (it.kind === 'decision') { if (!s.choice) { toast('Pick an option on the slip first.'); return; } return finishStamp(it, 'APPROVED', 'approve', { id: it.id, action: 'decide', key: s.choice }); }
@@ -58,12 +63,9 @@ function stamp(verdict, toReset) {
   const action = verdict === 'ask' ? 'ask' : 'needs-work';
   attachView.slip({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…', draft: `${action}:${it.id}`, attach: true, rule: true }, (note, attachments, rule) => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note, attachments, ...(rule ? { rule: true } : {}) }, true));
 }
-// Later (S): park the item (and the rest of its ticked sheet) until tomorrow 9:00, or with Shift+S until just
-// after the next usage reset. Writes a defer line; firstmate turns it into a hold --until.
-function later(it, toReset) {
-  const resets = [SCHED?.next_reset, SCHED?.reset_due, ...staminaViews().filter(v => !v.reset).map(v => v.resets)].filter(Boolean);
-  const until = quick.laterUntil(toReset, { now: now(), resets });
-  if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
+// Later: park the item (and the rest of its ticked sheet) until `until`: S tomorrow 9:00, Shift+S just after the next
+// usage reset, the Later slip (click the stamp, Alt+S) any date and time. Writes a defer line; firstmate holds the work.
+function later(it, until) {
   const others = bundleOf(it).filter(m => m !== it && topicView.ticked(m));
   finishStamp(it, `LATER${others.length ? ' ×' + (others.length + 1) : ''}`, 'later', { id: it.id, action: 'defer', until }, false, others.map(m => ({ it: m, line: { id: m.id, action: 'defer', until } })));
 }
@@ -82,9 +84,10 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
   const parks = line.action === 'defer';
   if (!stays && !parks) { run = G.comboNext(run, line.at, bulk || extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); }
   const pitch = stays || parks ? 1 : G.comboPitch(run.n), runN = stays || parks ? 0 : run.n;
-  // a defer leaves the item open; the held line itself parks it (statusOf)
-  if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
-  for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
+  // a defer leaves the item open; the held line itself parks it (statusOf), over any earlier Bring back now (both
+  // are whole seconds, so a park in the same second as a pull back must clear it; undo restores it from snap)
+  if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; } else delete s.undeferAt;
+  for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); else delete st(e.it.id).undeferAt; }
   save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length;
   const p = pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoChip() };
   const held = () => pending === p;

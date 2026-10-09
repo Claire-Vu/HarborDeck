@@ -11,8 +11,10 @@
 #   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent); an Inspect "match:"
 #                               comment (a positive confirmation) is skipped, not inbox noise; a line with
 #                               rule: true ("Remember this") adds "Standing order:" so it gets filed as a preference
-#   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <local date of until>
-#                               (a <task>.qN question defers its held task), else an inbox note
+#   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <date> (a <task>.qN question
+#                               defers its held task), else an inbox note. The hold takes a date only and
+#                               lifts ON that date, so <date> is the first local date at or after `until`
+#                               (rounded up: never early); the reason carries the exact local time
 #   file on a todo           -> inbox note ("done"); file on an answer -> nothing to route
 # A keyed answer whose item id is not a captain-held task falls back to an
 # inbox note, so no answer is ever dropped. decide/approve/reject/file also mark
@@ -57,6 +59,7 @@ CURSOR="$HD_HOME/cursors/firstmate-bridge"
 SOURCE=harbordeck
 
 log() { printf '%s hd-bridge: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }  # stderr: the service log
+localtime() { date -r "$1" "$2" 2>/dev/null || date -d "@$1" "$2"; }  # <epoch> <+format>: local time (BSD, then GNU date)
 
 would() {  # prefix for a command that is printed instead of run
   [ "$echo_mode" = 0 ] || printf '%s ' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -94,7 +97,7 @@ note() {  # <request-id> <text>
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
-  local a=$1 id action key note at to anchor att title='' kind='' label text rid reply until day task so=''
+  local a=$1 id action key note at to anchor att title='' kind='' label text rid reply until when day task so=''
   id=$(jq -r '.id' <<<"$a"); action=$(jq -r '.action' <<<"$a")
   key=$(jq -r '.key // ""' <<<"$a"); note=$(jq -r '.note // ""' <<<"$a"); at=$(jq -r '.at // 0' <<<"$a")
   to=$(jq -r '.to // "any mate"' <<<"$a"); anchor=$(jq -c '.anchor // empty' <<<"$a")
@@ -138,13 +141,17 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       [ "$kind" != todo ] || note "$rid" "$text: done${note:+ - $note}" || return 1 ;;
     defer)
       until=$(jq -r '.until // 0' <<<"$a")
-      day=$(date -r "$until" +%Y-%m-%d 2>/dev/null || date -d "@$until" +%Y-%m-%d)
+      when=$(localtime "$until" '+%Y-%m-%d %H:%M')
+      day=${when% *}
+      # fm-captain-hold.sh --until is a date gate, inactive on and after that date: round a time of day up to
+      # the next date so firstmate never surfaces the work before the desk brings the item back
+      [ "$(localtime "$until" +%H%M%S)" = 000000 ] || day=$(date -j -v+1d -f %Y-%m-%d "$day" +%Y-%m-%d 2>/dev/null || date -d "$day +1 day" +%Y-%m-%d)
       task=$id
       held "$task" || { [[ $id =~ \.q[0-9]+$ ]] && held "${id%.q*}" && task=${id%.q*}; } || task=''
       if [ -n "$task" ]; then
-        fm "$FM_HOME/bin/fm-captain-hold.sh" hold "$task" --reason "captain deferred $id on HarborDeck until $day" --until "$day" || return 1
+        fm "$FM_HOME/bin/fm-captain-hold.sh" hold "$task" --reason "captain deferred $id on HarborDeck until $when" --until "$day" || return 1
       else
-        note "$rid" "$text: later, back on the desk $day${note:+ - $note}" || return 1
+        note "$rid" "$text: later, back on the desk $when${note:+ - $note}" || return 1
       fi ;;
     *) log "skipping unknown action $action on $id" ;;
   esac

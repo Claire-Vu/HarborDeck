@@ -23,11 +23,12 @@ window.HarborAttach = deps => {
   // One tray per surface. mount(zone, input) (re)binds it to that surface's elements; the list survives remounts,
   // so a phone hung up with images keeps them for next time, like the unsent text.
   function tray(opts = {}) {
-    let list = [], zone = null, input = null;
+    let list = [], zone = null, input = null; const busy = new Set(); // copies still on their way into attachments/
     const el = h('div', { class: 'att-tray', 'aria-label': 'Attached images' });
     const changed = () => { render(); opts.onChange?.(); };
 
-    async function addBlob(blob, source) {
+    function addBlob(blob, source) { const p = copyIn(blob, source).finally(() => busy.delete(p)); busy.add(p); return p; }
+    async function copyIn(blob, source) {
       if (!TYPES.test(blob.type || '')) { toast('Only PNG, JPEG, WebP or GIF images can be attached.', 'warn'); return; }
       if (blob.size > MAX) { toast('That image is over 15 MB.', 'warn'); return; }
       const r = await bridge.attach(await blob.arrayBuffer());
@@ -83,6 +84,8 @@ window.HarborAttach = deps => {
     return {
       el, mount, snap,
       has: () => list.length > 0,
+      // a send waits for images still being copied, so Enter right after a paste never goes out without them
+      settled: () => Promise.all([...busy]),
       // answer `attachments` (attach.js re-validates every field)
       payload: () => list.length ? list.map(a => ({ type: 'image', path: a.path, ...(a.marked ? { marked: a.marked } : {}), source: a.source, ...(a.w ? { w: a.w, h: a.h } : {}), ...(a.marks?.length ? { marks: a.marks } : {}) })) : undefined,
       // the text that goes out: what was typed, then the pin notes; an image alone still says something
@@ -112,7 +115,8 @@ window.HarborAttach = deps => {
     t?.mount(body.closest('.box'), ta);
     ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
     ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit(); });
-    function submit() {
+    async function submit() {
+      await t?.settled(); if (!ta.isConnected) return; // sent already, or cancelled while an image was copying
       const v = ta.value.trim(); if (!v && !t?.has()) { ta.focus(); return; }
       const note = t ? t.note(v) : v, atts = t?.payload(), r = !!rule?.checked; drafts.delete(opts.draft); deps.closeModal(); onSubmit(note, atts, r);
     }

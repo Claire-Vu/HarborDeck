@@ -14,7 +14,7 @@ function openManifest() {
   const content = h('div', { class: 'manifest-sheet' },
     h('div', { class: 'ms-head' }, h('div', { class: 'ms-day' }, `Day ${S.day}`), h('div', null, new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }), S.streak ? ` · ${S.streak}-day streak` : '', S.cash ? ` · ${money(S.cash)} in the till` : '')),
     h('div', { class: 'ms-grid' },
-      h('section', null, h('h3', null, 'At the window'), h('ul', null, Object.entries(KIND).map(([k, l]) => counts[k] ? h('li', null, `${counts[k]} ${(counts[k] > 1 ? KINDS[k] : l).toLowerCase()}`) : null), !open.length && h('li', null, 'nobody waiting')), open.length ? [h('h3', null, 'First up'), h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title)))] : null),
+      h('section', null, h('h3', null, 'At the window'), h('ul', null, Object.entries(KIND).map(([k, l]) => counts[k] ? h('li', null, `${counts[k]} ${(counts[k] > 1 ? KINDS[k] : l).toLowerCase()}`) : null), !open.length && h('li', null, 'nobody waiting'), parkedItems().length ? h('li', null, `${parkedItems().length} parked for later`) : null), open.length ? [h('h3', null, 'First up'), h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title)))] : null),
       cooking.length ? h('section', null, h('h3', null, 'Galley'), h('ul', null, cooking.map(c => h('li', null, `${crewName(c.id)}: ${c.task_title || c.task || ''} (${{ working: 'cooking', waiting: 'at the window', done: 'ready' }[c.state] || c.state})`)))) : null,
       staminaViews().length ? h('section', null, staminaPanel()) : null,
       FLEET.regulars.length ? h('section', null, h('h3', null, 'Regulars'), regularsBoard()) : null),

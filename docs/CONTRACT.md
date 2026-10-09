@@ -154,7 +154,7 @@ The app appends one line per user action to `answers.jsonl`:
 | `ask` | ask slip | `note` | A question. Reply with a `thread` entry. |
 | `comment` | inspect match/mismatch, or the ship phone's **Add to…** (an addition to a running order or item) | `note`, `anchor` | Feedback pinned to something. `anchor` may carry `claim`, `artifact`, `t` (seconds), `x`,`y` (position on an image), `heading`, `rule`. |
 | `request` | new order slip or ship phone | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
-| `defer` | Later stamp | `until` (required, epoch seconds), `note` | Not now: bring it back at `until` (tomorrow 9:00, or after the next usage reset). The item stays open; the app hides it until then, or until the agent rewrites it. Do not act on it; park the work until that time. |
+| `defer` | Later stamp | `until` (required, epoch seconds), `note` | Not now: bring it back at `until` (tomorrow 9:00, after the next usage reset, or a date and time the captain picked). The item stays open; the app hides it until then, or until the agent rewrites it. Do not act on it; park the work until that time. |
 
 **Remember this.** A `request`, `comment`, `needs-work` or `ask` line may carry `"rule": true` (additive; absent otherwise, never `false`): the user ticked "Remember this", so the message is a **standing order**, not a one-off. Do the work as usual, and also record the rule with the user's other preferences (for firstmate, the bridge's inbox note starts with `Standing order:`). Once recorded in `rules.json`, give the entry `answer` = the line's `id` and the desk shows the rule with a pin.
 
