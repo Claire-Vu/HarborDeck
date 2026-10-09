@@ -11,7 +11,8 @@ export function launchdLabel(home, defaultHome) {
 
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export function launchdPlist({ label, node, bin, home, envPath, interval = 60 }) {
+// runAsNode: node is the Harbor Deck app's Electron binary, which runs scripts only with ELECTRON_RUN_AS_NODE=1.
+export function launchdPlist({ label, node, bin, home, envPath, interval = 60, runAsNode = false }) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- harbordeck scheduler: runs "harbordeck tick" every ${interval}s. Remove with "harbordeck scheduler uninstall". -->
@@ -30,7 +31,9 @@ export function launchdPlist({ label, node, bin, home, envPath, interval = 60 })
     <key>HARBORDECK_HOME</key>
     <string>${xml(home)}</string>
     <key>PATH</key>
-    <string>${xml(envPath)}</string>
+    <string>${xml(envPath)}</string>${runAsNode ? `
+    <key>ELECTRON_RUN_AS_NODE</key>
+    <string>1</string>` : ''}
   </dict>
   <key>StartInterval</key>
   <integer>${interval}</integer>
@@ -52,6 +55,8 @@ export function systemdUnits({ node, bin, home, envPath, interval = 60 }) {
   };
 }
 
+// bin may be the app bundle's launcher (/Applications/Harbor Deck.app/...): quoted for the shell when it needs it.
 export function hookSnippet(bin) {
-  return JSON.stringify({ hooks: { StopFailure: [{ matcher: 'rate_limit', hooks: [{ type: 'command', command: `${bin} limit record` }] }] } }, null, 2);
+  const q = /^[\w@%+=:,./-]+$/.test(bin) ? bin : `'${String(bin).replace(/'/g, `'\\''`)}'`;
+  return JSON.stringify({ hooks: { StopFailure: [{ matcher: 'rate_limit', hooks: [{ type: 'command', command: `${q} limit record` }] }] } }, null, 2);
 }

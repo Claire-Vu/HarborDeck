@@ -17,7 +17,9 @@
     "test:roundtrip": "node test/live/agent-roundtrip.mjs",
     "check": "node --check app/main.js && node --check app/preload.js && node --check app/lib/attach.js && for f in app/renderer/*.js; do node --check \"$f\" || exit 1; done && node --check cli/src/scheduler.js",
     "dist": "electron-builder --mac dir",
-    "dist:dmg": "electron-builder --mac dmg"
+    "dist:dmg": "electron-builder --mac dmg zip",
+    "release": "electron-builder --mac dmg zip --arm64 --x64 --publish always",
+    "release:adhoc": "npm run release -- -c.mac.identity=- -c.mac.hardenedRuntime=false"
   },
   "build": {
     "appId": "dev.harbordeck.app",
@@ -25,8 +27,12 @@
     "files": [
       "app/**/*",
       "cli/package.json",
+      "cli/bin/**/*",
       "cli/src/**/*",
       "schema/**/*",
+      "skill/**/*",
+      "adapters/firstmate/**/*",
+      "!adapters/firstmate/test/**",
       "package.json",
       "LICENSE"
     ],
@@ -36,9 +42,38 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
-        "dir"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
-      "identity": null
+      "identity": null,
+      "hardenedRuntime": true,
+      "artifactName": "Harbor-Deck-${version}-${arch}-mac.${ext}"
+    },
+    "asarUnpack": [
+      "cli/**/*",
+      "adapters/firstmate/**/*",
+      "schema/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Claire-Vu",
+      "repo": "HarborDeck",
+      "releaseType": "draft"
+    },
+    "dmg": {
+      "artifactName": "Harbor-Deck-${version}-${arch}.${ext}"
     }
   },
   "devDependencies": {
@@ -51,5 +86,8 @@
   },
   "overrides": {
     "global-agent": "4.1.3"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
   }
 }

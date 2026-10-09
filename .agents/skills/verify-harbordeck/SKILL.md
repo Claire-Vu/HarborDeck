@@ -20,6 +20,7 @@ The skill lives in `.agents/skills/verify-harbordeck/`; `.claude/skills/verify-h
 - Only synthetic data. Never point anything at `~/.harbordeck`, a firstmate home, the installed app at `~/.local/share/harbordeck-app`, `~/Library/LaunchAgents`, or launchd. `hdv` sets `HARBORDECK_HOME`, `HARBORDECK_USER_DATA`, `HARBORDECK_CAFFEINATE` and `HARBORDECK_LAUNCHD_DIR` to its own state dir for every app and CLI call it makes.
 - Never click anything that calls the system browser (`Browser ↗`, `Open in your browser`, off-machine links in a pane page): it acts on the user's desktop.
 - Never run a bare `hd`/`harbordeck` (it defaults to `~/.harbordeck`): go through `$H hd ...`, or `eval "$($H env)"` first.
+- Never press Install / Connect in **Connect an agent** against the real home: it writes `~/.local/bin`, `~/.claude.json` (via `claude mcp add`) and a firstmate home. Drive it only under a temp `HOME` with `HARBORDECK_CLAUDE_BIN` set to a stub, as `test/smoke/onboarding.spec.js` does.
 - Never run `hd scheduler install` or `uninstall`, and never the real `caffeinate`. `hdv` installs a stub caffeinate and a stub wake command that only logs.
 - One instance per worktree (state dir `/tmp/hdv-<hash of worktree path>`, override `HDV_STATE`). Two worktrees run side by side on different CDP ports. `launch` refuses to start over a live instance.
 
@@ -31,6 +32,7 @@ Once per worktree, and again after any dependency bump: `npm ci` (if Electron re
 H=.agents/skills/verify-harbordeck/scripts/hdv
 $H launch            # seeded synthetic data dir (20 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
+$H launch --empty    # an empty data dir: the first-run Connect an agent opens (features/connect.md)
 $H launch --visible  # show the window (default is headless)
 ```
 
@@ -73,6 +75,7 @@ Stable handles (from `app/renderer/index.html` and the desk scripts; see docs/AR
 | Handle | What |
 |---|---|
 | button `Open the office` | closes the Morning manifest shown on a fresh profile; every drive starts here |
+| `.modal.connect-modal`, `#cn-cli`, `#cn-cli-install`, `.cn-tabs [role=radio]`, `#cn-run`, `#cn-out`, `.cn-status.live\|recent\|idle\|none` | Connect an agent: opens instead of the manifest only on an empty data dir with setup never finished (`hdv` seeds items, so it never shows there) |
 | `#queue li` + item title | an item in the window queue; click selects it onto the desk |
 | `#desk-surface .paper.manifest h3` | title of the item on the desk |
 | `.window-frame #scenes`, `#yard`, `#filters .chip`, `#queue`, `#btn-next` | left column, top to bottom: the scene window, the crew at work (galley, pier), kind chips, list, Next. No tabs |

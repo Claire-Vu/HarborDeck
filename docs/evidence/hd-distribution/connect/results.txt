@@ -1,0 +1,15 @@
+PASS 01-first-run
+PASS 02-cli-install
+PASS 03-cli-uninstall
+PASS 04-claude-code
+PASS 05-light-live
+PASS 06-firstmate-plan
+PASS 07-firstmate-connected
+PASS 08-other-agent
+PASS 09-done
+PASS 10-stamp
+PASS 11-reload
+PASS 12-settings-version
+PASS 13-settings-save
+PASS 14-settings-cli
+PASS 15-menu-intact

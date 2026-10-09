@@ -6,6 +6,7 @@
 let settingsView = null;
 function openSettings() {
   settingsView ||= window.HarborSettings({ h, bridge, keys: HarborPhoneKeys, modal, closeModal, commitPending, apply: applySnapshot, errors: () => SNAP.errors,
+    connectButtons: () => connectView.settingsButtons(), versionControls: cur => updates.settingsControls(cur),
     demo: async on => { commitPending(); closeModal(); applySnapshot(await bridge.demo(on)); } });
   return settingsView.open();
 }

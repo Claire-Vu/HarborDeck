@@ -1,0 +1,2 @@
+harbordeck -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js
+hd -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js

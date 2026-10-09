@@ -1,0 +1,2 @@
+PASS 01-seeded-no-setup
+PASS 02-seeded-stamp

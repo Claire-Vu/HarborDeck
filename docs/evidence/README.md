@@ -40,3 +40,25 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Scene legibility and the scene line
 
 `docs/evidence/scene-legibility/{before,after}/` are headless captures (`hdv launch`, synthetic seed, window crop at 2x) of the top scene window at 1000x630, 1280x800 and 1440x900: `busy-*` is Signpost Square with every decision waiting, `allclear-*` is Bottle Cove emptied (research resolved with `hd resolve`). The left column is a fixed 300 px, so the window is the same size at all three. `before` has the title, tide label and all-clear text drawn over the boats; `after` plates every word (title, arrows, the tide bar on the sill, the all-clear card), and the decisions stand single file with the one at the desk in front. `after/back-of-line-1280x800.png` is the same scene after `W`: the next one steps up.
+
+## Distribution: connect an agent, command line tool, updates (hd-distribution)
+
+`docs/evidence/hd-distribution/` holds three live runs, all headless, on synthetic data, with a sandbox `HOME`:
+
+- `connect/` is `.agents/skills/verify-harbordeck/scripts/connect-walk.sh` on `hdv launch --empty`, 15/15 PASS. It covers:
+  - the first-run setup
+  - Install and Uninstall Command Line Tool
+  - Claude Code with a stub `claude` (`04-claude.log` holds the exact `mcp add` it received)
+  - the status light turning live on an agent write through the installed `hd`
+  - firstmate (`install.sh` against a stub home, no launchd)
+  - Other agent, then Done
+  - the neighbouring flows: a stamp landing in `answers.jsonl`, reload, the Settings Agents and Version rows, Save, the menu
+
+  `transcript.txt` has every command with its exit code.
+- `seeded/`: a desk that already has items skips the setup, and stamping is unchanged (2/2 PASS).
+- `packaged/` is `scripts/packaged-walk.cjs` on an ad-hoc-signed `Harbor Deck.app` build pointed at a local update feed, 8/8 PASS. It covers:
+  - the first run in the built app
+  - Install linking the bundle's `hd-app`
+  - `hd` running with `PATH=/usr/bin:/bin`, i.e. no Node (`03-hd-without-node.txt`)
+  - a 9.9.9 release showing "Harbor Deck 9.9.9 is out." with Download and nothing downloaded (`05`)
+  - no release yet: "no release is published yet" (`08`)

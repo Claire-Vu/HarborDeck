@@ -101,6 +101,8 @@ async function cmdTick(argv, ctx) {
 }
 
 const BIN = fileURLToPath(new URL('../bin/harbordeck.js', import.meta.url));
+// Inside the app bundle the command to hand out is the bundle's launcher (no Node needed), not harbordeck.js.
+const hookBin = (env) => env.HARBORDECK_LAUNCHER || BIN;
 
 function cmdScheduler(argv, ctx) {
   const home = ctx.store.home;
@@ -140,7 +142,7 @@ function cmdInstall(sub, argv, ctx) {
   const home = ctx.store.home;
   const interval = flags.interval === undefined ? 60 : Number(flags.interval);
   if (!Number.isInteger(interval) || interval < 10) fail('--interval must be >= 10 seconds');
-  const spec = { node: process.execPath, bin: BIN, home, envPath: ctx.env.PATH || '/usr/bin:/bin', interval };
+  const spec = { node: process.execPath, bin: BIN, home, envPath: ctx.env.PATH || '/usr/bin:/bin', interval, runAsNode: !!process.versions.electron };
   if (process.platform !== 'darwin' && !ctx.env.HARBORDECK_LAUNCHD_DIR) {
     const u = sched.systemdUnits(spec);
     ctx.out(`# Not macOS: install one of these yourself.
@@ -152,7 +154,7 @@ ${u.timer}
 ${u.cron}`);
     if (sub === 'install') ctx.out(`
 # Claude Code hook (~/.claude/settings.json):
-${sched.hookSnippet(BIN)}`);
+${sched.hookSnippet(hookBin(ctx.env))}`);
     return 0;
   }
   const dir = ctx.env.HARBORDECK_LAUNCHD_DIR || path.join(process.env.HOME || '', 'Library', 'LaunchAgents');
@@ -176,7 +178,7 @@ ${sched.hookSnippet(BIN)}`);
     if (r.status !== 0) fail(`launchctl bootstrap failed: ${(r.stderr || r.stdout).trim()}`);
     ctx.out(`ok loaded ${label}`);
   }
-  ctx.out(`\nClaude Code hook (~/.claude/settings.json; see adapters/claude-code):\n${sched.hookSnippet(BIN)}`);
+  ctx.out(`\nClaude Code hook (~/.claude/settings.json; see adapters/claude-code):\n${sched.hookSnippet(hookBin(ctx.env))}`);
   if (!sched.loadConfig(home, ctx.env).wake_command) ctx.out('\nnext: hd scheduler config --wake-command "<cmd>"  (message on stdin and in $HARBORDECK_MESSAGE)');
   return 0;
 }

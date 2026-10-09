@@ -337,6 +337,16 @@ test('install: launchd plist into a given dir (no load), uninstall removes it', 
   assert.deepEqual(fs.readdirSync(la), []);
 });
 
+test('install from the app bundle: the plist runs the app runtime as Node; hooks name the bundle launcher', () => {
+  assert.doesNotMatch(S.launchdPlist({ label: 'l', node: '/n', bin: '/b', home: '/h', envPath: '/p' }), /ELECTRON_RUN_AS_NODE/);
+  assert.match(S.launchdPlist({ label: 'l', node: '/A/MacOS/Harbor Deck', bin: '/b', home: '/h', envPath: '/p', runAsNode: true }), /<key>ELECTRON_RUN_AS_NODE<\/key>\s*<string>1<\/string>\s*<\/dict>/);
+  const { env } = setup();
+  const la = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-la-'));
+  const r = spawnSync(process.execPath, [BIN, 'scheduler', 'install', '--no-load'], { env: { ...env, HARBORDECK_LAUNCHD_DIR: la, HARBORDECK_LAUNCHER: '/Apps/Harbor Deck.app/x/hd-app' }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /"command": "'\/Apps\/Harbor Deck\.app\/x\/hd-app' limit record"/);
+});
+
 test('firstmate wake preset: finds the firstmate pane and calls fm-send with FM_HOME', () => {
   const root = fileURLToPath(new URL('../../adapters/firstmate/wake.sh', import.meta.url));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-fm-'));

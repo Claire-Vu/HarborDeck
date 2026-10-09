@@ -22,6 +22,20 @@ contextBridge.exposeInMainWorld('harbor', {
   holdPhoneKey: on => ipcRenderer.send('harbor:phone-key-hold', !!on),
   demo: on => ipcRenderer.invoke('harbor:demo', on),
   diagnostics: () => ipcRenderer.invoke('harbor:diagnostics'),
+  // Connect an agent (app/lib/connect.js) and the command line tool (app/lib/cli-link.js)
+  connect: {
+    info: fmHome => ipcRenderer.invoke('harbor:connect-info', fmHome),
+    installCli: opts => ipcRenderer.invoke('harbor:cli-install', opts),
+    uninstallCli: binDir => ipcRenderer.invoke('harbor:cli-uninstall', binDir),
+    claude: () => ipcRenderer.invoke('harbor:connect-claude'),
+    firstmate: opts => ipcRenderer.invoke('harbor:connect-firstmate', opts),
+    done: () => ipcRenderer.invoke('harbor:onboarded')
+  },
+  updates: {
+    check: () => ipcRenderer.invoke('harbor:update-check'),
+    install: () => ipcRenderer.invoke('harbor:update-install'),
+    onState: fn => ipcRenderer.on('harbor:updater', (e, s) => fn(s))
+  },
   // In-desk browser pane (app/lib/web-pane.js): the page itself runs in a separate view without this bridge.
   web: {
     open: (url, rect) => ipcRenderer.invoke('harbor:web-open', url, rect),

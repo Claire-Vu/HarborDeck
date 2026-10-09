@@ -3,6 +3,7 @@
 // settings, the optional on-answer hook, the in-desk browser pane and demo mode. The renderer only talks through preload.js.
 const { app, BrowserWindow, ipcMain, protocol, shell, dialog, Menu, nativeTheme, globalShortcut } = require('electron');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { Readable } = require('stream');
 const store = require('./lib/store');
@@ -14,6 +15,11 @@ const { seedDemo } = require('./demo/seed');
 const { startDemoAgent } = require('./demo/agent');
 const { startStaticSite } = require('./demo/static-site');
 const { createWebPane } = require('./lib/web-pane');
+const cliLink = require('./lib/cli-link');
+const connect = require('./lib/connect');
+const { createUpdater, isDeveloperIdSigned } = require('./lib/updater');
+// Where releases are published (package.json build.publish); a build that cannot update itself links here.
+const RELEASES_URL = 'https://github.com/Claire-Vu/HarborDeck/releases';
 
 // Isolated profile (settings, desk state, demo dir) for tests and side-by-side runs.
 if (process.env.HARBORDECK_USER_DATA) app.setPath('userData', path.resolve(process.env.HARBORDECK_USER_DATA));
@@ -41,9 +47,11 @@ function snapshot() {
   let scheduler = null;
   try { scheduler = sched ? sched.statusData(home) : null; } catch (e) { log(`scheduler status: ${e.message}`); }
   const topics = topicsMod ? topicsMod.buildTopics(snap) : {};
-  return Object.assign(snap, { scheduler, topics, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
+  // firstRun: nothing has connected yet, so the desk opens on "Connect an agent" instead of an empty office
+  const firstRun = !settings.onboarded && !demo && !snap.items.length;
+  return Object.assign(snap, { scheduler, topics, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings(), agent: connect.agentActivity(home), firstRun });
 }
-const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '', phoneKey: phoneKey.state });
+const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '', phoneKey: phoneKey.state, version: app.getVersion(), packaged: app.isPackaged });
 
 function useHome(next, isDemo) {
   watcher?.close(); demoAgent?.stop(); demoAgent = null;
@@ -123,9 +131,12 @@ function buildMenu() {
   const isMac = process.platform === 'darwin';
   const send = what => () => win?.webContents.send('harbor:menu', what);
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(isMac ? [{ role: 'appMenu', submenu: [{ role: 'about' }, { type: 'separator' }, { label: 'Settings…', accelerator: 'Cmd+,', click: send('settings') }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }] : []),
+    ...(isMac ? [{ role: 'appMenu', submenu: [{ role: 'about' }, { label: 'Check for Updates…', click: send('check-updates') }, { type: 'separator' }, { label: 'Settings…', accelerator: 'Cmd+,', click: send('settings') }, { type: 'separator' }, { label: 'Install Command Line Tool…', click: send('cli') }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }] : []),
     { label: 'File', submenu: [
       ...(isMac ? [] : [{ label: 'Settings…', accelerator: 'Ctrl+,', click: send('settings') }]),
+      { label: 'Connect an Agent…', click: send('connect') },
+      ...(isMac ? [] : [{ label: 'Install Command Line Tool…', click: send('cli') }, { label: 'Check for Updates…', click: send('check-updates') }]),
+      { type: 'separator' },
       { label: 'Open Data Folder', click: () => shell.openPath(home) },
       { label: 'Reload Data', accelerator: 'CmdOrCtrl+Shift+R', click: reload },
       { type: 'separator' },
@@ -137,6 +148,67 @@ function buildMenu() {
     { role: 'windowMenu' }
   ]));
 }
+
+// ------------------------------------------------------------ command line tool, connect an agent, updates
+// The CLI the app hands out: the bundle's launcher when packaged, the checkout's harbordeck.js from source.
+const CLI_TARGET = () => cliLink.cliTarget({ packaged: app.isPackaged, resourcesPath: process.resourcesPath, appRoot: path.join(__dirname, '..') });
+// Bundled resources outside app.asar (asarUnpack in package.json): scripts must be real files to run.
+const unpacked = rel => path.join(__dirname, '..', rel).replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+const cliStatus = async (binDir = cliLink.defaultBinDir()) => cliLink.cliStatus(binDir, CLI_TARGET(), await connect.loginPath());
+const failed = err => ({ ok: false, error: err.message, conflict: !!err.conflict });
+async function connectInfo(fmHome) {
+  const envPath = await connect.loginPath(), cli = await cliStatus();
+  const hdPath = cli.links.find(l => l.name === 'harbordeck').path;
+  const claude = connect.claudeCodePlan({ claudeBin: process.env.HARBORDECK_CLAUDE_BIN || connect.which('claude', envPath), hdPath, home, defaultHome: store.defaultHome() });
+  const script = unpacked('adapters/firstmate/install.sh');
+  const firstmate = { available: fs.existsSync(script), ...connect.firstmatePlan({ script, fmHome: fmHome || '<firstmate home>', home, settingsDir: app.getPath('userData'), service: process.platform === 'darwin' }) };
+  let snippet = ''; try { snippet = fs.readFileSync(path.join(__dirname, '..', 'skill', 'AGENTS-snippet.md'), 'utf8').replace(/^<!--.*-->\n/, ''); } catch (e) { /* source checkout without skill/ */ }
+  const mcpJson = JSON.stringify({ mcpServers: { harbordeck: { command: hdPath, args: ['mcp'], ...(home === store.defaultHome() ? {} : { env: { HARBORDECK_HOME: home } }) } } }, null, 2);
+  return { home, userHome: os.homedir(), demo, agent: connect.agentActivity(home), cli, claude, firstmate, snippet, mcpJson, onboarded: !!settings.onboarded };
+}
+ipcMain.handle('harbor:connect-info', (e, fmHome) => connectInfo(fmHome ? String(fmHome) : ''));
+ipcMain.handle('harbor:cli-install', async (e, opts = {}) => {
+  try { return { ok: true, cli: cliLink.installCli(opts.binDir ? String(opts.binDir) : cliLink.defaultBinDir(), CLI_TARGET(), { replace: !!opts.replace }) }; } catch (err) { return failed(err); }
+});
+ipcMain.handle('harbor:cli-uninstall', async (e, binDir) => {
+  try { return { ok: true, cli: cliLink.uninstallCli(binDir ? String(binDir) : cliLink.defaultBinDir(), CLI_TARGET()) }; } catch (err) { return failed(err); }
+});
+// Claude Code: link the CLI (if it is not yet), then `claude mcp add` the stdio server. The renderer showed both first.
+ipcMain.handle('harbor:connect-claude', async () => {
+  const info = await connectInfo();
+  if (!info.claude.claudeBin) return { ok: false, error: 'Claude Code (the claude command) was not found on your PATH.' };
+  try { if (!info.cli.installed) cliLink.installCli(info.cli.binDir, CLI_TARGET()); } catch (err) { return failed(err); }
+  const r = await connect.runConnector(info.claude.claudeBin, info.claude.argv, { ...process.env, PATH: await connect.loginPath() });
+  if (r.code !== 0 && /already exists/i.test(r.out)) return { ok: true, out: `${r.out}\nAlready connected. To re-add it: claude mcp remove harbordeck -s user` };
+  log(`connect claude code: exit ${r.code}`);
+  return { ok: r.code === 0, out: r.out, error: r.code === 0 ? '' : `claude exited ${r.code}` };
+});
+// firstmate: adapters/firstmate/install.sh rewrites this app's settings.json (data dir, artifact root); reload them after.
+ipcMain.handle('harbor:connect-firstmate', async (e, opts = {}) => {
+  const fmHome = String(opts.fmHome || '');
+  if (!fmHome || !fs.existsSync(fmHome)) return { ok: false, error: 'Choose your firstmate home folder first.' };
+  const pending = ['deliver', 'skip'].includes(opts.pending) ? opts.pending : '';
+  const plan = connect.firstmatePlan({ script: unpacked('adapters/firstmate/install.sh'), fmHome, home, settingsDir: app.getPath('userData'), service: !!opts.service, pending });
+  const r = await connect.runConnector(plan.script, plan.argv, { ...process.env, PATH: await connect.loginPath() });
+  log(`connect firstmate: exit ${r.code}`);
+  if (r.code === 0) { settings = loadSettings(SETTINGS_FILE()); if (!demo) useHome(effectiveHome(settings), false); }
+  return { ok: r.code === 0, out: r.out, pending: r.code === 2 && /--pending/.test(r.out), snapshot: snapshot() };
+});
+ipcMain.handle('harbor:onboarded', () => { settings = saveSettings(SETTINGS_FILE(), { ...settings, onboarded: true }); return snapshot(); });
+// Updates: GitHub Releases, packaged app only (a source checkout updates with git). Headless runs check only when asked.
+let updater = null;
+function startUpdater() {
+  if (!app.isPackaged || process.env.HARBORDECK_NO_UPDATE === '1') return;
+  const { autoUpdater } = require('electron-updater');
+  const signed = isDeveloperIdSigned(path.resolve(process.execPath, '..', '..', '..'));
+  updater = createUpdater({ autoUpdater, signed, releasesUrl: RELEASES_URL, log,
+    onState: st => { if (win && !win.isDestroyed()) win.webContents.send('harbor:updater', st); } });
+  if (headless) return;
+  setTimeout(() => updater.check(), 15000);
+  setInterval(() => updater.check(), 6 * 3600 * 1000);
+}
+ipcMain.handle('harbor:update-check', () => updater ? updater.check() : { status: 'unsupported' });
+ipcMain.handle('harbor:update-install', () => updater?.install());
 
 ipcMain.handle('harbor:snapshot', () => snapshot());
 ipcMain.on('harbor:answer', (e, line) => {
@@ -183,7 +255,7 @@ ipcMain.handle('harbor:open-external', (e, url) => openExternal(String(url)));
 ipcMain.handle('harbor:open-path', (e, url) => { const abs = store.pathFromUrl(url); if (abs && allowed.has(abs)) return shell.openPath(abs); return 'not allowed'; });
 ipcMain.handle('harbor:get-settings', () => publicSettings());
 ipcMain.handle('harbor:set-settings', (e, next) => {
-  settings = saveSettings(SETTINGS_FILE(), next);
+  settings = saveSettings(SETTINGS_FILE(), { ...next, onboarded: settings.onboarded });
   registerPhoneKey();
   if (!demo) useHome(effectiveHome(settings), false);
   return snapshot();
@@ -207,7 +279,7 @@ app.whenReady().then(async () => {
   const wantDemo = process.argv.includes('--demo') || process.env.HARBORDECK_DEMO === '1';
   if (wantDemo) await startDemo(); else useHome(effectiveHome(settings), false);
   protocol.handle('harbor', serveFile);
-  buildMenu(); createWindow(); registerPhoneKey();
+  buildMenu(); createWindow(); registerPhoneKey(); startUpdater();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
