@@ -11,6 +11,7 @@
     "demo": "electron . --demo",
     "seed-demo": "node app/demo/seed.js",
     "test": "node --test \"test/unit/*.test.js\" && npm run --silent garden",
+    "test:privacy-images": "swift scripts/ocr-check.swift $(git ls-files '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' '*.mp4')",
     "garden": "g=${GARDEN:-$HOME/.agents/skills/garden/bin/garden.mjs}; if [ -f \"$g\" ]; then node \"$g\" check .; else echo \"garden: $g not installed; skipped (see .garden/)\"; fi",
     "test:smoke": "playwright test",
     "test:roundtrip": "node test/live/agent-roundtrip.mjs",
