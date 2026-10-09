@@ -135,6 +135,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `U` / `Z` | undo the last stamp (about 4 s) |
 | `Tab` | slide the stamp tray in and out |
 | `N` | next visitor at the window |
+| `←` / `→` | flip scenes: one per kind (Signpost Square, Customs Shed, Bottle Cove, Notice Board), a figure per open item; click a figure to bring it to the desk, a kind chip to jump; goal: zero everywhere |
 | `T` | focus the ticket rail (`←`/`→`, `Enter`) |
 | `I` | inspect: pair a claim with evidence, then Match or Mismatch (writes a `comment` with an anchor) |
 | `R` | standing orders |

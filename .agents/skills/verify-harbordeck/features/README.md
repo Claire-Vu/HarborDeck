@@ -42,6 +42,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Requests](./requests.md) covers new orders sent now and the agent answering a request id.
 - [Ship phone](./phone.md) covers the phone shortcut and header icon, dialing a first mate, sending with Enter, hanging up, and the shortcut setting.
 - [Browser pane](./browser-pane.md) covers web/lavish artifact cards, the in-desk page, its controls, and the refusal of off-machine pages.
+- [Scenes](./scenes.md) covers one scene per kind with a figure per open item, arrow and chip navigation, figures leaving on a stamp, the per-scene quirks and progress to zero.
 - [Living harbor](./harbor.md) covers boats per task, sky/weather/tide, regulars, the ship cat, tidy runs, stamp book + chandlery, beat the tide, the ships-out recap, the town and music layers.
 - [Queue for after reset](./scheduler.md) covers queuing from the app and the CLI, the countdown ticket and chip, keep-awake, withdraw, and delivery by `tick` with the stub wake.
 

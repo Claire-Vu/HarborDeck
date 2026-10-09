@@ -77,6 +77,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.waitn`, `.upd`, `.chg`, `.chg-note`, `.modal.search .sr-in` / `.sr-row[aria-selected=true]`, `#btn-search`, key `Meta+k` | review tools (features/review-tools.md) |
+| `#scenes[data-scene][data-count]`, `.sc-fig[.leaving\|.at-desk\|.away]`, `.sc-arrow.prev\|.next`, `.sc-pip`, `.sc-go`, `.sc-clear`, keys `ArrowLeft`/`ArrowRight` | scenes (features/scenes.md) |
 | `.toast.undo` | small bottom-right chip: the 4 s undo hold after a stamp; `u` drops it |
 | `.cash-pop` | floating `+$n` under the cash chip (merges quick earnings, no clicks); cash is no longer a `.toast`. Info `.toast`s are small corner chips; `.toast.warn` stays until its `×` |
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |

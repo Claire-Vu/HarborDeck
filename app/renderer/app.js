@@ -293,8 +293,7 @@ const UNDO_MS = 4000;
 function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return; S.cash += n; save(); $('#cash-n').textContent = money(S.cash); snd('coin', pitch); popCash(n); }
 
 // ------------------------------------------------------------ queue + visitors
-function queueItems() {
-  const f = S.prefs.filter;
+function queueItems(f = S.prefs.filter) {
   return quick.laneSort(ITEMS.filter(i => statusOf(i) === 'open' && (f === 'all' || i.kind === f))
     .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || urgency(a, b) || a.id.localeCompare(b.id, undefined, { numeric: true })));
 }
@@ -342,11 +341,22 @@ const choiceOf = it => st(it.id).choice || it.options?.find(o => o.recommended)?
 const quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, modal, closeModal, prioChip, choiceOf, artType: a => artType(a), bodyArtifact: b => bodyArtifact(b),
   inspectOption: (e, it, o) => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } },
   focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount() });
+// scenes (scene-view.js): one per kind, a figure per open item; the filter chips are the scene index
+const HS = HarborScenes;
+const scenes = HS.view({ h, sprite: it => (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired(), sweat: impatience(it) >= 1 }))(whoBrings(it)), who: it => whoBrings(it).name,
+  age: it => age(now() - it.created), away: it => st(it.id).awaiting, impatience: it => impatience(it), flagged: it => flaggedCount(it), coat: it => G.regular(it.project).coat, now, current: () => S.current,
+  open: id => stepUp(id), flip: d => setScene(HS.step(sceneKind(), d)), jump: k => setScene(k) });
+const sceneKind = () => (HS.byKind[S.prefs.scene] ? S.prefs.scene : HS.byKind[S.prefs.filter] ? S.prefs.filter : HS.KINDS[0]);
+function setScene(k) { S.prefs.scene = k; S.prefs.filter = k; save(); snd('flip'); renderAll(true); }
+function renderScenes() {
+  const open = queueItems('all'); const groups = HS.group(open, () => true);
+  scenes.render($('#scenes'), { kind: sceneKind(), groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size });
+}
 function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else { stepUp(id); selectTab('window'); } }
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
   $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].filter(k => k === 'all' || counts[k] || S.prefs.filter === k).map(k =>
-    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
+    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; if (k !== 'all') S.prefs.scene = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
   $('#tab-window-count').textContent = counts.all; $('#tab-topics-count').textContent = topicView.openCount();
 }
 function renderQueue() {
@@ -392,6 +402,7 @@ const tideNow = () => G.tide(staminaViews().filter(v => !v.reset));
 function renderHarbor() {
   const t = now(); const goal = G.tideGoal(S.fun.tide, t, tideNow()); if (JSON.stringify(goal) !== JSON.stringify(S.fun.tide)) { S.fun.tide = goal; save(); }
   harbor.render({ t, open: ITEMS.filter(i => statusOf(i) === 'open'), stamina: staminaMin(), tide: tideNow(), goal, owned: S.fun.owned, days: S.fun.dayCount });
+  renderScenes();
 }
 function renderWindowScene() {
   const w = $('#at-window'); w.replaceChildren(); w.className = 'at-window';
@@ -1306,6 +1317,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
   else if (box) return;
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !tgt.matches('input')) { e.preventDefault(); setScene(HS.step(sceneKind(), e.key === 'ArrowRight' ? 1 : -1)); }
   // quick calls: Space stamps (never Enter), A-E pick, J/K move on a sheet, S later, Shift+A take all recommended
   else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); stamp('approve'); }
   else if (e.shiftKey && k === 'a') { e.preventDefault(); quick.openSweep(queueItems().filter(i => !st(i.id).awaiting), sweep); }
