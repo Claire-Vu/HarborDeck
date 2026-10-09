@@ -1,19 +1,19 @@
 // Header menu: the top bar keeps only status + phone + one menu button; everything else lives in the `M` menu,
 // keeps its shortcut, and nothing overflows at narrow widths.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp } = require('./launch');
 let app, page;
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-menu-'));
   const home = seedDemo(path.join(tmp, 'home'));
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
   await page.getByRole('button', { name: 'Open the office' }).click();
