@@ -24,6 +24,7 @@
       }
     },
     "to": { "type": "string", "description": "request only: the agent id (fleet firstmates[].id) the order is handed to." },
+    "rule": { "const": true, "description": "request, comment, needs-work, ask only: the user marked the message \"Remember this\", a standing order to file with their preferences, not a one-off. Absent otherwise (never false)." },
     "until": { "type": "integer", "minimum": 0, "description": "defer only: epoch seconds the user wants the item back. The item stays open; the app hides it until then." },
     "at": { "type": "integer", "minimum": 0 }
   },

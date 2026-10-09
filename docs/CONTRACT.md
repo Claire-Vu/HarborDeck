@@ -155,6 +155,12 @@ The app appends one line per user action to `answers.jsonl`:
 | `request` | new order slip or ship phone | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
 | `defer` | Later stamp | `until` (required, epoch seconds), `note` | Not now: bring it back at `until` (tomorrow 9:00, or after the next usage reset). The item stays open; the app hides it until then, or until the agent rewrites it. Do not act on it; park the work until that time. |
 
+**Remember this.** A `request`, `comment`, `needs-work` or `ask` line may carry `"rule": true` (additive; absent otherwise, never `false`): the user ticked "Remember this", so the message is a **standing order**, not a one-off. Do the work as usual, and also record the rule with the user's other preferences (for firstmate, the bridge's inbox note starts with `Standing order:`). Once recorded in `rules.json`, give the entry `answer` = the line's `id` and the desk shows the rule with a pin.
+
+```json
+{"id":"req-1791431600-3","action":"request","note":"Never use MAX effort for routine tasks","to":"mate-main","rule":true,"at":1791431600}
+```
+
 **Undo is not an action.** After a stamp the app holds the line for about 4 seconds; Undo drops it and nothing is written. Closing the app flushes a held line. Agents therefore only ever see final lines and never need to reconcile undo.
 
 Reading answers cheaply: remember the byte offset after the last complete line you consumed and read only bytes after it (`harbordeck answers --cursor <name>` does this). If the file is shorter than the offset, it was rotated; start from 0.
@@ -199,8 +205,10 @@ The app works without them; each adds a layer to the desk.
 ### `rules.json`: standing orders
 
 ```json
-{"friday-freeze": {"text": "No production releases on Fridays.", "source": "preferences.md:12"}}
+{"friday-freeze": {"text": "No production releases on Fridays.", "source": "preferences.md:12", "answer": "req-1791431600-3"}}
 ```
+
+`answer` is optional: the id of the "Remember this" message the rule was recorded from (see [Answers](#answers)). The desk pins such rules as sent by the user, and the ticket of that message shows a pin.
 
 Keys are the strings items use in `rules` and `checks[].rule`.
 

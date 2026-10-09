@@ -807,3 +807,8 @@ pre.diff .add { color: #1f7a3a; background: rgba(46,160,67,.12); display: block;
 .paper .ibtn.back-btn { flex: none; white-space: nowrap; padding: 0 6px; line-height: 14px; font-size: 10px; text-transform: none; letter-spacing: 0; cursor: pointer; }
 /* the scene line: the visitor at the desk stands a step ahead of the rest */
 .sc-crowd .sc-fig.at-desk { margin-left: 10px; }
+/* Remember this: a standing order. The pin marks it on the ticket and in the Standing orders list. */
+.remember { display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--font-ui); color: #f1e4c0; cursor: pointer; justify-self: start; }
+.noteslip .remember { color: var(--paper-ink); margin-top: 8px; }
+.ticket .tk-pin { font-size: 10px; line-height: 1; }
+.orders .rule.sent { border-left-color: var(--ui-accent); }

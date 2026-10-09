@@ -152,7 +152,7 @@ ipcMain.handle('harbor:schedule', (e, req) => {
     const r = req && req.request;
     if (!r || typeof r.note !== 'string') throw new Error('invalid request');
     const when = req.when === 'reset' ? 'reset' : Math.floor(+req.when);
-    const out = sched.enqueue(home, { when, request: { id: String(r.id), note: r.note, to: r.to ? String(r.to) : undefined } });
+    const out = sched.enqueue(home, { when, request: { id: String(r.id), note: r.note, to: r.to ? String(r.to) : undefined, rule: r.rule === true } });
     log(`queued ${out.id}`);
     return { ok: true, id: out.id, snapshot: snapshot() };
   } catch (err) { log(`schedule rejected: ${err.message}`); return { ok: false, error: err.message }; }

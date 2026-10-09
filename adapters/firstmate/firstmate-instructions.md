@@ -45,6 +45,8 @@ The HarborDeck bridge (launchd job `dev.harbordeck.firstmate`) routes every stam
 - defer (the captain's **Later** stamp) on a held task, or on a `<task-id>.qN` question of one: `bin/fm-captain-hold.sh hold <task-id> --until <date>`, the date the item comes back on the desk. Park that work until then; the item stays open.
 - ask / comment / request, and stamps on items that are not held tasks: an inbox note starting `HarborDeck <action> on <id>`, ending with the exact reply command.
 
+- An inbox note containing `Standing order:` is a captain rule (the captain ticked "Remember this"). Do the work as asked, and also file the rule as a bullet in the captain preferences file with the trailing marker `{@<answer id>}` (the id is in the note), then refresh the desk with `hd-rules.sh <preferences file>`. It then shows in the desk's Standing orders list with a pin. Never drop it as a one-off.
+
 Answer every ask with `harbordeck reply <id> "<text>"`; the reply lands on the captain's ticket rail. When a hold closes another way (chat, terminal), run `harbordeck resolve <id>` so the desk matches.
 
 ## When a response fits no item

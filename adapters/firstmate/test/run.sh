@@ -108,6 +108,11 @@ rules="$HARBORDECK_HOME/rules.json"
 check "rules: slug keys, explicit keys, dedupe" test "$(jq -c 'keys_unsorted' "$rules")" = '["never-ship-a-release-on-fridays","budget-30","never-ship-a-release-on-fridays-2"]'
 check "rules: text and source" test "$(jq -c '.["budget-30"]' "$rules")" = '{"text":"Keep infra under $30/mo.","source":"prefs.md:4"}'
 
+# rules: a trailing {@id} links the order to the Remember-this message it came from
+printf -- '- Never use max effort. {#no-max} {@req-1-2}\n- Plain rule.\n' > "$tmp/prefs-sent.md"
+check "rules: {@id} becomes answer" test "$("$here/hd-rules.sh" "$tmp/prefs-sent.md" --print | jq -c '.["no-max"], .["plain-rule"]' | tr -d '\n')" = \
+  '{"text":"Never use max effort.","source":"prefs-sent.md:1","answer":"req-1-2"}{"text":"Plain rule.","source":"prefs-sent.md:2"}'
+
 # bridge
 "$HD" batch >/dev/null <<'EOF'
 decision held-1 "Ship 2.4?" --opt "ship+=Ship today" --opt hold
@@ -128,6 +133,8 @@ cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"req-9","action":"request","note":"Add dark theme","to":"sm","at":7}
 {"id":"held-3.q2","action":"defer","until":1791540000,"note":"","at":10}
 {"id":"free-2","action":"defer","until":1791540000,"note":"","at":11}
+{"id":"req-10","action":"request","note":"Never use max effort","to":"sm","rule":true,"at":12}
+{"id":"res-1","action":"needs-work","note":"always cite sources","rule":true,"at":13}
 EOF
 day=$(date -r 1791540000 +%Y-%m-%d 2>/dev/null || date -d @1791540000 +%Y-%m-%d)
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
@@ -153,6 +160,10 @@ check "bridge: ask becomes a note" grep -qF "request-id hd-res-1-ask-4" "$log"
 check "bridge: filing an answer sends nothing" test "$(grep -c 'res-1-file' "$log")" = 0
 check "bridge: filing a todo reports done" grep -qF "HarborDeck file on td-1 \"Sign form\": done" "$log"
 check "bridge: request keeps its id" grep -qF "request-id req-9 -- HarborDeck request for sm: Add dark theme" "$log"
+check "bridge: rule request carries Standing order" grep -qF "request-id req-10 -- HarborDeck request for sm: Never use max effort. Standing order: file it in your captain preferences" "$log"
+check "bridge: rule note names the answer id" grep -qF "(answer id req-10)" "$log"
+check "bridge: rule on needs-work carries Standing order" grep -qE "request-id hd-res-1-needs-work-13 -- .*always cite sources\. Standing order:" "$log"
+check "bridge: plain request has no Standing order" test "$(grep -F 'request-id req-9 ' "$log" | grep -c 'Standing order')" = 0
 check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/items/held-1.json")" = resolved
 check "bridge: Later on a question defers its held task" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until $day --until $day" "$log"
 check "bridge: Later on an unheld item is a note" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk $day" "$log"

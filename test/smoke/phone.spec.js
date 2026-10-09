@@ -139,3 +139,40 @@ test('no Requests tab: the phone is the one place to write an order', async () =
   await expect(page.locator('.tab[data-tab="requests"]')).toHaveCount(0);
   await expect(page.locator('#requests-pane')).toHaveCount(0);
 });
+
+test('Remember this: the toggle makes the request a standing order (rule: true), pinned on its ticket and in the orders list', async () => {
+  const before = answers().length;
+  await page.locator('#btn-phone').click();
+  await page.locator('.phone-pad').fill('');
+  await page.keyboard.type('Never use max effort for routine tasks');
+  const box = page.getByLabel('Remember this');
+  await expect(box).not.toBeChecked(); // off by default: most messages are one-offs
+  await box.check();
+  await page.locator('.phone-pad').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#phone')).toHaveCount(0);
+  const line = answers().at(-1);
+  expect(answers().length).toBe(before + 1);
+  expect(line).toMatchObject({ action: 'request', note: 'Never use max effort for routine tasks', rule: true });
+  const ticket = page.locator('#rail .ticket', { hasText: 'Never use max effort' });
+  await expect(ticket.locator('.tk-pin')).toBeVisible();
+  // a plain message after it carries no rule and no pin; the toggle does not stick
+  await page.locator('#btn-phone').click();
+  await expect(page.getByLabel('Remember this')).not.toBeChecked();
+  await page.keyboard.type('Just a one-off');
+  await page.keyboard.press('Enter');
+  expect('rule' in answers().at(-1)).toBe(false);
+  await expect(page.locator('#rail .ticket', { hasText: 'Just a one-off' }).locator('.tk-pin')).toHaveCount(0);
+  // once the agent records it in rules.json (answer = the line id) the desk lists it with a pin
+  const rules = JSON.parse(fs.readFileSync(path.join(home, 'rules.json'), 'utf8'));
+  rules['no-max-effort'] = { text: 'Never use max effort for routine tasks.', source: 'preferences.md', answer: line.id };
+  fs.writeFileSync(path.join(home, 'rules.json'), JSON.stringify(rules));
+  await page.locator('#btn-menu').click();
+  await page.locator('#btn-orders').click();
+  const row = page.locator('#orders-content .rule[data-rule="no-max-effort"]');
+  await expect(row).toBeVisible();
+  await expect(row.locator('.mark')).toHaveText('📌');
+  await expect(row).toContainText('sent by you');
+  await expect(page.locator('#orders-content .rule:not(.sent):not(.ok):not(.flag) .mark').first()).toHaveText('§');
+  await expect(ticket.locator('.tk-pin')).toHaveAttribute('title', /recorded/);
+});

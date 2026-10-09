@@ -38,6 +38,24 @@ test('appendAnswer writes exactly one JSON line and validates the action', () =>
   assert.throws(() => store.appendAnswer(home, { id: 'a', action: 'delete-everything' }));
 });
 
+test('appendAnswer: rule (Remember this) is kept as true on request/comment/needs-work/ask only', () => {
+  const home = tmp();
+  const ok = a => JSON.parse(store.appendAnswer(home, { id: 'a', note: 'n', at: 1, ...a }));
+  for (const action of ['request', 'comment', 'needs-work', 'ask']) assert.strictEqual(ok({ action, rule: true }).rule, true, action);
+  assert.ok(!('rule' in ok({ action: 'request', rule: false })), 'false is never written');
+  assert.ok(!('rule' in ok({ action: 'request', rule: 'yes' })));
+  assert.ok(!('rule' in ok({ action: 'request' })));
+  assert.ok(!('rule' in ok({ action: 'reject', rule: true })));
+});
+
+test('answer and rules schemas accept rule: true and an answer link, and reject rule: false', async () => {
+  const { validate } = await import('../../cli/src/schema.js');
+  const errs = (name, v) => validate(name, v);
+  assert.deepStrictEqual(errs('answer', { id: 'req-1-2', action: 'request', note: 'x', rule: true, at: 1 }), []);
+  assert.ok(errs('answer', { id: 'req-1-2', action: 'request', note: 'x', rule: false, at: 1 }).length);
+  assert.deepStrictEqual(errs('rules', { r: { text: 't', answer: 'req-1-2' } }), []);
+});
+
 test('readAnswers skips a torn last line', () => {
   const home = tmp();
   write(path.join(home, 'answers.jsonl'), '{"id":"a","action":"file","at":1}\n{"id":"b","act');

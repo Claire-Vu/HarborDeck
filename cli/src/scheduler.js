@@ -141,7 +141,7 @@ export function resetDue(home, items, cfg, t = now()) {
 export const effectiveDue = (item, rdue) => (item.kind === 'reset' && !item.due ? rdue : item.due || 0);
 
 // Queue a message (and optionally a deferred request) for a time or for the next reset.
-// opts: { when: 'reset' | epoch, message, item?, request?: { id, note, to? } }
+// opts: { when: 'reset' | epoch, message, item?, request?: { id, note, to?, rule? } }
 // Returns { id, created } (created false when an identical item was already queued).
 export function enqueue(home, opts, t = now()) {
   const message = String(opts.message || (opts.request && opts.request.note) || '').trim();
@@ -156,7 +156,7 @@ export function enqueue(home, opts, t = now()) {
     const r = opts.request;
     if (!r.id || !SLUG.test(r.id)) throw new Error(`bad request id "${r.id}"`);
     if (!String(r.note || '').trim()) throw new Error('request needs a note');
-    item.request = { id: r.id, note: String(r.note), ...(r.to ? { to: String(r.to) } : {}) };
+    item.request = { id: r.id, note: String(r.note), ...(r.to ? { to: String(r.to) } : {}), ...(r.rule === true ? { rule: true } : {}) };
     item.item = r.id;
   } else if (opts.item) {
     if (!SLUG.test(opts.item)) throw new Error(`bad item id "${opts.item}"`);
@@ -315,7 +315,7 @@ function runWake(command, text, item, home, timeoutSec) {
 // written at delivery time, exactly once.
 function appendRequest(home, item, t) {
   const r = item.request;
-  const line = { id: r.id, action: 'request', note: r.note, ...(r.to ? { to: r.to } : {}), queued_at: item.queued_at, at: t };
+  const line = { id: r.id, action: 'request', note: r.note, ...(r.to ? { to: r.to } : {}), ...(r.rule ? { rule: true } : {}), queued_at: item.queued_at, at: t };
   fs.appendFileSync(paths(home).answers, JSON.stringify(line) + '\n');
 }
 
