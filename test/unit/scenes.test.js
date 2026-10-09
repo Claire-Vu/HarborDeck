@@ -57,7 +57,7 @@ test('sill: how far from zero, and parked items are never hidden behind a zero',
   assert.strictEqual(SC.sill(3), '3 to zero');
   assert.strictEqual(SC.sill(0), 'Zero waiting');
   assert.strictEqual(SC.sill(0, { parked: 2 }), 'Zero waiting · 2 parked');
-  assert.strictEqual(SC.sill(4, { paused: 1, parked: 1 }), '4 to zero · 1 crew paused · 1 parked');
+  assert.strictEqual(SC.sill(4, { paused: 1, parked: 1 }), '4 to zero · 1 parked · 1 crew paused');
   assert.strictEqual(SC.zeroLine(0), '⚑ Zero waiting anywhere');
   assert.strictEqual(SC.zeroLine(2), '⚑ Zero waiting anywhere · 2 parked');
 });

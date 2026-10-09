@@ -14,7 +14,7 @@ The big top window shows one scene per item kind, over the harbor sky: Signpost 
 - `scene-open` clicking `.sc-fig` puts its item on the desk (`.sc-fig.at-desk`); an item away on an ask is `.sc-fig.away`.
 - `scene-leave` a resolving stamp leaves a `.sc-fig.leaving` ghost for ~1 s; `u` brings the figure back.
 - `scene-quirks` decisions: `.placard` with option letters, `★` on the recommended one; reviews: `.sc-fig.flagged .pennant` when a standing order is flagged; research: `.sink1`/`.sink2` with age; to-dos: `.soon` flutters within a day, `.overdue` pinned red.
-- `scene-zero` `.sc-clear` (a solid plate above the tide bar) reads `All clear`; `.sc-left` reads `<n> to zero` (`Zero waiting` at zero) plus paused crew; `.sc-pip.clear` per empty scene.
+- `scene-zero` `.sc-clear` (a solid plate above the tide bar) reads `All clear`; `.sc-left` reads `<n> to zero` (`Zero waiting` at zero) plus parked items (`· <k> parked`) and paused crew; `.sc-zero` adds `· <k> parked` too, so zero never hides parked work; `.sc-pip.clear` per empty scene.
 
 ## How to get to it (user POV)
 

@@ -31,7 +31,7 @@ const HarborScenes = (() => {
   const leavers = (before, after) => before.filter(id => !after.includes(id));
   // the words on the sill and the all-clear card; items parked with Later are counted, never hidden behind a zero
   const parkedNote = n => (n ? ` · ${n} parked` : '');
-  const sill = (left, { paused = 0, parked = 0 } = {}) => `${left ? `${left} to zero` : 'Zero waiting'}${paused ? ` · ${paused} crew paused` : ''}${parkedNote(parked)}`;
+  const sill = (left, { paused = 0, parked = 0 } = {}) => `${left ? `${left} to zero` : 'Zero waiting'}${parkedNote(parked)}${paused ? ` · ${paused} crew paused` : ''}`;
   const zeroLine = parked => `⚑ Zero waiting anywhere${parkedNote(parked)}`;
   // The line at a scene, single file: priority first (P1 before P2), then oldest; anyone sent to the back of the line
   // stands behind them in the order they were sent; anyone away on an ask stands last. info(it) -> { prio, created, back, away }

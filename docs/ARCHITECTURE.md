@@ -50,6 +50,8 @@ The desk is split by area. The desk scripts are classic scripts loaded in order 
 | `window-queue.js` | the queue, scenes, yard, who steps up next |
 | `desk-papers.js` | desk papers: manifest, artifacts, correspondence, the ask, layout, drag |
 | `stow-box.js` | storage box |
+| `parked-shelf.js` | Later slip (pick when it comes back) and the Parked shelf above the storage box |
+| `later.js` | Later return times (pure, unit-tested) |
 | `ticket-rail.js` | ticket rail |
 | `inspect-mode.js` | inspect claim/evidence pairing |
 | `desk-drawers.js` | drawers, `modal()`, reader, note slip |

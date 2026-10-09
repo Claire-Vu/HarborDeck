@@ -8,6 +8,7 @@ A small wooden paper tray at the foot of the stamp tray holds papers stowed off 
 - `stow-count` `#stow[data-n]` and `#stow-n` = stowed papers of the item at the desk; `#stow-box` aria-label `Storage box: <n> stowed`.
 - `stow-pile` `#stow-stack .leaf` = one sheet per stowed paper (last 6), class = paper kind (`manifest`, `report`, `photo`, `monitor`, `prcard`, `thread`).
 - `stow-restore` click `#stow-box` -> `#stow-view` (fixed popover beside the tray, above it when narrow) with `.stow-card[data-pid]` per paper: a `.paper.mini` copy (inert, no buttons, video/iframe/audio swapped for placeholders) plus its label; click a card to bring it back at its dragged position (clamped into the desk); the view stays open on the rest. `.all` ("Bring all back", with 2+) or `Shift+X` brings every one back. Esc, `×`, a click outside or hiding the tray closes it. Empty box click: toast, no view.
+- `stow-parked` the `#parked-btn` tag above the box (hidden when nothing is parked) counts items parked with Later; it opens `#parked-view` (same popover placement) — see quick-call.md `qc-later`.
 - `stow-persist` `desk.stowed[itemId][pid]` in the desk localStorage state; survives reload.
 
 ## How to get to it (user POV)
