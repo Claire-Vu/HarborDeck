@@ -16,3 +16,7 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Verification skill proof run
 
 `docs/evidence/verify-harbordeck/` is one run of the project's verification skill (`.agents/skills/verify-harbordeck/`) on synthetic data: launch, doctor, an agent's `harbordeck decision` appearing live, key `1` writing `answers.jsonl` after the undo hold, an order queued for after reset in Requests and `harbordeck tick` delivering it through the stub wake command, the demo plan page opening and taking a click in the in-desk browser pane, then cleanup. [`transcript.txt`](verify-harbordeck/transcript.txt) is the full command log with exit codes; the screenshots, `answers.jsonl` and `wake.log` are the captured state.
+
+## Stamp art
+
+`docs/evidence/stamp-art/{before,after}/` are headless captures (`HARBORDECK_HEADLESS=1`, `test/smoke/launch.js`, seeded demo data) of the stamp tray (dark, light, hover), a stamp in hand mid-flight, a stamped slip, every ink colour, and the top-bar megaphone (dark, light, open).
