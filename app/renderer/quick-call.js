@@ -67,13 +67,15 @@ window.HarborQuickCall = deps => {
     const VERB = { review: 'approve', answer: 'file', todo: 'file (done)' };
     const rows = group.map((m, n) => {
       const s = deps.st(m.id); const cur = m.id === it.id; const choice = deps.choiceOf(m);
-      const take = h('input', { type: 'checkbox', checked: !s.skipBundle, 'aria-label': `Include ${m.title}`, onclick: e => e.stopPropagation(), onchange: e => { s.skipBundle = !e.target.checked; deps.save(); row.classList.toggle('skip', s.skipBundle); deps.sheetCount(); } });
+      const on = deps.ticked(m); const unseen = !on && s.skipBundle == null;
+      const take = h('input', { type: 'checkbox', checked: on, 'aria-label': `Include ${m.title}`, onclick: e => e.stopPropagation(), onchange: e => { s.skipBundle = !e.target.checked; deps.save(); row.classList.toggle('skip', s.skipBundle); verb.textContent = `${KIND[m.kind]}: ${s.skipBundle ? 'left out' : VERB[m.kind] + ' on stamp'}`; deps.sheetCount(); } });
       const body = m.kind === 'decision' && m.options
         ? h('div', { class: 'opts' }, m.options.map((o, i) => option(m, o, i, choice === o.key, key => { s.choice = key; deps.save(); deps.pick(m.id); }, `sheet-${m.id}`)))
-        : h('div', { class: 'b-verb' }, `${KIND[m.kind]}: ${VERB[m.kind]} on stamp`);
-      const row = h('div', { class: `b-row${cur ? ' cur' : ''}${s.skipBundle ? ' skip' : ''}`, dataset: { id: m.id }, onclick: e => { if (!cur && !e.target.closest('input,label,button')) deps.focusRow(m.id); } },
+        : null;
+      const verb = h('div', { class: 'b-verb' }, `${KIND[m.kind]}: ${on ? VERB[m.kind] + ' on stamp' : unseen ? 'not opened yet, open it to include' : 'left out'}`);
+      const row = h('div', { class: `b-row${cur ? ' cur' : ''}${on ? '' : ' skip'}${unseen ? ' unseen' : ''}`, dataset: { id: m.id }, onclick: e => { if (!cur && !e.target.closest('input,label,button')) deps.focusRow(m.id); } },
         take, h('span', { class: 'qnum' }, n + 1),
-        h('div', { class: 'b-what' }, h('button', { class: 'tp-link b-title', onclick: () => deps.focusRow(m.id) }, m.title), body));
+        h('div', { class: 'b-what' }, h('button', { class: 'tp-link b-title', onclick: () => deps.focusRow(m.id) }, m.title), body || verb));
       return row;
     });
     const zone = h('div', { class: 'stamp-zone', id: 'stamp-zone' }, awaiting ? 'sent back; awaiting reply' : h('span', null, 'Space stamps ', h('b', { class: 'sheet-n' }, ''), ''));

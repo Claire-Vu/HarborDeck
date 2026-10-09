@@ -6,7 +6,13 @@
 function actionsFor(it) {
   const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = v => { S.current = it.id; s.read = true; save(); stamp(v); };
   for (const v of [...VERDICTS, 'later']) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, title: v === 'later' ? 'Park it until tomorrow 9:00' : null, onclick: () => run(v) }, cfg[v].label));
-  const group = bundleOf(it); if (group.length > 1) out.push(h('button', { class: 'abtn approve', disabled: s.awaiting, title: group.map(m => m.title).join(' · '), onclick: () => topicView.stampBundle(it, group) }, `Approve bundle (${group.length})`));
+  // the bundle stamp takes the ticked papers only: opening a card counts as opening it (topicView.ticked); any card
+  // opening re-counts every bundle button (sync)
+  const group = bundleOf(it); if (group.length > 1) {
+    const b = h('button', { class: 'abtn approve bundle', disabled: s.awaiting, onclick: () => { s.read = true; save(); topicView.stampBundle(it, group); } });
+    (b.sync = () => { const take = group.filter(m => m === it || topicView.ticked(m)); b.hidden = take.length < 2; b.title = take.map(m => m.title).join(' · '); b.textContent = `Approve bundle (${take.length})`; })();
+    out.push(b);
+  }
   return out;
 }
 function plainCard(it, openByDefault) {
@@ -15,7 +21,7 @@ function plainCard(it, openByDefault) {
   const thread = threadFor(it); const flagged = (it.checks || []).filter(x => x.ok === false);
   // what changed is lit on this card as drawn; opening it counts as a look, so the next draw is plain again
   const ch = s.read ? changesOf(it) : null; const fresh = new Set(ch?.claims || []); if (openByDefault) lookAt(it);
-  const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open) { s.read = true; lookAt(it); } } },
+  const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open) { s.read = true; lookAt(it); document.querySelectorAll('#plain-mode .abtn.bundle').forEach(b => b.sync()); } } },
     h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), h('span', { class: ch?.title != null ? 'chg' : null, title: ch?.title != null ? `was: ${ch.title}` : null }, it.title), ' ', waitChip(it), updChip(it, ch), flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ' ', topicView.chip(it), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
     h('div', { class: 'body' },
       h('p', { class: 'summary-text' }, sentences(it.summary).map(x => h('span', { class: fresh.has(x) ? 'chg' : null }, x, ' '))),

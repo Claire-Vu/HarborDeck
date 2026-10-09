@@ -93,3 +93,13 @@ test('hover text spells out left, used, local reset time, source and age, and th
   const [far] = ST.views([q({ window: '7d', used_pct: 50, resets_at: T + 3 * D, runs_out_at: T + 2 * D })], { t: T });
   assert.match(ST.title(far, fmt), /runs out about t172800 d172800, before/);
 });
+
+test('the top bar order: run-out and low windows first, then the least left, unknown last (byUrgency)', () => {
+  const vs = ST.views([
+    q({ name: 'Primary', window: '5h', used_pct: 20 }), q({ name: 'Primary', window: '7d', used_pct: 41, resets_at: T + 3 * D }),
+    q({ name: 'Backup', window: '5h', used_pct: 18 }), q({ name: 'Backup', window: '7d', used_pct: 88, resets_at: T + 3 * D }),
+    q({ name: 'Gone', window: '5h', used_pct: 50, resets_at: T - 60 }), q({ name: 'Pace', window: '5h', used_pct: 40, runs_out_at: T + H })
+  ], { t: T });
+  assert.deepStrictEqual(ST.byUrgency(vs).map(v => v.label), ['Backup · week', 'Pace · 5h', 'Primary · week', 'Primary · 5h', 'Backup · 5h', 'Gone · 5h']);
+  assert.deepStrictEqual(ST.byUrgency(vs).map(ST.warns), [true, true, false, false, false, false]);
+});

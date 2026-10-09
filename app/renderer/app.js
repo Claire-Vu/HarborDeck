@@ -38,7 +38,7 @@ harborScene = window.HarborScene({ h, G, modal, fmtDate, fmtTime, money, fun: ()
 quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, modal, closeModal, prioChip, choiceOf, artType: a => artType(a), bodyArtifact: b => bodyArtifact(b),
   inspectOption: (e, it, o) => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } },
   preview: window.HarborOptionPreview({ h, modal, base: p => base(p), artType: a => artType(a), srcFor: a => srcFor(a), openArtifact: a => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }),
-  focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount() });
+  focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount(), ticked: m => topicView.ticked(m) });
 // scenes (scene-view.js): one per kind, a figure per open item; the filter chips are the scene index
 scenes = HS.view({ h, sprite: it => (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired(), sweat: impatience(it) >= 1 }))(whoBrings(it)), who: it => whoBrings(it).name,
   age: it => age(now() - it.created), away: it => st(it.id).awaiting, impatience: it => impatience(it), flagged: it => flaggedCount(it), coat: it => G.regular(it.project).coat, now, current: () => S.current,
@@ -122,7 +122,7 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers)
 document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey));
 document.addEventListener('keydown', deskKeys);
 window.addEventListener('beforeunload', commitPending);
-window.addEventListener('resize', () => { if (!S.prefs.plain) { renderDesk(); railCues(); } });
+window.addEventListener('resize', () => { renderStaminaMini(); if (!S.prefs.plain) { renderDesk(); railCues(); } });
 // the stamp tray opening or closing resizes the desk: lay the papers out again once it settles
 $('#stamps').addEventListener('transitionend', e => { if (e.target === e.currentTarget && e.propertyName === 'width' && !S.prefs.plain) { renderDesk(); railCues(); } });
 

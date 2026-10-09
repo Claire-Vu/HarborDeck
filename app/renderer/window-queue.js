@@ -143,7 +143,7 @@ function afterPick(id) {
   if (group.length > 1) { const nx = group[group.indexOf(it) + 1]; if (nx && id === S.current) focusRow(nx.id); else if (id !== S.current) focusRow(id); else renderDesk(); }
   else quick.mark($('#desk-surface .paper.ask'), st(id).choice);
 }
-function sheetCount() { const it = byId[S.current]; const n = it ? bundleOf(it).filter(m => !st(m.id).skipBundle).length : 0; const el = $('#desk-surface .sheet-n'); if (el) el.textContent = `${n} row${n === 1 ? '' : 's'}`; }
+function sheetCount() { const it = byId[S.current]; const n = it ? bundleOf(it).filter(topicView.ticked).length : 0; const el = $('#desk-surface .sheet-n'); if (el) el.textContent = `${n} row${n === 1 ? '' : 's'}`; }
 function pickLetter(i) {
   const it = byId[S.current]; if (!it || statusOf(it) !== 'open' || st(it.id).awaiting) return;
   const o = it.kind === 'decision' && it.options?.[i];

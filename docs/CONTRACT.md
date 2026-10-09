@@ -215,7 +215,7 @@ When a remark fits no item or topic, log a [gap](#gaps) instead.
 The app derives each topic from items, answers and notes (shared code: `cli/src/topics.js`; `harbordeck topic <slug>` prints the same timeline):
 
 - **Topic page**: what is still open, then a timeline oldest first of items raised, the user's stamps, asks and comments, agent replies, notes and resolutions, with their artifacts, and related topics (topics whose items are linked by `rel`).
-- **Bundles**: open items that share a topic or are linked by `rel` (either way, transitively) arrive at the desk together, as one visitor with one question sheet: a row per item, decisions with their options on letter keys. One stamp writes the usual line per ticked row (`decide` with the chosen or recommended option, `approve` for reviews, `file` otherwise), held and undone together.
+- **Bundles**: open items that share a topic arrive at the desk together, as one visitor with one question sheet: a row per item, decisions with their options on letter keys. A `rel` link never bundles (it shows on the topic page). The sheet is headed by its weightiest item (a decision, then a review, to-do, report; then priority). Decision rows start ticked; a review, report or to-do row starts unticked until it has been opened. One stamp writes the usual line per ticked row (`decide` with the chosen or recommended option, `approve` for reviews, `file` otherwise), held and undone together.
 - Notes appear live on the topic page and, for item notes, in the item's correspondence.
 
 ## Snapshots (optional)

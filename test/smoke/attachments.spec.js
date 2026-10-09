@@ -56,8 +56,11 @@ test('paste and drop on the phone: copied into attachments at once, named by the
   await expect(page.locator('.toast.warn', { hasText: 'Only PNG, JPEG, WebP or GIF' })).toBeVisible();
   await page.locator('.toast.warn .toast-x').click();
   await expect(page.locator('#phone .att-thumb')).toHaveCount(2);
-  await page.locator('.phone-pad').fill('The tray covers the rail');
-  await page.locator('.phone-pad').press('Enter');
+  // closing the toast gives focus back to the pad: typing types (a digit never dials) and Enter sends
+  await expect(page.locator('.phone-pad')).toBeFocused();
+  await page.keyboard.type('The tray covers the rail');
+  await expect(page.locator('.dial-pos[aria-checked="true"]')).toHaveAttribute('data-mate', 'mate-main');
+  await page.keyboard.press('Enter');
   await expect(page.locator('#phone')).toHaveCount(0);
   const line = answers().at(-1);
   expect(line).toMatchObject({ action: 'request', note: 'The tray covers the rail', to: 'mate-main' });

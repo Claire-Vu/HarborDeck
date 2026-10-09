@@ -42,16 +42,17 @@ function renderSchedChip() {
   c.hidden = !v; if (!v) return;
   c.classList.toggle('off', v.off); c.replaceChildren(h('span', null, v.text)); c.title = v.title;
 }
-// top bar, readable on its own: per provider ("Claude") one chip per window ("5h", "week", then per-model windows such
+// top bar, readable on its own: per provider ("Claude") one chip per window ("5h", "week", per-model windows such
 // as "Fable · week" set apart), each with a bar and % LEFT, countdown to reset, a run-out warning when the pace would
-// empty it first, and "stale" for an old reading; the hover spells out every number
+// empty it first, and "stale" for an old reading; the hover spells out every number. The most urgent window comes
+// first (its provider leads); when the bar is short of room the least urgent chips fold into one "+N" (fitStamina).
 function renderStaminaMini() {
   renderSchedChip();
-  const views = staminaViews(); const m = ST.lowest(views); const box = $('#stamina-cluster'); box.replaceChildren();
+  const views = ST.byUrgency(staminaViews()); const m = ST.lowest(views); const box = $('#stamina-cluster'); box.replaceChildren();
   if (!views.length) { box.append(h('span', { class: 'dim' }, 'no usage data')); box.className = 'stamina-cluster'; document.body.classList.remove('tired'); return; }
   const groups = new Map(); for (const v of views) { if (!groups.has(v.name)) groups.set(v.name, []); groups.get(v.name).push(v); }
   for (const [name, vs] of groups) box.append(h('span', { class: 'ms-group' }, h('span', { class: 'ms-prov' }, name),
-    vs.map(v => h('span', { class: `mini-sub ${v.level}${v.model ? ' model' : ''}${v.secs >= 86400 ? ' long' : ''}${v.stale ? ' stale' : ''}`, title: staminaTitle(v), 'aria-label': `${v.label}: ${v.left == null ? 'unknown' : v.left + '% left'}` },
+    vs.map(v => h('span', { class: `mini-sub ${v.level}${v.model ? ' model' : ''}${v.secs >= 86400 ? ' long' : ''}${v.stale ? ' stale' : ''}`, dataset: { rank: views.indexOf(v) }, title: staminaTitle(v), 'aria-label': `${v.label}: ${v.left == null ? 'unknown' : v.left + '% left'}` },
       h('span', { class: 'ms-name' }, v.model ? `${v.model} · ${v.win}` : v.win),
       h('span', { class: 'ms-bar', 'aria-hidden': 'true' }, h('i', { style: `width:${v.left || 0}%` })),
       h('span', { class: 'ms-pct' }, v.left == null ? '?' : `${v.left}%`),
@@ -60,4 +61,20 @@ function renderStaminaMini() {
       v.stale ? h('span', { class: 'ms-stale' }, 'stale') : null))));
   box.className = `stamina-cluster ${m != null && m < 10 ? 'empty' : m != null && m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
   document.body.classList.toggle('tired', m != null && m < 20);
+  fitStamina(box);
+}
+// Never clip a chip: while the cluster is wider than its room, fold the least urgent chip into a "+N" chip that names
+// what it holds (the most urgent one always stays). An expanded cluster (narrow window, clicked open) wraps instead.
+function fitStamina(box) {
+  if (box.classList.contains('expanded')) return;
+  const subs = [...box.querySelectorAll('.mini-sub')].sort((a, b) => b.dataset.rank - a.dataset.rank); const folded = [];
+  const more = h('span', { class: 'ms-more' }); box.append(more);
+  const over = () => box.scrollWidth > box.clientWidth + 1;
+  more.hidden = true;
+  while (over() && subs.length > 1) {
+    const sub = subs.shift(); sub.classList.add('folded'); folded.unshift(sub.getAttribute('aria-label'));
+    const g = sub.closest('.ms-group'); g.classList.toggle('folded', !g.querySelector('.mini-sub:not(.folded)'));
+    more.hidden = false; more.textContent = `+${folded.length}`; more.title = folded.join('\n'); more.setAttribute('aria-label', `${folded.length} more: ${folded.join('; ')}`);
+  }
+  if (!folded.length) more.remove();
 }
