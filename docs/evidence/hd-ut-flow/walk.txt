@@ -1,6 +1,6 @@
 PASS F1 click a review -> scene review
 PASS F1 click a notice -> scene todo, All still pressed
-PASS F2 arrows x4, scene arrow, N x16: All pressed, 14 rows
+PASS F2 arrows x4, scene arrow, N x17: All pressed, 15 rows
 PASS F5 seed reply ticket reads 'new reply'
 PASS F5 sent order reads 'awaiting reply'
 PASS F6 ask line written
@@ -22,4 +22,4 @@ PASS F13 toast warns the Mac is kept awake only from an hour before
 PASS F13 no keep-awake held for an order 3 h away
 PASS F14 help works, versions match, missing --opt-art exits 1
 --- 23 pass, 0 fail
-build  fm/hd-ut-flow@970a01b
+build  fm/hd-ut-flow@2b9887a
