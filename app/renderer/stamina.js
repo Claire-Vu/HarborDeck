@@ -110,9 +110,14 @@ function title(v, { fmtTime, fmtDate }) {
   return lines.join('\n');
 }
 
+// The top bar's order: windows that will run out before their reset or are low come first, then the least left;
+// a window with nothing known (reset, no reading since) last. Ties keep the given order.
+const warns = v => !!v.runsOut || v.level === 'empty' || v.level === 'low';
+const byUrgency = vs => vs.map((v, i) => [v, i]).sort(([a, i], [b, j]) => warns(b) - warns(a) || (a.left ?? 101) - (b.left ?? 101) || i - j).map(([v]) => v);
+
 const known = vs => vs.filter(v => v.left != null);
 const lowest = vs => { const k = known(vs); return k.length ? Math.min(...k.map(v => v.left)) : null; };
 
-const api = { STALE_AFTER, MIN_PACE_SECS, winSecs, windowName, dur, ago, level, statuslineWindow, fromStatusline, projectRunOut, views, title, lowest };
+const api = { STALE_AFTER, MIN_PACE_SECS, winSecs, windowName, dur, ago, level, statuslineWindow, fromStatusline, projectRunOut, views, title, lowest, warns, byUrgency };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.HarborStamina = api;
 })(typeof window !== 'undefined' ? window : globalThis);

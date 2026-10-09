@@ -16,7 +16,9 @@ const SIZES = [[1000, 630], [1280, 800], [900, 600], [1440, 900], [700, 600], [4
 
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-layout-'));
-  app = await launchApp({ home: seedDemo(path.join(tmp, 'home')), profile: path.join(tmp, 'profile') });
+  // the stamina test queues an order: keep-awake is a stub, never the real caffeinate
+  const caffeinate = path.join(tmp, 'caffeinate-stub'); fs.writeFileSync(caffeinate, '#!/bin/sh\nsleep 120\n'); fs.chmodSync(caffeinate, 0o755);
+  app = await launchApp({ home: seedDemo(path.join(tmp, 'home')), profile: path.join(tmp, 'profile'), env: { HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows()[0]; w.setMinimumSize(300, 300); w.setContentSize(1280, 800); });
   await page.getByRole('button', { name: 'Open the office' }).click();
@@ -60,3 +62,32 @@ for (const tray of ['open', 'closed']) {
     await page.waitForFunction(() => window.innerWidth === 1280);
   });
 }
+
+// Regression: with five usage windows and a queued order, the cluster ran past the window edge at 1440 px and cut off
+// the one window running low (Backup · week, 12% left). Now the most urgent window comes first, healthy windows fold
+// into a "+N" chip when space is short, and no chip is ever cut.
+test('top bar: the stamina cluster never clips a chip; the window running low comes first', async () => {
+  await page.locator('#btn-phone').click();
+  await page.locator('.phone-pad').fill('Tidy the backlog');
+  await page.keyboard.press('Alt+Enter');
+  await expect(page.locator('#sched-chip')).toContainText('1 queued');
+  for (const [w, h] of [[1440, 900], [1280, 800], [1000, 630], [900, 600]]) {
+    await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [w, h]);
+    await page.waitForFunction(w => window.innerWidth === w, w);
+    const cut = () => page.evaluate(() => {
+      const box = document.querySelector('#stamina-cluster').getBoundingClientRect(); const sched = document.querySelector('#sched-chip');
+      const shown = [...document.querySelectorAll('#stamina-cluster .mini-sub, #stamina-cluster .ms-more')].filter(e => e.offsetParent);
+      return { off: box.right > window.innerWidth + 1, clipped: shown.filter(e => { const r = e.getBoundingClientRect(); return r.right > box.right + 1 || r.left < box.left - 1; }).map(e => e.getAttribute('aria-label') || e.textContent),
+        sched: sched.scrollWidth > sched.clientWidth + 1 };
+    });
+    await expect.poll(cut, { message: `${w}x${h}`, timeout: 5000 }).toEqual({ off: false, clipped: [], sched: false });
+    const first = page.locator('#stamina-cluster .mini-sub').first();
+    await expect(first).toHaveAttribute('aria-label', 'Backup · week: 12% left');
+    await expect(first.locator('.ms-pct')).toBeVisible();
+    // whatever is folded away is named on the +N chip
+    const more = page.locator('#stamina-cluster .ms-more');
+    if (await more.isVisible()) await expect(more).toHaveAttribute('title', /% left/);
+  }
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
+  await page.waitForFunction(() => window.innerWidth === 1280);
+});

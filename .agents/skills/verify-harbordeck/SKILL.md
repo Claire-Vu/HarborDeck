@@ -60,7 +60,7 @@ U=.agents/skills/verify-harbordeck/scripts/ui.mjs
 ```bash
 $U click --role button --name 'Open the office'      # ARIA role + accessible name
 $U click --css '#queue li' --text 'Merge PR 142'     # app id/class + visible text
-$U press 1                                           # keyboard: 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, w back of the line, t tickets, p plain, Shift+B book, l ships out, Escape
+$U press 1  ;  $U press 2 u                          # keyboard (several keys go back to back, e.g. an undo inside the stamp flight): 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, w back of the line, t tickets, p plain, Shift+B book, l ships out, Escape
 $U fill --css '.modal.noteslip textarea' --value 'why?'
 $U drag --css '#desk-surface .paper .grip' --to '#stow-box'   # pointer drag (or --by dx,dy)
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]

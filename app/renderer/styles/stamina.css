@@ -19,15 +19,19 @@
 /* per-model windows (e.g. one model's weekly cap) sit apart from the account windows */
 .mini-sub.model { border-left: 1px dashed var(--ui-edge); padding-left: 7px; }
 .mini-sub.model .ms-name { font-style: italic; }
+.mini-sub.folded, .ms-group.folded { display: none; }
+.ms-more { font-size: 11px; font-weight: 700; color: var(--ui-muted); white-space: nowrap; }
+.ms-more[hidden] { display: none; }
 .clock, .stat { white-space: nowrap; }
 /* The top bar never wraps on a desktop window: the stamina cluster gives way first (bars and day-plus countdowns drop, then all countdowns;
-   names and % left always stay, the rest is in the hover) and, as a last resort, clips rather than pushing the tools down. */
+   names and % left always stay, the rest is in the hover), then folds its least urgent chips into "+N" (fitStamina) so no chip is
+   ever cut. The scheduler chip keeps its full text. */
 @media (min-width: 861px) {
   .topbar { flex-wrap: nowrap; }
   .brand, .tools { flex: none; } .tools { flex-wrap: nowrap; }
   .status { flex: 1 1 auto; min-width: 0; }
   .stamina-cluster { min-width: 0; overflow: hidden; }
-  .sched-chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sched-chip { flex: none; }
 }
 @media (min-width: 861px) and (max-width: 1360px) {
   .stamina-cluster .ms-bar, .stamina-cluster .long .ms-time { display: none; }

@@ -1,6 +1,6 @@
 /* Topics on the desk: the topic chip on every item, the topic page (a ledger sheet: what is still open, then the
    timeline of items, stamps, replies and notes, oldest first), the topic list (plain mode), and bundles: open items that share
-   a topic or a rel link arrive together as one visitor (quick-call.js draws their question sheet) and are stamped in one go. Topics arrive derived in every
+   a topic arrive together as one visitor (quick-call.js draws their question sheet) and are stamped in one go. Topics arrive derived in every
    snapshot (cli/src/topics.js, the same code as `harbordeck topic`). Loaded before app.js; holds no desk state:
    app.js passes its helpers and live accessors in. */
 'use strict';
@@ -18,28 +18,37 @@ window.HarborTopicView = deps => {
     return h('button', { class: 'topic-chip', title: `Topic ${it.topic}: everything on it (O)`, onclick: e => { e.stopPropagation(); openTopic(it.topic); }, onkeydown: e => e.stopPropagation() }, `#${it.topic}`);
   }
 
-  // Bundles: connected groups of the given items, linked by a shared topic or a rel either way.
-  // Returns Map id -> members, in the order given (so the first member is the one the queue shows).
+  // Bundles: open items that share a topic, as one visitor. A rel link never bundles: it crosses kinds and projects,
+  // and one stamp would settle papers nobody looked at. The head (the one the queue shows, in its own lane) is the
+  // weightiest: decisions first, then reviews, to-dos, reports; then priority; then the order given.
+  // Returns Map id -> members, head first, then the rest in the order given.
+  const RANK = { decision: 0, review: 1, todo: 2, answer: 3 };
+  const weight = m => (RANK[m.kind] ?? 4) * 10 + (m.priority || 3);
   function groups(items) {
-    const parent = new Map(items.map(i => [i.id, i.id]));
-    const find = x => { while (parent.get(x) !== x) x = parent.get(x); return x; };
-    const join = (a, b) => { if (parent.has(a) && parent.has(b)) parent.set(find(a), find(b)); };
-    const byTopic = {};
+    const byTopic = new Map();
+    for (const it of items) if (it.topic) { if (!byTopic.has(it.topic)) byTopic.set(it.topic, []); byTopic.get(it.topic).push(it); }
+    const out = new Map();
     for (const it of items) {
-      if (it.topic) { if (byTopic[it.topic]) join(it.id, byTopic[it.topic]); else byTopic[it.topic] = it.id; }
-      for (const r of it.rel || []) join(it.id, r);
+      if (out.has(it.id)) continue;
+      const g = it.topic ? byTopic.get(it.topic) : [it];
+      const head = g.reduce((a, b) => (weight(b) < weight(a) ? b : a));
+      const members = [head, ...g.filter(m => m !== head)];
+      for (const m of g) out.set(m.id, members);
     }
-    const out = new Map(), lists = {};
-    for (const it of items) { const root = find(it.id); (lists[root] ||= []).push(it); out.set(it.id, lists[root]); }
     return out;
   }
+
+  // A row of the sheet is on the stamp when ticked. Decisions show their options on the sheet, so they start ticked;
+  // a review, report or to-do starts unticked until it has been opened at the desk (its row focused), so one Space
+  // never approves or files work nobody saw. Ticking or unticking by hand always wins (skipBundle false / true).
+  const ticked = m => { const s = deps.st(m.id); return s.skipBundle === false || (!s.skipBundle && (m.kind === 'decision' || !!s.read)); };
 
   // One stamp for the bundle (the question sheet): every ticked paper gets its approve/file line, decisions their
   // picked (or recommended) option. The paper at the desk goes first, then the rest in queue order; all are held,
   // written and undone together (app.js finishStamp).
   function stampBundle(it, group) {
     if (deps.st(it.id).awaiting || deps.statusOf(it) !== 'open') return;
-    const take = group.filter(m => !deps.st(m.id).skipBundle);
+    const take = group.filter(ticked);
     const ordered = take.includes(it) ? [it, ...take.filter(m => m !== it)] : take;
     const lines = []; let skipped = 0;
     for (const m of ordered) {
@@ -105,5 +114,5 @@ window.HarborTopicView = deps => {
         h('span', { class: 'si-meta' }, `${n(t.items.length, 'item')} · ${n(t.notes, 'note')}${t.last ? ` · ${when(t.last)}` : ''}${t.related.length ? ` · related ${t.related.map(r => '#' + r).join(' ')}` : ''}`))));
   }
 
-  return { chip, groups, stampBundle, open: openTopic, update, list };
+  return { chip, groups, ticked, stampBundle, open: openTopic, update, list };
 };

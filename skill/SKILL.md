@@ -32,7 +32,7 @@ hd todo     <id> "<what to do>" -s "<why, by when>" -d 2026-11-01
 - `-s`: plain sentences, no markdown. `-b`/`-a`: **paths or URLs only**. Never paste report text into a flag. Artifact type comes from the extension or URL; prefix to force it (`pr:`, `video:`, `image:`, `report:`).
 - `-p` priority 1 critical … 4 low (default 3). `-d` due: epoch, ISO date, or `+12h`/`+2d`.
 - Standing orders: `-r <rule>` to tag, `--ok <rule>[:note]` when you checked it passes, `--flag <rule>:<why>` when it does not.
-- `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic or a link reach the user together, as one question sheet.
+- `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic reach the user together, as one question sheet; a `--rel` link does not bundle.
 - Several questions on one task: ids `<task>.q1`, `<task>.q2`, ...; the CLI defaults their topic to `<task>`.
 - `--why <key>="<few words>"`: what an option means or costs, shown under it, so the recommendation explains itself.
 - `--opt-art <key>=<[type:]path|url>`: a sample of that option, previewed in its row: a thumbnail (image), a play button (audio/video), or an open link (web/html). Use it when options are things to see or hear (voices, logos, mockups) instead of pasting paths into the title.

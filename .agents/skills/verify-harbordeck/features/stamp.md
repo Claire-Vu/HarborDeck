@@ -9,7 +9,7 @@ A person picks an item at the window and stamps it; after a 4 second undo hold t
 - `stamp-reject` key `2` writes `reject`.
 - `stamp-needswork` key `3` opens a note slip; `Send` writes `needs-work` with the note.
 - `stamp-tray` the `#stamps` tray buttons do the same as the keys; the fifth, `Later`, writes `defer` (see quick-call.md).
-- `stamp-undo` `u` or `z` (or the chip's `Undo`) during the hold drops the line.
+- `stamp-undo` `u` or `z` (or the chip's `Undo`) during the hold drops the line. The hold starts at the key press: an undo during the ~0.4 s stamp flight, before the chip shows, cancels too.
 - `stamp-log` the Agent log drawer shows the written lines and a held line.
 
 ## How to get to it (user POV)
@@ -30,6 +30,7 @@ Preconditions:
 - **Stamp.** Press `1`. Run `$U press 1` then `$U wait --css '.toast.undo'`. The undo chip (`Undo U`, bottom-right, no text about the decision) shows and `answers.jsonl` has no new line yet (`wc -l "$HDV_HOME/answers.jsonl"` unchanged).
 - **Hold elapses.** Wait 5 s. The last line of `$HDV_HOME/answers.jsonl` is `{"id":"pr-142-checkout","action":"decide","key":"merge",...}`.
 - **Undo.** Select `Pick a logo direction`, press `2`, then `u` within 4 s. Run `$U click --css '#queue li' --text 'Pick a logo'`, `$U press 2`, `$U wait --css '.toast.undo'`, `$U press u`. After 5 s `answers.jsonl` is byte-identical to before.
+- **Quick undo (in flight).** Select `Rename the repo`, then `$U press 2 u` (both keys in one connection, so `u` lands well inside the flight). After 5 s `answers.jsonl` is byte-identical, the item is still at the desk and in the queue, and no `.toast.undo` remains.
 - **Tray.** Select another decision or review (answers and to-dos have no reject stamp) and click a tray stamp. Run `$U click --css '#stamps .stamp[data-verdict=reject]'`. A `reject` line lands after the hold.
 - **Log.** Run `$U click --css '#btn-menu'`, `$U click --role menuitem --name 'Agent log'` and `$U text --css '#log-lines'`. It lists the same lines as the file.
 - **Proof.** Run `$H capture stamp after` and save the diff of `answers.jsonl` in `proof.md`.

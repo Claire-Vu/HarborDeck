@@ -31,8 +31,10 @@ test('the window shows the harbor: boats per task, real-clock sky, tide line, re
   await expect(page.locator('#sc-boats .hb:not(.sailing)')).toHaveCount(Math.min(8, boats));
   await expect(page.locator('#sc-tide-l')).toContainText('high tide');
   // the top bar reads on its own: plain window names, % left, countdown, a run-out warning; per-model windows set apart
-  const first = page.locator('#stamina-cluster .mini-sub').first();
-  await expect(page.locator('#stamina-cluster .ms-prov')).toHaveText(['Primary', 'Backup']);
+  // the window running lowest leads (Backup · week, 12% left), so its provider comes first
+  await expect(page.locator('#stamina-cluster .mini-sub').first()).toHaveAttribute('aria-label', 'Backup · week: 12% left');
+  await expect(page.locator('#stamina-cluster .ms-prov')).toHaveText(['Backup', 'Primary']);
+  const first = page.locator('#stamina-cluster .mini-sub[aria-label^="Primary · 5h"]');
   await expect(first.locator('.ms-name')).toHaveText('5h');
   await expect(first.locator('.ms-pct')).toHaveText('38%');
   await expect(first.locator('.ms-time')).toHaveText(/^↻ 2h (9|10)m$/);

@@ -62,3 +62,7 @@ Video: [live-feed.mp4](live-feed.mp4)
   - `hd` running with `PATH=/usr/bin:/bin`, i.e. no Node (`03-hd-without-node.txt`)
   - a 9.9.9 release showing "Harbor Deck 9.9.9 is out." with Download and nothing downloaded (`05`)
   - no release yet: "no release is published yet" (`08`)
+
+## User-test bug batch (hd-ut-bugs)
+
+`docs/evidence/hd-ut-bugs/` is a live headless run of the verify-harbordeck instance (synthetic data, run from a `/tmp` copy) driving each fix as a user would; [`walk.txt`](hd-ut-bugs/walk.txt) is the command log with 24 PASS lines. B1: `2` then `u` back to back writes nothing and the item stays (`01`). B3: after stamping Merge PR 142 and the logo, Launch pricing stays in the board-app lane with only its topic mate, and the rel-linked Competitor scan keeps its own row (`02`). B2: a decision, a review on the same topic and a rel-linked report: the sheet leaves the unopened review unticked and one Space writes only the `decide` line (`03`); the seed sheet before and after opening the review with `j` (`04`, `05`). B4: the refused-drop toast, then after `×` the pad keeps focus and takes typing, a digit included (`06`, `07`). B5: at 1440 px with an order queued, the low Backup week window leads, the healthiest fold into `+2`, nothing is cut (`08`).

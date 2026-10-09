@@ -64,37 +64,43 @@ function later(it, toReset) {
   const resets = [SCHED?.next_reset, SCHED?.reset_due, ...staminaViews().filter(v => !v.reset).map(v => v.resets)].filter(Boolean);
   const until = quick.laterUntil(toReset, { now: now(), resets });
   if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
-  const others = bundleOf(it).filter(m => m !== it && !st(m.id).skipBundle);
+  const others = bundleOf(it).filter(m => m !== it && topicView.ticked(m));
   finishStamp(it, `LATER${others.length ? ' ×' + (others.length + 1) : ''}`, 'later', { id: it.id, action: 'defer', until }, false, others.map(m => ({ it: m, line: { id: m.id, action: 'defer', until } })));
 }
 // A stamp is applied at once, but its JSONL line is held for UNDO_MS. Undo restores the item and writes nothing.
-// extra: [{ it, line }] for the other papers of a bundle, held, written and undone with this one.
+// The hold starts at the key press, not when the stamp lands: an undo during the flight cancels it too; the flight
+// is only the picture. extra: [{ it, line }] for the other papers of a bundle, held, written and undone with this one.
 function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
   commitPending();
   const s = st(it.id); const src = document.querySelector(`#stamps .stamp.${ink}`) || document.querySelector('#stamps .stamp'); const zone = $('#stamp-zone');
   const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current, extra: extra.map(e => [e.it.id, JSON.parse(JSON.stringify(st(e.it.id)))]) };
+  line.at = now();
+  // tidy run (F4): resolving stamps close together; a bulk stamp (bundle, take all recommended) never counts and
+  // ends the run; Later parks rather than clears, so it neither counts nor breaks the run
+  const parks = line.action === 'defer';
+  if (!stays && !parks) { run = G.comboNext(run, line.at, bulk || extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); }
+  const pitch = stays || parks ? 1 : G.comboPitch(run.n), runN = stays || parks ? 0 : run.n;
+  // a defer leaves the item open; the held line itself parks it (statusOf)
+  if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
+  for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
+  save();
+  const p = pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: null };
+  const held = () => pending === p;
   flyStamp(src, zone, ink, () => {
-    if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(now())} ${fmtTime(now())}`))); }
-    line.at = now();
-    // tidy run (F4): resolving stamps close together; a bulk stamp (bundle, take all recommended) never counts and
-    // ends the run; Later parks rather than clears, so it neither counts nor breaks the run
-    const parks = line.action === 'defer';
-    if (!stays && !parks) { run = G.comboNext(run, line.at, bulk || extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); harborScene.showRun(run.n); }
-    const pitch = stays || parks ? 1 : G.comboPitch(run.n), runN = stays || parks ? 0 : run.n;
+    if (!held()) return; // undone in flight (a commit by the next stamp has already moved the desk on)
+    if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(line.at)} ${fmtTime(line.at)}`))); }
+    if (!stays && !parks) harborScene.showRun(run.n);
     $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud', pitch);
-    // a defer leaves the item open; the held line itself parks it (statusOf)
-    if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
-    for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
-    save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
-    pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoChip() };
+    $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
+    p.toastEl = undoChip();
     if ($('#agentlog').classList.contains('open')) renderLog();
     setTimeout(() => {
-      if (!pending || pending.line !== line) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
+      if (!held()) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
       const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); popCash(bonus); }
     }, 300);
     // a pick made during the hold wins: only move on while the stamped item is still the one on the desk
-    const held = () => pending && pending.line === line && S.current === it.id;
-    setTimeout(() => { if (!held()) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!held()) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
+    const here = () => held() && S.current === it.id;
+    setTimeout(() => { if (!here()) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!here()) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
   });
 }
 // After a clearing stamp is written (the undo hold is over): the tide goal (F7) and the stamp book (F6).

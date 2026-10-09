@@ -29,9 +29,12 @@ const base = p => (p || '').split('/').pop();
 const prio = it => it.priority || 3;
 const money = n => '$' + Math.round(n).toLocaleString();
 // Corner toasts: small, bottom-right, info fades; warn stays until dismissed. Only for facts the scene doesn't show.
+// Dismissing gives focus back to where it was (the phone pad keeps its text and Enter still sends).
 function toast(msg, cls) {
   const t = h('div', { class: `toast ${cls || ''}`, role: cls === 'warn' ? 'alert' : null }, h('span', null, msg));
-  if (cls === 'warn') t.append(h('button', { class: 'toast-x', type: 'button', 'aria-label': 'Dismiss', onclick: () => t.remove() }, '×'));
+  const back = document.activeElement;
+  const dismiss = () => { t.remove(); (back?.isConnected && back !== document.body ? back : document.querySelector('#phone .phone-pad'))?.focus(); };
+  if (cls === 'warn') t.append(h('button', { class: 'toast-x', type: 'button', 'aria-label': 'Dismiss', onclick: dismiss }, '×'));
   else setTimeout(() => t.remove(), 2800);
   $('#toasts').append(t);
 }

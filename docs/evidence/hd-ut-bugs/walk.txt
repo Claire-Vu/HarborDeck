@@ -1,0 +1,64 @@
+build  fm/hd-ut-bugs@06641b8
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press  
+== B1 quick undo during the stamp flight
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Rename the repo
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press 2 u
+PASS  B1 no answers line written after 2+u back to back (lines 2)
+PASS  B1 answers.jsonl byte-identical
+PASS  B1 item still at the desk
+PASS  B1 item still in the queue
+== B3 a decision never hides in another lane's bundle (seed)
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Merge PR 142
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press a 1
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Pick a logo
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press b 1
+PASS  B3 Launch pricing visible with only its topic mate (+1)
+PASS  B3 Competitor scan (rel only) on its own row
+PASS  B3 Launch pricing in the board-app lane
+== B2 one Space on a mixed bundle writes only the decision
+$ .agents/skills/verify-harbordeck/scripts/hdv hd decision hdv-x1 Adopt the new font? --opt yes+ --opt no -t hdv-brand -p 2
+ok decision hdv-x1
+$ .agents/skills/verify-harbordeck/scripts/hdv hd review hdv-x2 Review the brand deck v3 -s 22 slides -t hdv-brand
+ok review hdv-x2
+$ .agents/skills/verify-harbordeck/scripts/hdv hd answer hdv-x3 Font licensing costs --rel hdv-x1 --project other
+ok answer hdv-x3
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #queue li --text Font licensing costs
+PASS  B2 decision + review share a topic (+1); the rel report is not bundled
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Adopt the new font
+PASS  B2 the unopened review is unticked
+PASS  B2 the sheet counts 1 row
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press  
+PASS  B2 Space wrote exactly one line
+PASS  B2 the line is the decision only
+PASS  B2 review and report still waiting
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Launch pricing
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press j
+PASS  B2 opening the review (j) ticks it
+== B4 closing a warn toast gives focus back to the phone pad
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Escape
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Meta+Shift+Space
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #phone .phone-pad
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press n e w Space o r d e r
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs eval (() => { const dt = new DataTransfer(); dt.items.add(new File(["hello"], "notes.txt", { type: "text/plain" })); const el = document.querySelector("#phone .phone-box"); el.dispatchEvent(new DragEvent("dragover", { dataTransfer: dt, bubbles: true, cancelable: true })); el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); return "dropped"; })()
+"dropped"
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .toast.warn --text Only PNG
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .toast.warn .toast-x
+PASS  B4 focus is back on the pad
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Space 3
+PASS  B4 typing (a digit too) goes into the pad
+PASS  B4 the dial did not move
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Enter
+PASS  B4 Enter sent one line
+PASS  B4 the request carries the typed text
+== B5 the stamina cluster never clips; the window running low comes first
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Meta+Shift+Space
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs fill --css .phone-pad --value Tidy the backlog
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Alt+Enter
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #sched-chip --text queued
+PASS  B5 default window is 1440 px
+PASS  B5 cluster right edge inside the window
+PASS  B5 no shown chip is cut
+PASS  B5 the low window leads
+PASS  B5 sched chip not ellipsized
+cluster: Backup week 12% ↻ 1d 6h ⚠ out ~07:17 AM Primary 5h 38% ↻ 2h 9m ⚠ out ~02:20 PM week 59% ↻ 3d 4h +2
+more: "Primary Opal · week: 80% left\nBackup · 5h: 82% left"

@@ -98,12 +98,13 @@ test('fleet and stamina snapshots update live', async () => {
   fs.writeFileSync(path.join(home, 'quota.json'), JSON.stringify([{ name: 'Claude', window: '5h', used_pct: 50, resets_at: t + 3600, at: t - 600 }, { name: 'Claude', window: '7d', used_pct: 30, resets_at: t + 5 * 86400, at: t - 3 * 3600 }]));
   fs.mkdirSync(path.join(home, 'schedule'), { recursive: true });
   fs.writeFileSync(path.join(home, 'schedule', 'rate-limits.json'), JSON.stringify({ default: { at: t, rate_limits: { five_hour: { used_percentage: 20, resets_at: t + 3600 } } } }));
+  // the least left comes first: week (70%) before 5h (80%)
   const subs = page.locator('#stamina-cluster .mini-sub');
-  await expect(subs.nth(0).locator('.ms-pct')).toHaveText('80%', { timeout: 8000 });
+  await expect(subs.nth(1).locator('.ms-pct')).toHaveText('80%', { timeout: 8000 });
   await expect(page.locator('#stamina-cluster .ms-prov')).toHaveText(['Claude']);
-  await expect(subs.nth(0)).toHaveAttribute('title', /^Claude · 5h: 80% left \(20% used\)[^]*Claude Code status line, just now/);
-  await expect(subs.nth(1).locator('.ms-name')).toHaveText('week');
-  await expect(subs.nth(1).locator('.ms-stale')).toHaveText('stale');
+  await expect(subs.nth(1)).toHaveAttribute('title', /^Claude · 5h: 80% left \(20% used\)[^]*Claude Code status line, just now/);
+  await expect(subs.nth(0).locator('.ms-name')).toHaveText('week');
+  await expect(subs.nth(0).locator('.ms-stale')).toHaveText('stale');
   const fleet = JSON.parse(fs.readFileSync(path.join(home, 'fleet.json'), 'utf8'));
   fleet.crew = fleet.crew.map(c => ({ ...c, state: 'working' }));
   fs.writeFileSync(path.join(home, 'fleet.json'), JSON.stringify(fleet));

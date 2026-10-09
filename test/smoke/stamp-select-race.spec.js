@@ -6,10 +6,11 @@ const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 const { launchApp } = require('./launch');
 
-let app, page;
+let app, page, home;
+const answers = () => fs.readFileSync(path.join(home, 'answers.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-race-'));
-  const home = seedDemo(path.join(tmp, 'home'));
+  home = seedDemo(path.join(tmp, 'home'));
   app = await launchApp({ home, profile: path.join(tmp, 'profile'), env: { HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 760));
@@ -37,4 +38,17 @@ test('without a pick the desk still advances, and undo during the hold still wor
   await expect(title(page)).not.toHaveText('Pick a logo direction', { timeout: 4000 });
   await page.keyboard.press('u');
   await expect(title(page)).toHaveText('Pick a logo direction');
+});
+
+test('undo pressed during the stamp flight (a quick "oops") cancels it: no line is written, the item stays', async () => {
+  await page.locator('#queue li', { hasText: 'Rename the repo' }).click();
+  await expect(title(page)).toHaveText('Rename the repo to match the product name?');
+  const before = answers().length;
+  await page.keyboard.press('2');
+  await page.keyboard.press('u'); // well inside the 380 ms flight, before the undo chip shows
+  await page.waitForTimeout(5000); // past the hold
+  expect(answers().length).toBe(before);
+  await expect(title(page)).toHaveText('Rename the repo to match the product name?');
+  await expect(page.locator('#queue li', { hasText: 'Rename the repo' })).toHaveCount(1);
+  await expect(page.locator('.toast.undo')).toHaveCount(0);
 });

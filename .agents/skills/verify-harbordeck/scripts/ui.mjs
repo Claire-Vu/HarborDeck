@@ -3,7 +3,7 @@
 // Stable handles only: ARIA role + name, or the app's own ids/classes. One action per call; exit 1 on failure.
 //
 //   ui.mjs click (--role <role> --name <name> [--exact] | --css <selector> [--text <substring>])
-//   ui.mjs press <key>                         keyboard on the focused page (1-4 or ' ' stamp, a-e pick, s later, u undo, n next, Escape...)
+//   ui.mjs press <key> [<key>...]              keyboard on the focused page (1-4 or ' ' stamp, a-e pick, s later, u undo, n next, Escape...); several keys go back to back
 //   ui.mjs drag (--role .. --name .. | --css .. [--text ..]) (--to <css> | --by dx,dy)   pointer drag (a paper's .grip)
 //   ui.mjs fill (--role .. --name .. | --css ..) --value <text>
 //   ui.mjs wait (--role .. --name .. | --css .. [--text ..]) [--gone] [--timeout ms]
@@ -49,7 +49,7 @@ try {
   };
   switch (cmd) {
     case 'click': await target().click(); break;
-    case 'press': await page.keyboard.press(pos[0]); break;
+    case 'press': for (const k of pos) await page.keyboard.press(k); break; // several keys: back to back, in one connection
     case 'drag': {
       // pointer drag from the start of the match (a paper's .grip) to the centre of --to <css> (#stow-box) or by --by dx,dy
       const a = await target().boundingBox(); if (!a) throw new Error('drag source not visible');

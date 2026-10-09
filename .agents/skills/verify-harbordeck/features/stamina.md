@@ -10,13 +10,14 @@ The top bar shows how much of each subscription usage window is left, readable w
 - `stamina-fresh` `schedule/rate-limits.json` (Claude Code status line via `hd limit snapshot`) replaces a staler quota.json reading of `Claude` 5h/7d, and adds windows quota.json lacks.
 - `stamina-stale` `.ms-stale` `STALE` when the reading (quota.json `at`, else the file's mtime; the status line's `at`) is over 30 min old.
 - `stamina-title` each `.mini-sub[title]` reads `<Provider[ Model]> · <window>: N% left (M% used). Resets <local time>, in <countdown>.` plus run-out, per-model and `Reading: <source>, <age>` lines.
+- `stamina-order` the most urgent window comes first (run-out or low, then least left; a reset window last) and its provider's group leads; when the top bar is short of room the least urgent chips fold into one `.ms-more` `+N` (title and aria-label name each folded window), so no chip is ever cut (`test/smoke/layout.spec.js`). The `#sched-chip` keeps its full text.
 - `stamina-long` click `#stamina-cluster` (wider than 860 px) → `.modal.stamina-modal .stamina .sub` per window with the long form; at 860 px or less the click expands the chips in place.
 
 ## How to get to it (user POV)
 
 - Look at the top bar; hover a chip for the details.
 - Click the cluster for the long form.
-- Narrower windows drop the bars and day-plus countdowns first (≤1360 px), then all countdowns (≤1120 px); names and % left stay.
+- Narrower windows drop the bars and day-plus countdowns first (≤1360 px), then all countdowns (≤1120 px), then fold the healthiest windows into `+N`; names and % left of what shows stay.
 
 ## Driving it with hdv + ui.mjs
 
@@ -24,10 +25,11 @@ Preconditions:
 
 - Baseline instance, office opened, doctor `ok`. `t=$(date +%s)`.
 
-- **Quota reading.** `echo '[{"name":"Claude","window":"5h","used_pct":17,"resets_at":'$((t+15120))',"at":'$((t-300))'},{"name":"Claude","window":"7d","used_pct":3,"resets_at":'$((t+540000))',"at":'$((t-300))'},{"name":"Claude","model":"Fable","window":"7d","used_pct":0,"resets_at":'$((t+540000))',"at":'$((t-300))'}]' | $H hd quota -`. `$U text --css '#stamina-cluster'` prints `Claude 5h 83% ↻ 4h 12m ⚠ out ~<time> week 97% ↻ 6d 6h Fable · week 100% ↻ 6d 6h` (17 % used 5 min after the window opened already projects a run-out).
+- **Quota reading.** `echo '[{"name":"Claude","window":"5h","used_pct":17,"resets_at":'$((t+15120))',"at":'$((t-300))'},{"name":"Claude","window":"7d","used_pct":3,"resets_at":'$((t+540000))',"at":'$((t-300))'},{"name":"Claude","model":"Fable","window":"7d","used_pct":0,"resets_at":'$((t+540000))',"at":'$((t-300))'}]' | $H hd quota -`. `$U text --css '#stamina-cluster'` prints `Claude 5h 83% ↻ 4h 12m ⚠ out ~<time> week 97% ↻ 6d 6h Fable · week 100% ↻ 6d 6h` (the 5h leads: it runs out) (17 % used 5 min after the window opened already projects a run-out).
 - **Fresher status line wins.** `echo '{"rate_limits":{"five_hour":{"used_percentage":18,"resets_at":'$((t+15120))'},"seven_day":{"used_percentage":2,"resets_at":'$((t+540000))'}}}' | $H hd limit snapshot`. The 5h chip shows `82%` and a later `⚠ out ~<time>`; `$U eval '[...document.querySelectorAll("#stamina-cluster .mini-sub")].map(e=>e.title).join("\n")'` shows `Claude Code status line, just now` for 5h and week, `quota.json, 5m ago` for Fable.
 - **Stale and reset.** `rm $HDV_HOME/schedule/rate-limits.json`, then write a quota row with `"at":'$((t-10800))'` and `"resets_at":'$((t-600))'`: its chip shows `?`, `reset`, `STALE`.
 - **Any provider.** A row `{"name":"Acme","window":"1d",...}` gets its own `.ms-group` labelled `Acme` with `day`.
+- **Seed (B5).** On the baseline seed (5 windows) at 1440 px with an order queued for the reset (`#sched-chip` shown), the first `.mini-sub` is `Backup · week: 12% left`, every shown chip sits inside `#stamina-cluster`, and the cluster's right edge is inside the window.
 - **Capture.** `$H capture stamina header`.
 
 ## Gotchas
