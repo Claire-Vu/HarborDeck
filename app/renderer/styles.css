@@ -8,6 +8,7 @@
   --ui-bg: #1d2a38; --ui-fg: #e9eef5; --ui-muted: #9fb0c4; --ui-edge: #34475e; --ui-accent: #f2b544;
   --approve: #1f7a4a; --reject: #a3302c; --needs: #b7791f; --ask: #2f5fa8; --file: #4a4f8a; --warn: #d9822b;
   --p1: #c0392b; --p2: #d98c1f; --p3: #3b6f9e; --p4: #6b7785;
+  --chg: rgba(255, 208, 40, .42); --chg-edge: #d9a300;
   --shadow: 0 10px 24px rgba(0,0,0,.28), 0 2px 4px rgba(0,0,0,.2);
   --radius: 6px;
   --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -692,3 +693,30 @@ pre.diff .add { color: #1f7a3a; background: rgba(46,160,67,.12); display: block;
 .modal.sweep .box { max-width: 560px; }
 .modal.sweep .sw-row { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--ui-edge); cursor: pointer; }
 .modal.sweep footer .legend { margin-right: auto; }
+
+/* what changed (changes.js): only the parts new since the captain last looked are lit, like a highlighter */
+.chg { background: var(--chg); box-shadow: 0 0 0 2px var(--chg); border-radius: 2px; }
+.paper.chg { box-shadow: 0 0 0 3px var(--chg-edge), var(--shadow); background: var(--paper); }
+.paper .msg.chg, .pcard .msg.chg { box-shadow: inset 3px 0 0 var(--chg-edge); padding-left: 8px; }
+.md .chg, .md pre.chg { box-shadow: -6px 0 0 var(--chg-edge); }
+.fact.chg, .opt .chg { text-decoration: none; }
+.chg-note { font-size: 10.5px; color: var(--paper-ink); background: var(--chg); border-left: 3px solid var(--chg-edge); padding: 2px 6px; margin: 4px 0 6px; }
+.upd { display: inline-block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; line-height: 14px; padding: 0 5px; margin-left: 6px; border-radius: 3px; background: var(--chg-edge); color: #241a00; vertical-align: middle; white-space: nowrap; }
+.ev-thumb.chg { outline: 3px solid var(--chg-edge); }
+/* who's waiting: workers paused until the captain answers */
+.waitn .wi { margin-right: 3px; font-size: 9px; }
+.waitn { display: inline-block; font-size: 10px; font-weight: 800; line-height: 15px; padding: 0 5px; border-radius: 3px; background: var(--warn); color: #1d1206; white-space: nowrap; }
+/* search palette (search-view.js) */
+.modal.search { place-items: start center; padding-top: 12vh; }
+.modal.search .box { width: min(640px, 100%); max-height: 70vh; overflow: hidden; }
+.sr-in { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--ui-edge); background: transparent; color: var(--ui-fg); outline: none; }
+.sr-list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
+.sr-row { display: flex; gap: 10px; align-items: baseline; padding: 6px 14px; cursor: pointer; min-width: 0; }
+.sr-row[aria-selected="true"] { background: var(--ui-edge); }
+.sr-kind { flex: 0 0 64px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ui-muted); }
+.sr-main { display: flex; flex-direction: column; min-width: 0; }
+.sr-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-sub { font-size: 11px; color: var(--ui-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-empty { padding: 12px 14px; color: var(--ui-muted); }
+.sr-foot { display: flex; gap: 14px; padding: 6px 14px; border-top: 1px solid var(--ui-edge); font-size: 11px; color: var(--ui-muted); }
+.sr-foot .sr-count { margin-left: auto; }

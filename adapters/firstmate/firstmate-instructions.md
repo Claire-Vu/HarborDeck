@@ -23,6 +23,7 @@ Environment for every call: `HARBORDECK_FROM=@FROM@` (secondmates: your own endp
 - Presenting a Lavish plan: always attach it with `-a lavish:<url>` so the captain can annotate it inside the desk. Keep polling Lavish for the feedback as usual; the desk stamp is the verdict, Lavish carries the annotations.
 - Several items: `harbordeck batch` with one command per line on stdin (one process, all or nothing).
 - Priority `-p 1`..`4` (1 = blocks work now); due `-d +2d` or an ISO date.
+- Who is waiting is filled in for you: the HarborDeck feed sets each open item's `waiting` to the crew blocked or paused on it (same id or task id, a `<task>.qN` of it, or the item's topic), and the desk puts those items first. Keep item ids equal to task ids so it can match; never set `-w` by hand here.
 - Standing orders from captain.md: `--ok <rule>` when an item complies, `--flag <rule>:<why>` when it does not.
 
 ## Mentions go on the item, not only in chat

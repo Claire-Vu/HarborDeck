@@ -34,6 +34,7 @@ test('the window shows the harbor: boats per task, real-clock sky, tide line, re
   await expect(page.locator('#stamina-cluster .meter')).toHaveCount(0);
   await expect(page.locator('#stamina-cluster .ms-time').first()).toContainText('↻');
   await expect(page.locator('#pier-queue .pq.urgent .ship-cat')).toHaveCount(1);
+  await page.locator('#queue li', { hasText: 'Sign the app store' }).click(); // a project regular brings this one
   await expect(page.locator('#at-window .speech small.memory')).toContainText('First time at your window.');
   await page.locator('.window-frame').screenshot({ path: path.join(SHOTS, 'harbordeck-harbor.png') });
 });

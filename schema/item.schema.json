@@ -68,6 +68,7 @@
         }
       }
     },
+    "waiting": { "type": "array", "items": { "$ref": "#/$defs/slug" }, "description": "Ids of the workers (or tasks) blocked or paused until the user answers this item. The desk shows the count and lifts items that unblock more work. Not an edit: changing it does not bump `updated`." },
     "priority": { "type": "integer", "minimum": 1, "maximum": 4 },
     "due": { "$ref": "#/$defs/epoch" },
     "from": { "type": "string", "maxLength": 100 },

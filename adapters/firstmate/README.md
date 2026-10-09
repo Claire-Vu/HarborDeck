@@ -6,7 +6,7 @@ Scripts that connect any firstmate home to HarborDeck without changing firstmate
 
 | Script | Writes | From |
 |---|---|---|
-| `hd-fleet.sh` | `fleet.json` | `state/*.meta` + `bin/fm-crew-state.sh <id>` per endpoint |
+| `hd-fleet.sh` | `fleet.json`, each open item's `waiting` | `state/*.meta` + `bin/fm-crew-state.sh <id>` per endpoint; a crew blocked/paused/parked whose id or task id is the item id, the `<task>` of a `<task>.qN` item, or the item's topic is waiting on it (one `hd batch` of `waiting` lines, only when a list changed) |
 | `hd-quota.sh` | `quota.json` | `quota-axi --json` (cached reads) |
 | `hd-rules.sh <prefs.md>` | `rules.json` | a markdown preferences file such as `data/captain.md` |
 | `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` (`--follow`: live, on every append) |

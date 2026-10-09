@@ -46,6 +46,9 @@
    "note": "today is Friday; freeze says ship Monday"
   }
  ],
+ "waiting": [
+  "crew-release"
+ ],
  "priority": 1,
  "due": 1791486400,
  "created": 1791392800,

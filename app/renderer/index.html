@@ -11,6 +11,7 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></symbol>
     <symbol id="i-inspect" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M8 10h4M10 8v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
     <symbol id="i-orders" viewBox="0 0 24 24"><path d="M4 4h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h6M8 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 8l3-3v14l-3 1" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
     <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -53,6 +54,7 @@
 <div class="menu" id="menu" role="menu" aria-label="Menu" hidden>
   <div class="mg" role="group" aria-label="Desk">
     <div class="mg-h">Desk</div>
+      <button class="mi" role="menuitem" id="btn-search" title="Search items, topics and notes" aria-keyshortcuts="Meta+K Control+K"><svg class="ic"><use href="#i-search"/></svg><span class="mi-l">Search</span><span class="kbd">⌘K</span></button>
       <button class="mi" role="menuitem" id="btn-inspect" title="Inspect"><svg class="ic"><use href="#i-inspect"/></svg><span class="mi-l">Inspect</span><span class="kbd">I</span></button>
       <button class="mi" role="menuitem" id="btn-plain" title="Plain mode"><svg class="ic"><use href="#i-plain"/></svg><span class="mi-l">Plain mode</span><span class="kbd">P</span></button>
       <button class="mi" role="menuitem" id="btn-shop" title="Chandlery &amp; stamp book"><svg class="ic"><use href="#i-cash"/></svg><span class="mi-l">Chandlery &amp; stamp book</span><span class="kbd">⇧B</span></button>
@@ -140,7 +142,7 @@
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
       <button class="stamp later" data-verdict="later" aria-label="Later" title="Later (S): back tomorrow 9:00 · Shift: after the next usage reset"><span class="handle"></span><span class="base"><span class="lbl">Later</span></span></button>
-      <div class="keys">Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · M menu · Esc</div>
+      <div class="keys">Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ⌘K search · M menu · Esc</div>
     </div>
   </aside>
 </main>
@@ -173,6 +175,8 @@
 <script src="harbor-game.js"></script>
 <script src="harbor-scene.js"></script>
 <script src="phone-view.js"></script>
+<script src="changes.js"></script>
+<script src="search-view.js"></script>
 <script src="quick-call.js"></script>
 <script src="app.js"></script>
 </body>

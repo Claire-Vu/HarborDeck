@@ -59,6 +59,7 @@ function items(t, webUrl) {
       body: 'assets/reports/onboarding-copy.md', rules: ['plain-words'], checks: [{ rule: 'plain-words', ok: true, note: 'no jargon found' }],
       created: t - 4 * H },
     { id: 'newsletter-6', topic: 'newsletter', kind: 'review', project: 'brand', stream: 'newsletter', from: 'mate-growth', priority: 3, due: t + 2 * D,
+      waiting: ['crew-newsletter'],
       title: 'Newsletter #6 draft',
       summary: 'What shipped in September, plus a teaser for the calmer checkout.',
       body: 'assets/reports/newsletter-draft.md', rules: ['plain-words'],

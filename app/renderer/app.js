@@ -42,6 +42,7 @@ function loadState() {
   S.demoSeed = SNAP.demoSeed || 0; // a freshly seeded demo always starts a fresh desk
   S.fun = Object.assign(freshFun(), S.fun);
   S.answers = (SNAP.answers || []).slice();
+  for (const x of Object.values(S.items)) delete x.shown; // highlights last one look
 }
 try { S.prefs = Object.assign(freshPrefs(), JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) { /* defaults */ }
 loadState();
@@ -108,27 +109,29 @@ function popCash(n) {
   cashPop = { el, sum: n, at: now() * 1000, t: setTimeout(() => { el.remove(); cashPop = null; }, 1300) };
 }
 
-function mdToHtml(md) {
-  const lines = esc(md).split('\n'); let out = '', list = null, table = null, code = null;
+// lit: optional Set of trimmed source lines that are new since the captain last looked (changes.js); they get class chg.
+function mdToHtml(md, lit) {
+  const raw = String(md).split('\n'), lines = esc(md).split('\n'); let out = '', list = null, table = null, code = null, codeLit = false, i = -1;
+  const c = cls => { const on = lit && lit.has(raw[i].trim()); return on || cls ? ` class="${[cls, on && 'chg'].filter(Boolean).join(' ')}"` : ''; };
   const inline = s => s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>').replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   const close = () => { if (list) { out += `</${list}>`; list = null; } if (table) { out += '</tbody></table>'; table = null; } };
   for (const ln of lines) {
-    let m;
-    if (code != null) { if (ln.startsWith('```')) { out += `<pre><code>${code}</code></pre>`; code = null; } else code += ln + '\n'; continue; }
-    if (ln.startsWith('```')) { close(); code = ''; continue; }
+    let m; i++;
+    if (code != null) { if (ln.startsWith('```')) { out += `<pre${codeLit ? ' class="chg"' : ''}><code>${code}</code></pre>`; code = null; } else { code += ln + '\n'; codeLit ||= !!(lit && lit.has(raw[i].trim())); } continue; }
+    if (ln.startsWith('```')) { close(); code = ''; codeLit = false; continue; }
     if (ln.startsWith('|')) {
       const cells = ln.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
       if (ln.match(/^\|[-:| ]+\|$/)) continue;
       if (!table) { close(); table = true; out += `<table><thead><tr>${cells.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>`; }
-      else out += `<tr>${cells.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`;
+      else out += `<tr${c()}>${cells.map(x => `<td>${inline(x)}</td>`).join('')}</tr>`;
       continue;
     }
-    if ((m = ln.match(/^(#{1,4})\s+(.*)/))) { close(); out += `<h${m[1].length + 1} class="mdh" data-heading="${esc(m[2])}">${inline(m[2])}</h${m[1].length + 1}>`; }
-    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) { if (list !== 'ul') { close(); list = 'ul'; out += '<ul>'; } out += `<li>${inline(m[1])}</li>`; }
-    else if ((m = ln.match(/^\s*\d+\.\s+(.*)/))) { if (list !== 'ol') { close(); list = 'ol'; out += '<ol>'; } out += `<li>${inline(m[1])}</li>`; }
+    if ((m = ln.match(/^(#{1,4})\s+(.*)/))) { close(); out += `<h${m[1].length + 1}${c('mdh')} data-heading="${esc(m[2])}">${inline(m[2])}</h${m[1].length + 1}>`; }
+    else if ((m = ln.match(/^\s*[-*]\s+(.*)/))) { if (list !== 'ul') { close(); list = 'ul'; out += '<ul>'; } out += `<li${c()}>${inline(m[1])}</li>`; }
+    else if ((m = ln.match(/^\s*\d+\.\s+(.*)/))) { if (list !== 'ol') { close(); list = 'ol'; out += '<ol>'; } out += `<li${c()}>${inline(m[1])}</li>`; }
     else if (ln.trim() === '') close();
-    else if (ln.startsWith('>')) { close(); out += `<blockquote>${inline(ln.slice(1))}</blockquote>`; }
-    else { if (table) close(); out += `<p>${inline(ln)}</p>`; }
+    else if (ln.startsWith('>')) { close(); out += `<blockquote${c()}>${inline(ln.slice(1))}</blockquote>`; }
+    else { if (table) close(); out += `<p${c()}>${inline(ln)}</p>`; }
   }
   close(); return out;
 }
@@ -171,6 +174,20 @@ function unblocks(it) {
   for (const t of FLEET.tools) if (t.item === it.id && t.state !== 'installed') out.push(`unlocks ${t.label}`);
   return out;
 }
+// Who's waiting: workers blocked or paused until the captain answers (the item's `waiting`, plus crew in fleet.json
+// waiting on it). Each one lifts the item a priority step in the queue.
+const waitingOn = it => [...new Set([...(it.waiting || []), ...FLEET.crew.filter(c => c.item === it.id && c.state === 'waiting').map(c => c.id)])];
+const crewLabel = id => (FLEET.crew.some(c => c.id === id) ? crewName(id) : id);
+const waitChip = it => { const w = waitingOn(it); return w.length ? h('span', { class: 'waitn', title: `${w.length} worker${w.length > 1 ? 's' : ''} paused until you answer: ${w.map(crewLabel).join(', ')}` }, h('span', { class: 'wi', 'aria-hidden': 'true' }, '⏸'), w.length) : null; };
+const urgency = (a, b) => (prio(a) - waitingOn(a).length) - (prio(b) - waitingOn(b).length) || waitingOn(b).length - waitingOn(a).length || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created;
+// What changed (changes.js): the version the captain last looked at is kept in the desk state as `seen`.
+const CH = HarborChanges;
+const agentMsgs = it => [...(it.thread || []).filter(m => m.from !== 'captain'), ...(SNAP.notes || []).filter(n => n.item === it.id)];
+const digestOf = it => CH.digest(it, it.body ? fileFor(it.body)?.text ?? null : null, agentMsgs(it));
+const changesOf = it => CH.diff(S.items[it.id]?.seen, digestOf(it));
+// The captain is looking at it now: remember this version. On the desk what was new stays lit (`shown`) while it is there.
+function lookAt(it, keep) { const s = st(it.id); const d = changesOf(it); if (keep && d) s.shown = d; s.seen = digestOf(it); save(); return keep ? s.shown || null : d; }
+const updChip = (it, d) => (d ? h('span', { class: 'upd', title: `Updated since you last looked: ${CH.describe(d)}` }, 'updated') : null);
 function checksFor(it) { const map = {}; for (const c of it.checks || []) map[c.rule] = c; return (it.rules || []).map(k => ({ rule: k, check: map[k] })); }
 const flaggedCount = it => (it.checks || []).filter(c => c.ok === false).length;
 function payFor(it, action) {
@@ -277,7 +294,7 @@ function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return;
 function queueItems() {
   const f = S.prefs.filter;
   return quick.laneSort(ITEMS.filter(i => statusOf(i) === 'open' && (f === 'all' || i.kind === f))
-    .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created || a.id.localeCompare(b.id, undefined, { numeric: true })));
+    .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || urgency(a, b) || a.id.localeCompare(b.id, undefined, { numeric: true })));
 }
 function spriteSVG(id, kind, opts = {}) {
   const { cap, coat } = opts.reg || crewColors(id); const mate = opts.mate; const zz = opts.tired || opts.nap; const skin = opts.reg?.skin || '#f0c9a0';
@@ -342,8 +359,8 @@ function renderQueue() {
     ul.append(h('li', { 'aria-current': String(g.some(x => x.id === S.current)), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
       h('div', { html: (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired() }))(whoBrings(it)) }),
       h('div', null,
-        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null, quick.weightIcons(g)),
-        h('div', { class: 'q-meta' }, prioChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
+        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), it.id !== S.current && s.read ? updChip(it, changesOf(it)) : null, g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null, quick.weightIcons(g)),
+        h('div', { class: 'q-meta' }, prioChip(it), waitChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
   }
   if (!list.length) ul.append(h('li', { class: 'q-empty' }, 'Nobody at the window.'));
   const later = ITEMS.filter(i => statusOf(i) === 'later').sort((a, b) => deferredUntil(a) - deferredUntil(b));
@@ -436,33 +453,37 @@ function moveRow(d) { const it = byId[S.current]; if (!it) return; const g = bun
 function next() { const list = queueItems().filter(i => !st(i.id).awaiting && i.id !== S.current); if (list.length) stepUp(list[0].id); else { S.current = null; save(); renderAll(); } }
 
 // ------------------------------------------------------------ desk papers
-let inspectPick = null;
+let inspectPick = null, deskShown = null;
 function renderDesk() {
   const surf = $('#desk-surface'); sheetScroll = surf.querySelector('.paper.qsheet')?.scrollTop ?? null; surf.replaceChildren();
   const it = byId[S.current];
+  if (deskShown && deskShown !== S.current && S.items[deskShown]) delete S.items[deskShown].shown; // left the desk: highlights done
+  deskShown = it ? it.id : null;
   if (!it || statusOf(it) !== 'open') {
     lastDeskGroup = null;
     surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
     renderTray(null); return;
   }
   const s = st(it.id); const papers = []; const claims = sentences(it.summary); const m = mateFor(it); const c = crewFor(it);
+  const ch = lookAt(it, true); const fresh = new Set(ch?.claims || []);
   papers.push(paper('manifest', `${KIND[it.kind]} manifest`, [
-    h('div', { class: 'm-top' }, prioChip(it), dueChip(it), h('span', { class: 'spacer' }), h('span', { class: 'pay', title: 'pays on stamp (value × priority × urgency)' }, money(payFor(it, 'decide')))),
-    h('h3', null, it.title),
+    h('div', { class: 'm-top' }, prioChip(it), waitChip(it), dueChip(it), h('span', { class: 'spacer' }), h('span', { class: 'pay', title: 'pays on stamp (value × priority × urgency)' }, money(payFor(it, 'decide')))),
+    ch ? h('div', { class: 'chg-note' }, `Updated since you last looked: ${CH.describe(ch)}`) : null,
+    h('h3', { class: ch?.title != null ? 'chg' : null, title: ch?.title != null ? `was: ${ch.title}` : null }, it.title),
     h('div', { class: 'meta' }, `${it.project}${it.stream ? ' · ' + it.stream : ''} · ${fmtDate(it.created)} · ${m.label}${c ? ', via ' + crewName(c.id) : ''} `, topicView.chip(it)),
     it.rules?.length ? h('div', { class: 'check-row' }, checksFor(it).map(({ rule, check }) => h('button', { class: `chk ${check ? (check.ok ? 'ok' : 'flag') : 'none'}`, title: `${rule}: ${check ? (check.ok ? 'passed' : 'FLAGGED') + ' · ' + check.note : 'tagged, not auto-checked'}`, onclick: () => openDrawer('orders') }, check ? (check.ok ? '✓' : '⚠') : '§', ' ', rule))) : null,
     (it.checks || []).some(x => x.ok === false) ? h('div', { class: 'flag-note' }, (it.checks || []).filter(x => x.ok === false).map(x => h('div', null, '⚠ ', x.note))) : null,
-    h('p', { class: 'claims' }, claims.map((cl, i) => h('span', { class: `fact ${s.flags[i] === 'match' ? 'matched' : s.flags[i] === 'flag' ? 'flagged' : ''}`, onclick: e => pickFact({ type: 'claim', label: cl, anchor: { claim: cl }, idx: i }, e.currentTarget) }, cl, ' ')))
+    h('p', { class: 'claims' }, claims.map((cl, i) => h('span', { class: `fact ${s.flags[i] === 'match' ? 'matched' : s.flags[i] === 'flag' ? 'flagged' : ''}${fresh.has(cl) ? ' chg' : ''}`, onclick: e => pickFact({ type: 'claim', label: cl, anchor: { claim: cl }, idx: i }, e.currentTarget) }, cl, ' ')))
   ], 'm'));
   const seen = new Set();
   const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body, true));
-  arts.forEach((a, i) => { const key = a.path || a.url; if (seen.has(key)) return; seen.add(key); const p = artifactPaper(it, a, i); if (p) papers.push(p); });
+  arts.forEach((a, i) => { const key = a.path || a.url; if (seen.has(key)) return; seen.add(key); const p = artifactPaper(it, a, i, ch); if (p) { if (ch?.arts?.includes(key)) markNew(p); papers.push(p); } });
   // the main artifact fills the blotter; cards that only open something elsewhere (PR, link, web page) stay small
   const reading = papers.find(p => p.dataset.pid !== 'm' && !p.classList.contains('prcard')); reading?.classList.add('reading');
   const thread = threadFor(it);
-  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: 'msg' }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, anchorText(x.anchor)))), 't'));
+  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: `msg${isNewMsg(x, ch) ? ' chg' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, anchorText(x.anchor)))), 't'));
   const group = bundleOf(it);
-  papers.push(group.length > 1 ? quick.sheet(it, group, { awaiting: s.awaiting }) : askSlip(it));
+  papers.push(group.length > 1 ? quick.sheet(it, group, { awaiting: s.awaiting }) : askSlip(it, ch));
   // Moving between rows of one sheet keeps the papers still: no deal-in animation, the sheet keeps its scroll.
   const gk = group.map(m => m.id).join(' '); const calm = gk === lastDeskGroup; lastDeskGroup = gk;
   surf.classList.toggle('calm', calm);
@@ -474,6 +495,8 @@ function renderDesk() {
   renderTray(it);
 }
 let lastDeskGroup = null, sheetScroll = null;
+const isNewMsg = (x, ch) => ch?.since != null && !x.me && x.from !== 'captain' && x.at > ch.since;
+const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.after(h('span', { class: 'upd' }, 'new')); };
 // Papers never overlap: the manifest and the ask (slip or sheet) stack on the left, the main artifact fills the
 // reading column, and the rest stack in a side column (or under the reading paper when the desk is narrow).
 // A paper the captain dragged keeps its spot. Below 860 px the CSS flows papers instead.
@@ -533,7 +556,7 @@ const webUrl = u => (/^https?:\/\//i.test(u || '') ? u : null);
 // local file (served via harbor://) or a web URL for media
 const srcFor = a => fileFor(a.path)?.url || webUrl(a.url);
 const bodyArtifact = (body, isBody) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(body) ? { type: 'link', url: body, label: 'Dispatch', isBody } : { type: artType({ path: body }) === 'pdf' ? 'pdf' : 'report', path: body, isBody });
-function artifactPaper(it, a, i) {
+function artifactPaper(it, a, i, ch) {
   const pid = `a${i}`; const f = fileFor(a.path); const type = artType(a);
   if (type === 'link') {
     let host = a.url; try { host = new URL(a.url).host; } catch (e) { /* keep raw */ }
@@ -583,7 +606,8 @@ function artifactPaper(it, a, i) {
   const text = f?.text;
   if (type === 'diff' && text != null) return paper('report', a.label || 'Diff', [pathMeta(a.path), diffView(text.split('\n').slice(0, 80).join('\n'))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
   if (f && text == null) return paper('report', 'File', [pathMeta(a.path), h('p', { class: 'meta' }, f.mime || 'file')], pid, h('button', { class: 'ibtn', onclick: () => bridge.openPath(f.url) }, 'Open'));
-  const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 400).join('\n')) : `<p class="meta" title="${esc(a.path)}">not available locally: ${esc(base(a.path))}</p>` });
+  const lit = a.isBody && ch?.lines ? new Set(ch.lines) : null;
+  const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 400).join('\n'), lit) : `<p class="meta" title="${esc(a.path)}">not available locally: ${esc(base(a.path))}</p>` });
   ex.querySelectorAll('.mdh').forEach(hd => hd.classList.add('fact'));
   ex.addEventListener('click', e => { const hd = e.target.closest('.mdh'); if (hd && document.body.classList.contains('inspect')) pickFact({ type: 'point', label: `${base(a.path)} § ${hd.dataset.heading}`, anchor: { artifact: a.path, heading: hd.dataset.heading } }, hd); });
   return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Dispatch' : 'Report', [pathMeta(a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
@@ -591,11 +615,11 @@ function artifactPaper(it, a, i) {
 function diffView(text) {
   return h('pre', { class: 'diff' }, text.split('\n').map(l => h('span', { class: /^\+(?!\+\+)/.test(l) ? 'add' : /^-(?!--)/.test(l) ? 'del' : /^@@/.test(l) ? 'hunk' : '' }, l + '\n')));
 }
-function askSlip(it) {
+function askSlip(it, ch) {
   const s = st(it.id); const kids = [];
   if (it.kind === 'decision' && it.options) {
     s.choice ??= it.options.find(o => o.recommended)?.key || null;
-    kids.push(h('fieldset', { class: 'q' }, h('legend', null, 'Your call ', h('span', { class: 'hint' }, 'A–E pick · Space stamps')), it.options.map((o, i) => quick.option(it, o, i, s.choice === o.key, key => { s.choice = key; save(); afterPick(it.id); }, `opt-${it.id}`))));
+    kids.push(h('fieldset', { class: 'q' }, h('legend', null, 'Your call ', h('span', { class: 'hint' }, 'A–E pick · Space stamps')), it.options.map((o, i) => { const el = quick.option(it, o, i, s.choice === o.key, key => { s.choice = key; save(); afterPick(it.id); }, `opt-${it.id}`); if (ch?.options?.includes(o.key)) el.classList.add('chg'); return el; })));
   } else kids.push(h('p', { class: 'ql' }, { review: 'Your verdict on the work.', answer: 'Read, then file.', todo: 'Only you can do this. File it when done.' }[it.kind]));
   kids.push(h('div', { class: 'stamp-zone', id: 'stamp-zone' }, s.awaiting ? 'sent back; awaiting reply' : 'Space to stamp'));
   return paper('ask', 'The ask', kids, 'ask');
@@ -764,7 +788,7 @@ function renderRail(ring) {
     rail.append(h('button', { class: `ticket ${t.queued ? 'queued' : t.reply ? 'replied' : 'waiting'} ${unread ? 'new' : ''} ${t.a.action}`, dataset: { key: t.key, i }, tabindex: i === railFocus ? 0 : -1, 'aria-label': `${t.title}: ${t.a.note}. ${state}`, onclick: e => openTicket(t, e.currentTarget), onfocus: () => { railFocus = i; } },
       h('span', { class: 'tk-head' }, h('span', { class: `tk-kind ${t.a.action}` }, { ask: 'ask', 'needs-work': 'rework', request: 'order' }[t.a.action]), h('span', { class: 'tk-title' }, t.title), unread ? h('span', { class: 'tk-badge' }, '1') : null),
       h('span', { class: 'tk-note' }, t.a.note),
-      h('span', { class: 'tk-foot' }, t.queued ? `⏳ ${state}` : t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` sent · waiting ${age(t0 - t.a.at)}`])));
+      h('span', { class: 'tk-foot' }, t.queued ? `⏳ ${state}` : t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` sent · waiting ${age(t0 - t.a.at)}`], t.item && st(t.item.id).read && t.item.id !== S.current && changesOf(t.item) ? h('span', { class: 'upd' }, 'updated') : null)));
   });
   rail.dataset.count = list.filter(t => t.reply && !t.seen).length;
   if (ring) { const first = rail.querySelector('.ticket.new'); if (first) { first.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } }
@@ -867,7 +891,7 @@ function openViewer(a) {
   else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : missing(a.path));
   else if (type === 'diff' && f?.text != null) body = h('article', { class: 'sheet' }, diffView(f.text));
   else if (type === 'video') body = h('div', { class: 'mount' }, srcFor(a) ? h('video', { src: srcFor(a), controls: true, autoplay: true }) : missing(a.path));
-  else body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text) : `<p>not available locally: ${esc(base(a.path))}</p>` });
+  else { const lit = a.isBody && S.current ? S.items[S.current]?.shown?.lines : null; body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text, lit && new Set(lit)) : `<p>not available locally: ${esc(base(a.path))}</p>` }); }
   let zoom = 1; const apply = () => { body.style.setProperty('--zoom', zoom); };
   const zoomer = h('div', { class: 'zoomer' }, h('button', { class: 'tbtn', 'aria-label': 'Smaller', onclick: () => { zoom = Math.max(.7, zoom - .1); apply(); } }, 'A−'), h('button', { class: 'tbtn', 'aria-label': 'Larger', onclick: () => { zoom = Math.min(1.8, zoom + .1); apply(); } }, 'A+'));
   const ext = f ? h('button', { class: 'tbtn', title: 'Open with the default app', onclick: () => bridge.openPath(f.url) }, 'Open') : null;
@@ -971,7 +995,7 @@ function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll
 // ------------------------------------------------------------ day cycle: morning manifest, shift report
 function meter(score, max) { const pct = Math.max(0, Math.min(100, Math.round(((score + max) / (2 * max)) * 100))); return h('div', { class: 'meter' }, h('span', { style: `width:${pct}%` })); }
 function regularsBoard() { return h('div', { class: 'regulars' }, FLEET.regulars.map(r => { const sc = regularScore(r, false), d = regularScore(r, true); return h('div', { class: 'regular' }, h('div', { class: 'rg-name' }, r.label, h('span', { class: 'rg-delta' }, d ? (d > 0 ? `+${d}` : `${d}`) : '')), meter(sc, 12)); })); }
-function topItems(n) { return ITEMS.filter(i => statusOf(i) === 'open').sort((a, b) => prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created).slice(0, n); }
+function topItems(n) { return ITEMS.filter(i => statusOf(i) === 'open').sort(urgency).slice(0, n); }
 // The manifest shows only what has something in it; Space opens the office.
 function openManifest() {
   const open = ITEMS.filter(i => statusOf(i) === 'open'); const counts = {}; for (const i of open) counts[i.kind] = (counts[i.kind] || 0) + 1;
@@ -1029,15 +1053,17 @@ function plainCard(it, openByDefault) {
   const s = st(it.id); const resolved = statusOf(it) === 'resolved';
   const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body));
   const thread = threadFor(it); const flagged = (it.checks || []).filter(x => x.ok === false);
-  const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open && !s.read) { s.read = true; save(); } } },
-    h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), it.title, flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ' ', topicView.chip(it), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
+  // what changed is lit on this card as drawn; opening it counts as a look, so the next draw is plain again
+  const ch = s.read ? changesOf(it) : null; const fresh = new Set(ch?.claims || []); if (openByDefault) lookAt(it);
+  const d = h('details', { class: 'pcard', open: openByDefault || false, ontoggle: () => { if (d.open) { s.read = true; lookAt(it); } } },
+    h('summary', null, prioChip(it), h('span', null, h('div', { class: 't' }, !s.read && h('span', { class: 'unread-dot', style: 'display:inline-block;margin-right:6px' }), h('span', { class: ch?.title != null ? 'chg' : null, title: ch?.title != null ? `was: ${ch.title}` : null }, it.title), ' ', waitChip(it), updChip(it, ch), flagged.length ? h('span', { class: 'flag' }, ` ⚠${flagged.length}`) : null), h('div', { class: 's' }, h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), ' ', topicView.chip(it), ` ${it.stream || it.project} · ${fmtDate(it.created)}`, it.due ? [' · ', dueChip(it)] : null, s.awaiting ? ' · awaiting reply' : '')), h('span', { class: 's' }, resolved ? (s.verdict ? ACTION_LABEL[s.verdict.action] + (s.verdict.key ? `: ${s.verdict.key}` : '') : 'resolved') : money(payFor(it, 'decide')))),
     h('div', { class: 'body' },
-      h('p', { class: 'summary-text' }, it.summary),
+      h('p', { class: 'summary-text' }, sentences(it.summary).map(x => h('span', { class: fresh.has(x) ? 'chg' : null }, x, ' '))),
       flagged.length ? h('div', { class: 'flag-note' }, flagged.map(x => h('div', null, `⚠ ${x.rule}: ${x.note}`))) : null,
-      arts.length ? h('div', { class: 'ev-row' }, arts.map(a => { const f = fileFor(a.path); return h('button', { class: 'ev-thumb', onclick: () => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }, artType(a) === 'image' && srcFor(a) ? h('img', { src: srcFor(a), alt: '' }) : artType(a) === 'video' && srcFor(a) ? h('video', { src: srcFor(a), muted: true, preload: 'metadata' }) : h('div', { class: 'ph' }, artType(a) === 'pr' ? 'PR' : a.url ? '↗' : '¶'), h('span', null, a.url ? (a.url.match(/pull\/\d+/) || [a.url.replace(/^https?:\/\//, '')])[0] : base(a.path))); })) : null,
-      it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', null, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'), o.why && h('span', { class: 'why' }, o.why))))) : null,
+      arts.length ? h('div', { class: 'ev-row' }, arts.map(a => { const f = fileFor(a.path); return h('button', { class: `ev-thumb${ch?.arts?.includes(a.path || a.url) ? ' chg' : ''}`, onclick: () => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }, artType(a) === 'image' && srcFor(a) ? h('img', { src: srcFor(a), alt: '' }) : artType(a) === 'video' && srcFor(a) ? h('video', { src: srcFor(a), muted: true, preload: 'metadata' }) : h('div', { class: 'ph' }, artType(a) === 'pr' ? 'PR' : a.url ? '↗' : '¶'), h('span', null, a.url ? (a.url.match(/pull\/\d+/) || [a.url.replace(/^https?:\/\//, '')])[0] : base(a.path))); })) : null,
+      it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', { class: ch?.options?.includes(o.key) ? 'chg' : null }, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'), o.why && h('span', { class: 'why' }, o.why))))) : null,
       resolved ? h('div', { class: 'verdict' }, s.verdict ? consequence(s.verdict) : 'Resolved by the agent.') : h('div', { class: 'actions' }, actionsFor(it)),
-      thread.length ? h('div', { class: 'thread' }, thread.map(x => h('div', { class: `msg ${x.me || x.from === 'captain' ? 'me' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.text))) : null,
+      thread.length ? h('div', { class: 'thread' }, thread.map(x => h('div', { class: `msg ${x.me || x.from === 'captain' ? 'me' : ''}${isNewMsg(x, ch) ? ' chg' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.text))) : null,
       !resolved && !s.awaiting ? (() => { const inp = h('input', { placeholder: 'Ask a follow-up…', onkeydown: e => { if (e.key === 'Enter') send(); } }); const send = () => { const v = inp.value.trim(); if (!v) return; const line = emit({ id: it.id, action: 'ask', note: v }); s.awaiting = true; save(); earn(it, 'ask'); renderPlain(); }; return h('div', { class: 'follow' }, inp, h('button', { class: 'abtn ask', onclick: send }, 'Ask')); })() : null));
   return d;
 }
@@ -1048,7 +1074,7 @@ function renderPlain() {
   const groups = [['decision', 'Needs your word'], ['review', 'Review the work'], ['answer', 'Dispatches to read and file'], ['todo', 'Notices: only you']];
   for (const [k, label] of groups) {
     if (f !== 'all' && f !== k) continue;
-    const rows = open.filter(i => i.kind === k).sort((a, b) => st(a.id).awaiting - st(b.id).awaiting || prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created); if (!rows.length) continue;
+    const rows = open.filter(i => i.kind === k).sort((a, b) => st(a.id).awaiting - st(b.id).awaiting || urgency(a, b)); if (!rows.length) continue;
     root.append(h('section', { class: 'plain-group' }, h('h2', null, label, ` (${rows.length})`), rows.map(i => plainCard(i))));
   }
   if (f === 'all') {
@@ -1099,6 +1125,7 @@ function syncItems(prevById) {
     const was = s.awaiting; s.awaiting = statusOf(it) === 'open' && computeAwaiting(it);
     if (was && !s.awaiting) replies++;
     if (prevById && !prevById[it.id] && it.status === 'open') fresh.push(it);
+    if (s.read && !s.seen) s.seen = digestOf(it); // read before the desk kept versions: this one counts as seen
   }
   for (const a of S.answers) if (a.action === 'request' && prevById && byId[a.id] && !prevById[a.id]) replies++;
   return { replies, fresh: fresh.filter(it => !S.answers.some(a => a.action === 'request' && a.id === it.id)) };
@@ -1182,6 +1209,27 @@ $('#btn-shop').onclick = () => harbor.openChandlery();
 $('#btn-orders').onclick = () => $('#orders').classList.contains('open') ? closeDrawers() : openDrawer('orders');
 $('#btn-vault').onclick = () => $('#vault').classList.contains('open') ? closeDrawers() : openDrawer('vault');
 $('#btn-log').onclick = () => $('#agentlog').classList.contains('open') ? closeDrawers() : openDrawer('agentlog');
+// search (search-view.js): Cmd/Ctrl+K over every item, topic and note; open items first, in queue order
+const search = window.HarborSearchView({ h, mount: el => { closeModal(); $('#modal-root').append(el); }, open: e => {
+  if (e.kind === 'item') openItem(e.id);
+  else if (e.kind === 'topic') topicView.open(e.slug);
+  else if (e.item && byId[e.item]) openItem(e.item); else if (e.slug) topicView.open(e.slug);
+}, entries: () => {
+  const order = { open: 0, later: 1, resolved: 2 };
+  const items = ITEMS.slice().sort((a, b) => (order[statusOf(a)] ?? 3) - (order[statusOf(b)] ?? 3) || urgency(a, b)).map(it => {
+    const status = statusOf(it);
+    return { kind: 'item', id: it.id, label: status === 'open' ? KIND[it.kind] : status === 'later' ? 'Later' : 'Filed', title: it.title, boost: status === 'open' ? 6 : 0,
+      sub: [it.topic && `#${it.topic}`, it.project, status === 'resolved' ? 'resolved' : status === 'later' ? 'parked' : null].filter(Boolean).join(' · '),
+      keys: [it.id, it.topic, it.project, it.stream, ...(it.options || []).map(o => o.label)].filter(Boolean).join(' '), text: it.summary };
+  });
+  const topics = Object.values(SNAP.topics || {}).sort((a, b) => b.last - a.last).map(t => ({ kind: 'topic', slug: t.slug, label: 'Topic', title: `#${t.slug}`, boost: 3,
+    sub: `${t.items.length} item${t.items.length === 1 ? '' : 's'} · ${t.notes} note${t.notes === 1 ? '' : 's'}`, keys: [t.slug, ...t.related].join(' ') }));
+  const notes = (SNAP.notes || []).slice().reverse().map(n => { const slug = byId[n.item]?.topic || n.topic; return { kind: 'note', item: n.item, slug, label: 'Note',
+    title: n.text.length > 140 ? n.text.slice(0, 139) + '…' : n.text, sub: [byId[n.item]?.title || n.item, slug && `#${slug}`, n.at && fmtDate(n.at)].filter(Boolean).join(' · '),
+    keys: [n.item, slug].filter(Boolean).join(' '), text: n.text }; });
+  return [...items, ...topics, ...notes];
+} });
+$('#btn-search').onclick = () => search.open();
 $('#btn-ledger').onclick = openLedger;
 $('#btn-settings').onclick = openSettings;
 // header menu: one popover for everything that is not at-a-glance status; toggles (sound, music, theme, volume) keep it open
@@ -1217,6 +1265,8 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers)
 document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey));
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => selectTab(t.dataset.tab));
 document.addEventListener('keydown', e => {
+  // Cmd/Ctrl+K: search, from anywhere but the ship phone (it swallows keys while up; checked again here)
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyK') { e.preventDefault(); if (!phone.isOpen()) { setMenu(false); search.toggle(); } return; }
   if (e.key === 'Escape' && menuOpen()) { setMenu(false); return; }
   if (e.key === 'Escape') { closeModal(); closeDrawers(); clearPick(); document.querySelector('.tk-pop')?.remove(); return; }
   const tgt = e.target instanceof Element ? e.target : document.body;
