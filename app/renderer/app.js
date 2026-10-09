@@ -24,6 +24,7 @@ const CAPS = ['#c8552d', '#e0b23a', '#4f8a5b', '#3b6f9e', '#8a3a7a', '#2d8a8a', 
 const VALUE = { decision: 40, review: 30, answer: 15, todo: 25 };
 const PRIO_MULT = { 1: 3, 2: 2, 3: 1.25, 4: 1 };
 const PRIO_LABEL = { 1: 'critical', 2: 'high', 3: 'normal', 4: 'low' };
+const G = window.HarborGame;
 
 // ------------------------------------------------------------ state
 // answers come from answers.jsonl (S.answers is a mirror, never persisted here); the rest is local desk state,
@@ -31,12 +32,15 @@ const PRIO_LABEL = { 1: 'critical', 2: 'high', 3: 'normal', 4: 'low' };
 const PREFS_KEY = 'harbor-deck-prefs';
 const deskKey = () => `harbor-deck-desk:${SNAP.home}`;
 const freshPrefs = () => ({ plain: false, sound: false, music: false, musicVol: 40, theme: 'auto', filter: 'all', tab: 'window', tray: true });
-const fresh = () => ({ day: 1, streak: 0, dayOpen: false, dayStart: 0, cash: 0, answers: [], items: {}, positions: {}, current: null, tickets: { seen: {}, done: {} }, prefs: freshPrefs() });
+// fun: the harbor game (harbor-game.js): cosmetics owned, ink and tune in use, stamp book, days at the desk, the tide goal
+const freshFun = () => ({ owned: [], ink: 'red', track: 'harbor', badges: {}, spent: 0, dayCount: 0, lastDay: null, tide: null, bestRun: 0 });
+const fresh = () => ({ day: 1, streak: 0, dayOpen: false, dayStart: 0, cash: 0, answers: [], items: {}, positions: {}, current: null, tickets: { seen: {}, done: {} }, fun: freshFun(), prefs: freshPrefs() });
 let S = fresh();
 function loadState() {
   const prefs = S.prefs; S = fresh(); S.prefs = prefs;
   try { const raw = localStorage.getItem(deskKey()); if (raw) { const p = JSON.parse(raw); delete p.prefs; delete p.answers; if ((p.demoSeed || 0) === (SNAP.demoSeed || 0)) S = Object.assign(fresh(), p, { prefs }); } } catch (e) { /* in-memory only */ }
   S.demoSeed = SNAP.demoSeed || 0; // a freshly seeded demo always starts a fresh desk
+  S.fun = Object.assign(freshFun(), S.fun);
   S.answers = (SNAP.answers || []).slice();
 }
 try { S.prefs = Object.assign(freshPrefs(), JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) { /* defaults */ }
@@ -164,20 +168,32 @@ const queuedLabel = p => window.HarborSchedule.queuedLabel(p, SCHED, now(), fmtT
 let actx = null;
 const ctx = () => (actx ||= new (window.AudioContext || window.webkitAudioContext)());
 function noise(dur) { const b = ctx().createBuffer(1, ctx().sampleRate * dur, ctx().sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx().createBufferSource(); s.buffer = b; return s; }
-function snd(kind) {
+function snd(kind, pitch = 1) {
   if (!S.prefs.sound) return;
   try {
     const t = ctx().currentTime, g = ctx().createGain(); g.connect(ctx().destination);
-    if (kind === 'thud') { const o = ctx().createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + .18); g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + .25); o.connect(g); o.start(t); o.stop(t + .26); const n = noise(.08); const f = ctx().createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; n.connect(f); f.connect(g); n.start(t); }
+    if (kind === 'thud') { const o = ctx().createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(140 * pitch, t); o.frequency.exponentialRampToValueAtTime(40 * pitch, t + .18); g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + .25); o.connect(g); o.start(t); o.stop(t + .26); const n = noise(.08); const f = ctx().createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; n.connect(f); f.connect(g); n.start(t); }
     else if (kind === 'slide') { const n = noise(.35); const f = ctx().createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(2400, t + .3); g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .35); n.connect(f); f.connect(g); n.start(t); }
     else if (kind === 'ding') { for (const [f, d] of [[880, 0], [1320, .05]]) { const o = ctx().createOscillator(); o.type = 'triangle'; o.frequency.value = f; const gg = ctx().createGain(); gg.gain.setValueAtTime(.18, t + d); gg.gain.exponentialRampToValueAtTime(.001, t + d + .6); o.connect(gg); gg.connect(ctx().destination); o.start(t + d); o.stop(t + d + .62); } }
-    else if (kind === 'coin') { for (const [f, d] of [[1760, 0], [2217, .07]]) { const o = ctx().createOscillator(); o.type = 'square'; o.frequency.value = f; const gg = ctx().createGain(); gg.gain.setValueAtTime(.05, t + d); gg.gain.exponentialRampToValueAtTime(.001, t + d + .25); o.connect(gg); gg.connect(ctx().destination); o.start(t + d); o.stop(t + d + .3); } }
+    else if (kind === 'coin') { for (const [f, d] of [[1760, 0], [2217, .07]]) { const o = ctx().createOscillator(); o.type = 'square'; o.frequency.value = f * pitch; const gg = ctx().createGain(); gg.gain.setValueAtTime(.05, t + d); gg.gain.exponentialRampToValueAtTime(.001, t + d + .25); o.connect(gg); gg.connect(ctx().destination); o.start(t + d); o.stop(t + d + .3); } }
     else if (kind === 'tick') { const o = ctx().createOscillator(); o.type = 'square'; o.frequency.value = 1800; g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .05); o.connect(g); o.start(t); o.stop(t + .06); }
     else if (kind === 'flip') { const n = noise(.12); const f = ctx().createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500; g.gain.setValueAtTime(.1, t); g.gain.exponentialRampToValueAtTime(.001, t + .12); n.connect(f); f.connect(g); n.start(t); }
   } catch (e) { /* no audio */ }
 }
 // Original ambient loop: slow pad chords (I - IV - vi - V-ish in D), filtered-noise surf, occasional gull chirp. Nothing sampled or fetched.
-const music = { on: false, master: null, nodes: [], timers: [] };
+// It follows the desk: one more layer per item cleared today (bass, harp, bells, brushes, counter-melody), and it
+// settles on the home chord with a rising chime once the harbor is clear. The chandlery sells a second tune.
+const TRACKS = { harbor: [[146.8, 185, 220, 277.2], [196, 246.9, 293.7, 370], [123.5, 146.8, 185, 220], [110, 164.8, 220, 246.9]], night: [[146.8, 174.6, 220, 261.6], [116.5, 146.8, 174.6, 220], [174.6, 220, 261.6, 349.2], [130.8, 164.8, 196, 261.6]] };
+const music = { on: false, master: null, nodes: [], timers: [], resolved: false };
+function musicLayers(c, t, chord, n) {
+  const tone = (f, at, len, type, vol) => { const o = c.createOscillator(); o.type = type; o.frequency.value = f; const g = c.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + len); o.connect(g); g.connect(music.master); o.start(at); o.stop(at + len + .05); };
+  if (n >= 1) { tone(chord[0] / 2, t + .1, 4.2, 'sine', .07); tone(chord[0] / 2, t + 4.6, 4.2, 'sine', .06); }
+  if (n >= 2) for (let k = 0; k < 8; k++) tone(chord[k % 4] * 2, t + .5 + k * 1.05, .9, 'triangle', .025);
+  if (n >= 3) for (const [j, d] of [[2, 1.2], [3, 5.7]]) tone(chord[j] * 4, t + d, 2.4, 'sine', .018);
+  if (n >= 4) for (let k = 0; k < 16; k++) { const s = noise(.05); const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 5000; const g = c.createGain(); g.gain.value = k % 4 ? .012 : .022; s.connect(f); f.connect(g); g.connect(music.master); s.start(t + k * .5625); }
+  if (n >= 5) for (const [j, d] of [[1, 0], [2, 2.25], [3, 4.5], [2, 6.75]]) tone(chord[j] * 3, t + d, 2, 'triangle', .015);
+}
+function musicResolve(c, t) { [587.3, 740, 880, 1174.7].forEach((f, k) => { const o = c.createOscillator(); o.type = 'sine'; o.frequency.value = f; const g = c.createGain(); g.gain.setValueAtTime(0, t + k * .18); g.gain.linearRampToValueAtTime(.04, t + k * .18 + .02); g.gain.exponentialRampToValueAtTime(.001, t + k * .18 + 1.6); o.connect(g); g.connect(music.master); o.start(t + k * .18); o.stop(t + k * .18 + 1.7); }); }
 function musicStart() {
   if (music.on) return; const c = ctx(); music.on = true;
   music.master = c.createGain(); music.master.gain.value = 0; music.master.connect(c.destination);
@@ -187,9 +203,12 @@ function musicStart() {
   const lfo = c.createOscillator(); lfo.frequency.value = .09; const lg = c.createGain(); lg.gain.value = .05; lfo.connect(lg); lg.connect(sg.gain); lfo.start();
   n.connect(lp); lp.connect(sg); sg.connect(music.master); n.start(); music.nodes.push(n, lfo);
   // pad: chord every 9 s
-  const chords = [[146.8, 185, 220, 277.2], [196, 246.9, 293.7, 370], [123.5, 146.8, 185, 220], [110, 164.8, 220, 246.9]]; let i = 0;
+  let i = 0; music.resolved = false;
   const pad = () => {
-    if (!music.on) return; const t = c.currentTime; const chord = chords[i++ % chords.length];
+    if (!music.on) return; const t = c.currentTime; const chords = TRACKS[S.fun.track] || TRACKS.harbor; const clear = harborClear();
+    const chord = clear ? chords[0] : chords[i++ % chords.length];
+    if (clear && !music.resolved) musicResolve(c, t + .4); music.resolved = clear;
+    musicLayers(c, t, chord, G.musicLayers(clearedToday()));
     for (const f of chord) for (const det of [-4, 4]) {
       const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = det;
       const f2 = c.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 900;
@@ -202,7 +221,7 @@ function musicStart() {
   const gull = () => { if (!music.on) return; const t = c.currentTime; const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(1500, t); o.frequency.linearRampToValueAtTime(2300, t + .12); o.frequency.linearRampToValueAtTime(1300, t + .35); const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.03, t + .06); g.gain.linearRampToValueAtTime(0, t + .4); o.connect(g); g.connect(music.master); o.start(t); o.stop(t + .45); music.timers.push(setTimeout(gull, 9000 + Math.random() * 18000)); };
   music.timers.push(setTimeout(gull, 5000));
 }
-function musicStop() { if (!music.on) return; music.on = false; const c = ctx(); music.master.gain.linearRampToValueAtTime(0, c.currentTime + 1.2); music.timers.forEach(clearTimeout); music.timers = []; const m = music.master; setTimeout(() => { music.nodes.forEach(n => { try { n.stop(); } catch (e) {} }); music.nodes = []; m.disconnect(); }, 1500); }
+function musicStop() { if (!music.on) return; music.on = false; const c = ctx(); music.master.gain.linearRampToValueAtTime(0, c.currentTime + 1.2); music.timers.forEach(clearTimeout); music.timers = []; const m = music.master, nodes = music.nodes; music.nodes = []; setTimeout(() => { nodes.forEach(n => { try { n.stop(); } catch (e) {} }); m.disconnect(); }, 1500); }
 function musicVolume() { if (music.on && music.master) music.master.gain.linearRampToValueAtTime(S.prefs.musicVol / 100 * .5, ctx().currentTime + .2); }
 
 // ------------------------------------------------------------ answers (UI -> agent)
@@ -221,7 +240,7 @@ function writeLine(line) {
 }
 const jsonl = () => S.answers.map(a => JSON.stringify(a)).join('\n') + (S.answers.length ? '\n' : '');
 const UNDO_MS = 4000;
-function earn(it, action) { const n = payFor(it, action); if (!n) return; S.cash += n; save(); $('#cash-n').textContent = money(S.cash); snd('coin'); toast(`+${money(n)}`, 'cash'); }
+function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return; S.cash += n; save(); $('#cash-n').textContent = money(S.cash); snd('coin', pitch); toast(`+${money(n)}`, 'cash'); }
 
 // ------------------------------------------------------------ queue + visitors
 function queueItems() {
@@ -230,7 +249,7 @@ function queueItems() {
     .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created);
 }
 function spriteSVG(id, kind, opts = {}) {
-  const { cap, coat } = crewColors(id); const mate = opts.mate; const zz = opts.tired || opts.nap;
+  const { cap, coat } = opts.reg || crewColors(id); const mate = opts.mate; const zz = opts.tired || opts.nap; const skin = opts.reg?.skin || '#f0c9a0';
   const cargo = {
     decision: `<rect x="17" y="13" width="9" height="8" fill="#b07a3a"/><rect x="17" y="16" width="9" height="1" fill="#7a4e1e"/><rect x="20" y="14" width="3" height="3" fill="#a3302c"/>`,
     review: `<rect x="17" y="12" width="9" height="9" fill="#333"/><circle cx="21.5" cy="16.5" r="3" fill="#777"/><circle cx="21.5" cy="16.5" r="1" fill="#333"/>`,
@@ -242,7 +261,9 @@ function spriteSVG(id, kind, opts = {}) {
     tray: `<rect x="15" y="15" width="11" height="2" fill="#ddd"/><rect x="18" y="12" width="5" height="3" fill="#e9c46a"/><rect x="19" y="11" width="3" height="1" fill="#c0392b"/>`,
     mug: `<rect x="15" y="14" width="4" height="4" fill="#e9e2cf"/><rect x="19" y="15" width="1" height="2" fill="#e9e2cf"/><rect x="16" y="12" width="1" height="1" fill="#ddd" opacity=".7"/>`
   }[kind] || '';
-  const hat = mate ? `<rect x="4" y="1" width="10" height="4" fill="#1d2a38"/><rect x="3" y="5" width="12" height="1" fill="#0e151e"/><rect x="8" y="2" width="2" height="2" fill="#f2b544"/>` : `<rect x="5" y="2" width="8" height="3" fill="${cap}"/><rect x="4" y="4" width="10" height="1" fill="${cap}"/>`;
+  const hats = [`<rect x="5" y="2" width="8" height="3" fill="${cap}"/><rect x="4" y="4" width="10" height="1" fill="${cap}"/>`, `<rect x="4" y="3" width="10" height="2" fill="${cap}"/><rect x="6" y="2" width="6" height="1" fill="${cap}"/><rect x="9" y="1" width="1" height="1" fill="${cap}"/>`,
+    `<rect x="5" y="3" width="8" height="2" fill="${cap}"/><rect x="13" y="4" width="2" height="1" fill="${cap}"/><rect x="14" y="5" width="1" height="2" fill="${cap}"/>`, `<rect x="6" y="0" width="6" height="4" fill="#2b2318"/><rect x="6" y="3" width="6" height="1" fill="${cap}"/><rect x="4" y="4" width="10" height="1" fill="#2b2318"/>`];
+  const hat = mate ? `<rect x="4" y="1" width="10" height="4" fill="#1d2a38"/><rect x="3" y="5" width="12" height="1" fill="#0e151e"/><rect x="8" y="2" width="2" height="2" fill="#f2b544"/>` : hats[opts.reg?.hat || 0];
   const eyes = zz ? `<rect x="7" y="8" width="2" height="1" fill="#222"/><rect x="10" y="8" width="2" height="1" fill="#222"/><text x="14" y="6" font-size="4" fill="#fff" font-family="monospace" class="zz">z z</text>`
     : opts.sad ? `<rect x="7" y="7" width="1" height="1" fill="#222"/><rect x="10" y="7" width="1" height="1" fill="#222"/><rect x="6" y="6" width="2" height="1" fill="#222" opacity=".6"/><rect x="10" y="6" width="2" height="1" fill="#222" opacity=".6"/>`
     : `<rect x="7" y="7" width="1" height="1" fill="#222"/><rect x="10" y="7" width="1" height="1" fill="#222"/>`;
@@ -253,9 +274,9 @@ function spriteSVG(id, kind, opts = {}) {
   const legs = opts.sit ? `<rect x="5" y="20" width="3" height="3" fill="#2a2a3a"/><rect x="10" y="20" width="3" height="3" fill="#2a2a3a"/><rect x="2" y="23" width="14" height="5" fill="#b07a3a"/><rect x="2" y="25" width="14" height="1" fill="#7a4e1e"/>`
     : `<rect x="5" y="20" width="3" height="6" fill="#2a2a3a"/><rect x="10" y="20" width="3" height="6" fill="#2a2a3a"/><rect x="4" y="26" width="5" height="2" fill="#111"/><rect x="9" y="26" width="5" height="2" fill="#111"/>`;
   return `<svg viewBox="0 0 28 28" class="visitor${mate ? ' mate' : ''}" shape-rendering="crispEdges" aria-hidden="true">
-    ${hat}<rect x="5" y="5" width="8" height="6" fill="#f0c9a0"/>${eyes}${mouth}${sweat}
+    ${hat}<rect x="5" y="5" width="8" height="6" fill="${skin}"/>${eyes}${mouth}${sweat}
     <rect x="4" y="11" width="10" height="9" fill="${body}"/><rect x="8" y="12" width="2" height="7" fill="rgba(255,255,255,.25)"/>${mate ? '<rect x="5" y="12" width="2" height="2" fill="#f2b544"/>' : ''}
-    ${leftArm}<rect x="14" y="12" width="2" height="5" fill="${body}"/><rect x="14" y="17" width="3" height="2" fill="#f0c9a0"/>
+    ${leftArm}<rect x="14" y="12" width="2" height="5" fill="${body}"/><rect x="14" y="17" width="3" height="2" fill="${skin}"/>
     ${legs}${cargo}</svg>`;
 }
 const prioChip = it => h('span', { class: `prio p${prio(it)}`, title: `priority ${prio(it)}: ${PRIO_LABEL[prio(it)]}` }, `P${prio(it)}`);
@@ -263,6 +284,8 @@ const dueChip = it => { if (!it.due) return null; const d = it.due - now(); retu
 // topics, notes and bundles (topic-view.js)
 const topicView = window.HarborTopicView({ h, modal, toast, fmtDate, fmtTime, KIND, ACTION_LABEL, prioChip, mateLabel, st, save, paper, statusOf, openItem, finishStamp, focus: id => { S.current = id; st(id).read = true; },
   data: () => ({ topics: SNAP.topics || {}, byId, notes: SNAP.notes || [] }), openArtifact: a => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) });
+// the living harbor, the ship cat, the chandlery and the ships-out recap (harbor-scene.js)
+const harbor = window.HarborScene({ h, G, modal, fmtDate, fmtTime, money, fun: () => S.fun, cash: () => S.cash, buy, equip });
 const bundleOf = it => topicView.groups(queueItems().filter(i => !st(i.id).awaiting)).get(it.id) || [it];
 function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else { stepUp(id); selectTab('window'); } }
 function renderFilters() {
@@ -277,7 +300,7 @@ function renderQueue() {
     const s = st(it.id); const m = mateFor(it); const c = crewFor(it); const flagged = flaggedCount(it); const g = groups.get(it.id) || [it];
     if (g[0] !== it) continue; // bundle members ride with the first
     ul.append(h('li', { 'aria-current': String(g.some(x => x.id === S.current)), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
-      h('div', { html: spriteSVG(m.id, it.kind, { mate: true, tired: tired() }) }),
+      h('div', { html: (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired() }))(whoBrings(it)) }),
       h('div', null,
         h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null),
         h('div', { class: 'q-meta' }, prioChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
@@ -289,25 +312,46 @@ function impatience(it) {
   const ageD = (now() - it.created) / 86400; const dueH = it.due ? (it.due - now()) / 3600 : null;
   if ((dueH != null && dueH < 12) || ageD > 14) return 2; if ((dueH != null && dueH < 48) || ageD > 1) return 1; return 0;
 }
-function whoBrings(it) { const c = crewFor(it); return c ? { id: c.id, name: crewName(c.id), mate: false } : { id: mateFor(it).id, name: mateFor(it).label, mate: true }; }
+// Crew on the item bring it themselves; otherwise the project's regular does (F2), with a mood and a memory of your recent calls.
+const callsOn = project => S.answers.filter(a => byId[a.id]?.project === project).map(a => ({ action: a.action, at: a.at }));
+function whoBrings(it) {
+  const c = crewFor(it); if (c) return { id: c.id, name: crewName(c.id), mate: false };
+  const r = G.regular(it.project); const calls = callsOn(it.project);
+  return { id: r.id, name: r.name, mate: false, reg: r, mood: G.mood(calls, now()), memory: G.memory(calls, now()) };
+}
+const face = who => (who.mood === 'cheerful' ? { happy: true } : who.mood === 'grumpy' ? { sad: true } : {});
+const present = () => ITEMS.filter(i => statusOf(i) === 'open' && !st(i.id).awaiting);
+const harborClear = () => ITEMS.length > 0 && !present().length;
+const clearedToday = () => Object.values(S.items).filter(s => s.status === 'resolved' && s.verdict && s.verdict.at >= S.dayStart).length;
+const tideNow = () => G.tide(QUOTA.map(q => ({ ...quotaView(q), secs: winSecs(q.window) })));
+function renderHarbor() {
+  const t = now(); const goal = G.tideGoal(S.fun.tide, t, tideNow()); if (JSON.stringify(goal) !== JSON.stringify(S.fun.tide)) { S.fun.tide = goal; save(); }
+  harbor.render({ t, open: ITEMS.filter(i => statusOf(i) === 'open'), stamina: staminaMin(), tide: tideNow(), goal, owned: S.fun.owned, days: S.fun.dayCount });
+}
 function renderWindowScene() {
   const w = $('#at-window'); w.replaceChildren(); w.className = 'at-window';
   const tz = tired(); const it = byId[S.current]; const t0 = now();
   // queue outside the window: one sprite per item waiting on the captain (not the one at the counter)
   const present = queueItems().filter(i => !st(i.id).awaiting); const groups = topicView.groups(present); const mine = groups.get(S.current) || [];
   const line = present.filter(i => !mine.includes(i) && groups.get(i.id)[0] === i);
+  renderHarbor();
   const pq = $('#pier-queue'); pq.replaceChildren();
+  // the ship cat (F8) sits on the most urgent visitor outside: highest priority, then the most impatient
+  const urgent = line.slice(0, 7).reduce((a, b) => ((prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), line[0]);
   line.slice(0, 7).forEach((i, n) => {
     const who = whoBrings(i); const lvl = impatience(i);
-    const label = `${who.name} · ${i.title} · waiting ${age(t0 - i.created)}${i.due ? ` · due ${age(i.due - t0)}` : ''}${lvl === 2 ? ' · very impatient' : lvl === 1 ? ' · getting impatient' : ''}`;
-    pq.append(h('div', { class: `pq ${lvl ? 'tap' : ''} ${lvl === 2 ? 'fast' : ''}`, title: label, 'aria-label': label, style: `animation-delay:${(n * 137) % 600}ms`, onclick: () => stepUp(i.id), html: spriteSVG(who.id, i.kind, { mate: who.mate, tired: tz, sweat: lvl >= 1, watch: lvl === 2 }) }));
+    const label = `${who.name}${who.mood ? ` (${who.mood})` : ''} · ${i.title} · waiting ${age(t0 - i.created)}${i.due ? ` · due ${age(i.due - t0)}` : ''}${lvl === 2 ? ' · very impatient' : lvl === 1 ? ' · getting impatient' : ''}${i === urgent ? ' · the cat says: this one first' : ''}`;
+    const el = h('div', { class: `pq ${lvl ? 'tap' : ''} ${lvl === 2 ? 'fast' : ''}${i === urgent ? ' urgent' : ''}`, title: label, 'aria-label': label, style: `animation-delay:${(n * 137) % 600}ms`, onclick: () => stepUp(i.id), html: spriteSVG(who.id, i.kind, { mate: who.mate, reg: who.reg, ...face(who), tired: tz, sweat: lvl >= 1, watch: lvl === 2 }) });
+    if (i === urgent) el.append(harbor.cat('on-visitor', S.fun.owned.includes('bell')));
+    pq.append(el);
   });
+  if (!line.length) pq.append(harbor.cat('on-pier', S.fun.owned.includes('bell'), true));
   if (line.length > 7) pq.append(h('div', { class: 'pq-more', title: `${line.length - 7} more waiting` }, `+${line.length - 7}`));
   pq.setAttribute('aria-label', `${line.length} waiting outside the window`);
   if (!it || statusOf(it) !== 'open') { w.append(h('div', { class: 'empty' }, line.length ? 'N: next at the window' : 'The pier is quiet')); return; }
   const m = mateFor(it); const who = whoBrings(it);
-  w.append(h('div', { class: 'speech' }, `${m.label} · ${KIND[it.kind].toLowerCase()}${mine.length > 1 ? ` + ${mine.length - 1} more` : ''}`, !who.mate ? h('small', null, `from ${who.name}`) : null),
-    h('div', { class: 'walk', title: `${who.name} at the window`, html: spriteSVG(who.id, it.kind, { mate: who.mate, tired: tz, sweat: impatience(it) === 2 }) }));
+  w.append(h('div', { class: 'speech' }, `${m.label} · ${KIND[it.kind].toLowerCase()}${mine.length > 1 ? ` + ${mine.length - 1} more` : ''}`, who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : !who.mate ? h('small', null, `from ${who.name}`) : null),
+    h('div', { class: 'walk', title: `${who.name} at the window`, html: spriteSVG(who.id, it.kind, { mate: who.mate, reg: who.reg, ...face(who), tired: tz, sweat: impatience(it) === 2 }) }));
 }
 function renderYard() {
   const yard = $('#yard'); if (!yard) return; yard.replaceChildren(); const tz = tired();
@@ -508,17 +552,54 @@ function finishStamp(it, text, ink, line, stays, extra = []) {
   const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current, extra: extra.map(e => [e.it.id, JSON.parse(JSON.stringify(st(e.it.id)))]) };
   flyStamp(src, zone, ink, () => {
     if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(now())} ${fmtTime(now())}`))); }
-    $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud');
-    const walk = $('#at-window .walk'); if (walk) { const who = whoBrings(it); walk.innerHTML = spriteSVG(who.id, stays ? it.kind : '', { mate: who.mate, happy: ink === 'approve' || ink === 'file', sad: ink === 'reject' }); walk.className = `walk ${stays ? 'go-off' : ink === 'reject' ? 'go-sad' : 'go-happy'}`; }
     line.at = now();
+    // tidy run (F4): resolving stamps close together; a bundle (bulk) stamp never counts and ends the run
+    if (!stays) { run = G.comboNext(run, line.at, extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); harbor.showRun(run.n); }
+    const pitch = stays ? 1 : G.comboPitch(run.n), runN = stays ? 0 : run.n;
+    $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud', pitch);
+    const walk = $('#at-window .walk'); if (walk) { const who = whoBrings(it); walk.innerHTML = spriteSVG(who.id, stays ? it.kind : '', { mate: who.mate, reg: who.reg, happy: ink === 'approve' || ink === 'file', sad: ink === 'reject' }); walk.className = `walk ${stays ? 'go-off' : ink === 'reject' ? 'go-sad' : 'go-happy'}`; }
     if (stays) s.awaiting = true; else { s.status = 'resolved'; s.verdict = line; }
     for (const e of extra) { e.line.at = line.at; Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
-    save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length;
-    pending = { line, extra, itemId: it.id, snap, stays, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line) + (extra.length ? ` (+${extra.length} more)` : '')) };
+    save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
+    pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line) + (extra.length ? ` (+${extra.length} more)` : '')) };
     if ($('#agentlog').classList.contains('open')) renderLog();
-    setTimeout(() => { if (pending && pending.line === line) [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action)); }, 300);
+    setTimeout(() => {
+      if (!pending || pending.line !== line) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
+      const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); toast(`×${runN} tidy run +${money(bonus)}`, 'cash'); }
+    }, 300);
     setTimeout(() => { if (!pending || pending.line !== line) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!pending || pending.line !== line) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
   });
+}
+// After a clearing stamp is written (the undo hold is over): the tide goal (F7) and the stamp book (F6).
+let run = { n: 0, at: 0 };
+function afterClear(p) {
+  const t = now(); const clear = harborClear(); const goal = S.fun.tide = G.tideGoal(S.fun.tide, t, tideNow());
+  if (clear && goal && !goal.beat && t <= goal.deadline) { goal.beat = true; S.cash += 50; $('#cash-n').textContent = money(S.cash); snd('ding'); toast(`⚑ Beat the tide: the pier is clear before high tide. +${money(50)}`, 'cash'); }
+  const it = byId[p.itemId]; const task = it ? ITEMS.filter(i => G.taskKey(i) === G.taskKey(it)) : [];
+  awardBadges({ run: p.run, hour: new Date(p.line.at * 1000).getHours(), stamped: true, harborClear: clear, beatTide: !!goal?.beat, fullSheet: task.length >= 4 && task.every(i => statusOf(i) === 'resolved') });
+  save(); renderHarbor();
+}
+function awardBadges(extra) {
+  const ctx = { cleared: clearedToday(), run: 0, hour: new Date().getHours(), stamped: false, harborClear: false, beatTide: false, fullSheet: false, owned: new Set(S.fun.owned), days: S.fun.dayCount, spent: S.fun.spent || 0, ...extra };
+  for (const k of G.earned(ctx, S.fun.badges)) { S.fun.badges[k] = now(); toast(`New stamp in your book: ${G.BADGES.find(b => b.key === k).label}`); }
+  save();
+}
+// F10: count the calendar days the office opens; the town on the far shore grows with them
+function markDay() {
+  const k = G.dayKey(new Date()); if (S.fun.lastDay === k) return;
+  const before = G.town(S.fun.dayCount).length; S.fun.dayCount++; S.fun.lastDay = k; const after = G.town(S.fun.dayCount);
+  if (after.length > before) toast(`The harbor town grew: a ${after[after.length - 1].toLowerCase()} went up on the shore.`);
+  awardBadges({}); save();
+}
+// F5: the chandlery sells cosmetics for the till; ink and tune can be switched once owned
+function buy(key) {
+  const r = G.buy(S.fun, key, S.cash); if (!r.ok) { toast(r.error, 'warn'); return; }
+  const item = G.SHOP.find(x => x.key === key); S.fun = r.fun; S.cash = r.cash; save(); snd('coin'); toast(`Bought: ${item.label}`);
+  awardBadges({}); applyPrefs(); if (!S.prefs.plain) renderWindowScene(); if (item.track && music.on) { musicStop(); musicStart(); }
+}
+function equip(change) {
+  Object.assign(S.fun, change); save(); applyPrefs(); snd('tick');
+  if (change.track && music.on) { musicStop(); musicStart(); }
 }
 function undoToast(msg) {
   const t = h('div', { class: 'toast undo' }, h('span', null, msg), h('button', { class: 'undo-btn', onclick: undoPending }, 'Undo ', h('span', { class: 'kbd' }, 'U')), h('span', { class: 'undo-bar' }));
@@ -528,11 +609,13 @@ function commitPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
   writeLine(p.line); for (const e of p.extra || []) writeLine(e.line); $('#log-count').textContent = S.answers.length;
   if ($('#agentlog').classList.contains('open')) renderLog();
+  if (!p.stays) afterClear(p);
   if (!S.prefs.plain) renderRail();
 }
 function undoPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
   S.items[p.itemId] = p.snap.item; for (const [id, x] of p.snap.extra || []) S.items[id] = x; S.cash = p.snap.cash; S.current = p.itemId; save();
+  run = { n: 0, at: 0 }; harbor.showRun(0); // undo breaks the tidy run
   snd('flip'); toast('Undone. Nothing was sent.'); renderAll();
 }
 function flyStamp(src, zone, ink, done) {
@@ -741,12 +824,14 @@ function renderSchedChip() {
   c.hidden = !v; if (!v) return;
   c.classList.toggle('off', v.off); c.replaceChildren(h('span', null, v.text)); c.title = v.title;
 }
+// the scene's tide line carries the level (F3); the top bar keeps a wave per window, coloured by what is left, and its refill time
+const TIDE_GLYPH = '<svg viewBox="0 0 12 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="3" height="1"/><rect x="3" y="1" width="3" height="1"/><rect x="6" y="2" width="3" height="1"/><rect x="9" y="1" width="3" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="6" y="5" width="3" height="1"/><rect x="9" y="4" width="3" height="1"/></svg>';
 function renderStaminaMini() {
   renderSchedChip();
   const m = staminaMin(); const box = $('#stamina-cluster'); box.replaceChildren();
   if (m == null) { box.append(h('span', { class: 'dim' }, 'no quota')); return; }
   const views = QUOTA.map(quotaView); const shortest = views.reduce((a, b) => a.in < b.in ? a : b);
-  for (const q of views) { const lvl = q.left < 10 ? 'empty' : q.left < 25 ? 'low' : q.left < 50 ? 'mid' : 'ok'; box.append(h('span', { class: `mini-sub ${lvl}`, title: `${q.name} ${q.window}: ${q.left}% left, refills ${fmtTime(q.resets)}${q.in > 86400 ? ' ' + fmtDate(q.resets) : ''}` }, h('span', { class: 'ms-name' }, h('span', { class: 'ms-full' }, q.name.split(' ')[0]), h('span', { class: 'ms-abbr' }, q.name.slice(0, 1)), ' ', h('b', null, q.window)), h('span', { class: 'meter' }, h('span', { style: `width:${q.left}%` })), h('span', { class: 'ms-time' }, age(q.in)))); }
+  for (const q of views) { const lvl = q.left < 10 ? 'empty' : q.left < 25 ? 'low' : q.left < 50 ? 'mid' : 'ok'; box.append(h('span', { class: `mini-sub ${lvl}`, title: `${q.name} ${q.window}: ${q.left}% left, refills ${fmtTime(q.resets)}${q.in > 86400 ? ' ' + fmtDate(q.resets) : ''}` }, h('span', { class: 'ms-name' }, h('span', { class: 'ms-full' }, q.name.split(' ')[0]), h('span', { class: 'ms-abbr' }, q.name.slice(0, 1)), ' ', h('b', null, q.window)), h('span', { class: 'tg', html: TIDE_GLYPH }), h('span', { class: 'ms-time' }, `↻ ${age(q.in)}`))); }
   box.append(h('span', { class: 'ms-short' }, `↻ ${age(shortest.in)}`));
   $('#stamina-cluster').className = `stamina-cluster ${m < 10 ? 'empty' : m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
   $('#tab-crew-flag').hidden = m >= 25; document.body.classList.toggle('tired', m < 20);
@@ -767,7 +852,7 @@ function openManifest() {
       h('section', null, staminaPanel()),
       h('section', null, h('h3', null, 'Regulars'), regularsBoard())),
     h('p', { class: 'ms-foot' }, `Last 7 days: ${FLEET.counts.shipped_7d || 0} shipped, ${FLEET.counts.merged_7d || 0} merged, ${FLEET.counts.rework_7d || 0} reworked, ${FLEET.counts.reports_7d || 0} reports.`));
-  modal('ledger manifest', 'Morning manifest', content, [h('button', { class: 'pbtn', onclick: () => { S.dayOpen = true; S.dayStart = S.dayStart || now(); save(); closeModal(); snd('ding'); if (!S.current) next(); else renderAll(); } }, 'Open the office')]);
+  modal('ledger manifest', 'Morning manifest', content, [h('button', { class: 'pbtn', onclick: () => { S.dayOpen = true; S.dayStart = S.dayStart || now(); markDay(); save(); closeModal(); snd('ding'); if (!S.current) next(); else renderAll(); } }, 'Open the office')]);
 }
 function openLedger() {
   const A = answersToday(); const t0 = now();
@@ -783,10 +868,13 @@ function openLedger() {
     sec('Still waiting on you', waiting.length ? h('ul', null, waiting.map(i => h('li', null, prioChip(i), ' ', i.title, h('span', { class: 'dim' }, ` · waiting ${age(t0 - i.created)}`), i.due ? [' · ', dueChip(i)] : null))) : h('p', { class: 'dim' }, 'Nothing. Clear pier.')),
     sec('Galley', h('ul', null, finished.map(c => h('li', null, `✓ ${crewName(c.id)} finished "${c.task_title || c.task}"`)), cooking.map(c => h('li', null, `… ${crewName(c.id)} still cooking "${c.task_title || c.task}"`)), h('li', null, `Cash earned today: ${money(cashToday)} (till: ${money(S.cash)})`), QUOTA.length ? h('li', null, 'Stamina left: ', QUOTA.map(quotaView).map(q => `${q.name} ${q.window} ${q.left}%`).join(' · ')) : null)),
     sec("Tomorrow's top 3", h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title, i.due ? h('span', { class: 'dim' }, ` · due ${fmtDate(i.due)}`) : null)))));
-  modal('ledger', 'Shift report', content, [
+  const doneToday = Object.entries(S.items).filter(([, s]) => s.status === 'resolved' && s.verdict && s.verdict.at >= S.dayStart).map(([id]) => byId[id] || { id, title: id, project: 'desk' });
+  const recap = harbor.recap({ day: S.day, cleared: G.boats(doneToday), earned: cashToday, waiting: waiting.length, tide: S.fun.tide, run: S.fun.bestRun || 0,
+    badgesToday: Object.entries(S.fun.badges).filter(([, at]) => at >= S.dayStart).map(([k]) => G.BADGES.find(b => b.key === k)?.label).filter(Boolean), logbook: content });
+  modal('ledger', 'Ships out', recap, [
     h('button', { class: 'pbtn ghost', title: 'Clears cash, day count, read marks and paper positions. answers.jsonl is never touched.', onclick: () => { if (confirm('Reset the desk? Clears cash, day count and paper positions. answers.jsonl is kept.')) { commitPending(); try { localStorage.removeItem(deskKey()); } catch (e) {} loadState(); closeModal(); renderAll(); openManifest(); } } }, 'Reset desk'),
-    h('button', { class: 'pbtn ghost', onclick: () => navigator.clipboard?.writeText(content.innerText).then(() => toast('Report copied')) }, 'Copy'),
-    h('button', { class: 'pbtn', onclick: () => { S.day++; S.streak = A.length ? S.streak + 1 : 0; S.dayOpen = false; S.dayStart = now(); save(); closeModal(); snd('ding'); renderAll(); openManifest(); } }, 'Close the day')]);
+    h('button', { class: 'pbtn ghost', onclick: () => navigator.clipboard?.writeText(content.textContent).then(() => toast('Report copied')) }, 'Copy'),
+    h('button', { class: 'pbtn', onclick: () => { S.day++; S.streak = A.length ? S.streak + 1 : 0; S.dayOpen = false; S.dayStart = now(); S.fun.bestRun = 0; run = { n: 0, at: 0 }; save(); closeModal(); snd('ding'); renderAll(); openManifest(); } }, 'Close the day')]);
 }
 
 // ------------------------------------------------------------ plain mode
@@ -827,7 +915,7 @@ function renderPlain() {
     const sel = h('select', { onchange: e => { to = e.target.value; } }, FLEET.firstmates.map(m => h('option', { value: m.id, selected: m.id === to }, m.label)));
     const send = () => { const v = ta.value.trim(); if (!v) return; const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); toast(`Order handed to ${mateLabel(to)}`); renderPlain(); };
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'New order'), h('div', { class: 'pcard order-plain' }, ta, h('div', { class: 'row' }, sel, h('button', { class: 'abtn file', onclick: send }, 'Hand it over')))));
-    root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
+    root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), h('div', null, `${G.boats(open).length} boats moored in the harbor; ${G.town(S.fun.dayCount).length} buildings in town.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Topics'), h('div', { class: 'pcard topics-plain' }, topicView.list())));
     const done = ITEMS.filter(i => statusOf(i) === 'resolved');
     if (done.length) root.append(h('section', { class: 'plain-group' }, h('h2', null, `Resolved (${done.length})`), done.map(i => plainCard(i))));
@@ -841,7 +929,7 @@ function applyPrefs() {
   $('#btn-sound').setAttribute('aria-pressed', String(S.prefs.sound)); $('#btn-music').setAttribute('aria-pressed', String(S.prefs.music)); $('#music-vol').value = S.prefs.musicVol;
   $('#btn-plain').setAttribute('aria-pressed', String(S.prefs.plain)); $('#btn-plain').replaceChildren(icon(S.prefs.plain ? 'desk' : 'plain')); $('#btn-plain').title = S.prefs.plain ? 'Back to the desk (P)' : 'Plain mode: flat list (P)';
   $('#desk-mode').hidden = S.prefs.plain; $('#plain-mode').hidden = !S.prefs.plain; $('#btn-inspect').disabled = S.prefs.plain;
-  $('#cash-n').textContent = money(S.cash); renderStaminaMini();
+  $('#cash-n').textContent = money(S.cash); document.body.dataset.ink = S.fun.ink || 'red'; renderStaminaMini();
   const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); $('#orders-flag').hidden = !flagged; $('#orders-flag').textContent = flagged;
 }
 function renderAll(keepDesk) {
@@ -929,7 +1017,7 @@ bridge.onMenu(async what => {
 });
 
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
-tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
+tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-orders').onclick = () => $('#orders').classList.contains('open') ? closeDrawers() : openDrawer('orders');
@@ -939,7 +1027,7 @@ $('#btn-ledger').onclick = openLedger;
 $('#btn-settings').onclick = openSettings;
 $('#sched-chip').onclick = () => { if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('requests'); };
 $('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('crew'); };
-$('#cash').onclick = openLedger;
+$('#cash').onclick = () => harbor.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
 $('#btn-sound').onclick = () => { S.prefs.sound = !S.prefs.sound; save(); applyPrefs(); snd('ding'); };
 $('#btn-music').onclick = () => { S.prefs.music = !S.prefs.music; save(); applyPrefs(); try { S.prefs.music ? musicStart() : musicStop(); } catch (e) { toast('Audio unavailable'); } };
@@ -962,7 +1050,7 @@ document.addEventListener('keydown', e => {
   if (tgt.closest('#rail')) { railKeys(e); if (e.key.startsWith('Arrow')) return; }
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
   if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
-  else if (k === 'n') next(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
+  else if (k === 'n') next(); else if (k === 'b') harbor.openChandlery(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
 });
@@ -970,7 +1058,7 @@ window.addEventListener('beforeunload', commitPending);
 window.addEventListener('resize', () => { if (!S.prefs.plain) renderDesk(); });
 
 renderAll();
-if (!S.dayOpen) openManifest(); else if (!S.current) next();
+if (!S.dayOpen) openManifest(); else { markDay(); if (!S.current) next(); }
 const low = QUOTA.map(quotaView).filter(q => q.left < 10); if (low.length) setTimeout(() => toast(`Stamina nearly empty: ${low.map(q => `${q.name} ${q.window}`).join(', ')}. Refill in ${age(low[0].in)}.`, 'warn'), 1500);
 if (S.prefs.music) { const once = () => { try { musicStart(); } catch (e) {} document.removeEventListener('pointerdown', once); }; document.addEventListener('pointerdown', once); }
 })();

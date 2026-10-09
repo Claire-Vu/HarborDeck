@@ -58,7 +58,7 @@ U=.agents/skills/verify-harbordeck/scripts/ui.mjs
 ```bash
 $U click --role button --name 'Open the office'      # ARIA role + accessible name
 $U click --css '#queue li' --text 'Merge PR 142'     # app id/class + visible text
-$U press 1                                           # keyboard: 1-4 stamp, u undo, n next, t tickets, p plain, Escape
+$U press 1                                           # keyboard: 1-4 stamp, u undo, n next, t tickets, p plain, b book, l ships out, Escape
 $U fill --css '.modal.noteslip textarea' --value 'why?'
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]
 $U text --css '#desk-surface .paper.manifest h3'     # print matching text
@@ -81,7 +81,9 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#requests-pane textarea`, buttons `Send now`, `Queue for after reset`, `Queue at time`, input `Send at time` | Requests tab |
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
-| `#stamina-cluster .mini-sub`, `#yard .yc.cook` | stamina bars, crew sprites (from quota.json / fleet.json) |
+| `#stamina-cluster .mini-sub` (`.ms-time` = `↻ <refill>`), `#yard .yc.cook` | stamina per window (wave glyph + refill time), crew sprites (from quota.json / fleet.json) |
+| `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#pier-queue .pq.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
+| cash chip / key `b` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
 | `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
 
 `chrome-devtools-axi` also attaches (`eval "$($H env)"` sets its browser URL and a per-instance session) and is fine for reading (`snapshot`, `screenshot`, `console`). Do not click with its `@uid` refs: the desk re-renders every second (clock, animations), so refs go `STALE_REF` between the snapshot and the click. Use `ui.mjs` for every action.

@@ -38,6 +38,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Ask and reply](./ask-reply.md) covers the ask slip, the waiting ticket, the agent's `hd reply`, and reading it on the rail.
 - [Requests](./requests.md) covers new orders sent now and the agent answering a request id.
 - [Browser pane](./browser-pane.md) covers web/lavish artifact cards, the in-desk page, its controls, and the refusal of off-machine pages.
+- [Living harbor](./harbor.md) covers boats per task, sky/weather/tide, regulars, the ship cat, tidy runs, stamp book + chandlery, beat the tide, the ships-out recap, the town and music layers.
 - [Queue for after reset](./scheduler.md) covers queuing from the app and the CLI, the countdown ticket and chip, keep-awake, withdraw, and delivery by `tick` with the stub wake.
 
-Not yet mapped (add a file when they ship or need proof): Settings (data directory, artifact root, on-answer hook), Inspect mode (claim/evidence `comment` lines), plain mode, archive, shift report, standing orders drawer, demo mode (`$H launch --demo`), the `harbor://` media protocol, the MCP server (`hd mcp`), topics, Settings → Web hosts.
+Not yet mapped (add a file when they ship or need proof): Settings (data directory, artifact root, on-answer hook), Inspect mode (claim/evidence `comment` lines), plain mode, archive, standing orders drawer, demo mode (`$H launch --demo`), the `harbor://` media protocol, the MCP server (`hd mcp`), topics, Settings → Web hosts.
