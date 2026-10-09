@@ -11,7 +11,7 @@ One pass through every desk area as a person uses it, for changes that touch the
 - `walk-stow` `x` stows a paper, the box opens its view, `Shift+X` brings all back.
 - `walk-inspect` `i`, a claim, an order in the drawer, `Match` writes a `comment` line.
 - `walk-records` menu Agent log and Archive show the written lines and the filed item; `Cmd+K` search opens an item.
-- `walk-modes` plain mode (`p`), chandlery (`Shift+B`), Ships out (`l`), Settings, ship phone order (`request` line), theme.
+- `walk-modes` plain mode (`p`), chandlery (`Shift+B`), Ships out (`l`), Settings, ship phone order (`request` line), queue for after reset while an agent writes quota.json (the queued ticket stays), theme.
 - `walk-reload` a reload keeps the office open and the filed item gone; no page errors throughout.
 
 ## How to get to it (user POV)

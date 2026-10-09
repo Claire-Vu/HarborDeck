@@ -47,6 +47,7 @@ let deferred = null;
 // What the desk papers show: the current item, its notes and its bundle. Anything else changing keeps the papers still.
 const deskSig = () => { const it = byId[S.current]; return JSON.stringify(it ? [it, (SNAP.notes || []).filter(n => n.item === it.id), bundleOf(it).map(m => m.id)] : null); };
 function applySnapshot(snap) {
+  deferred = null; // a snapshot held while typing is older than this one: never apply it after
   const prevHome = SNAP.home, prevById = byId, prevNotes = SNAP.notes || [], curBefore = deskSig();
   setData(snap);
   if (snap.home !== prevHome || (snap.demoSeed || 0) !== (S.demoSeed || 0)) { loadState(); syncItems(null); closeModal(); renderAll(); if (!S.dayOpen) morning(); else if (!S.current) next(); return; }
