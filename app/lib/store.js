@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { fileURLToPath } = require('url');
 
 const TEXT_EXT = new Set(['.md', '.markdown', '.txt', '.log', '.json', '.csv', '.yaml', '.yml']);
 const MIME = {
@@ -51,6 +52,15 @@ function loadItems(home) {
   return { items, errors };
 }
 
+// A file:// artifact URL is a local path in disguise: it takes the same route as a `path` artifact (existence check,
+// harbor://page/ for .html, folder-scoped serving). The pane itself never opens file:// URLs.
+function localFileArtifact(a) {
+  if (a.path || !/^file:\/\//i.test(a.url)) return a;
+  let p; try { p = fileURLToPath(a.url); } catch (e) { return a; }
+  const { url, ...rest } = a;
+  return { ...rest, path: p };
+}
+
 function normalize(x, mtime) {
   const it = Object.assign({}, x);
   it.kind = ['decision', 'answer', 'review', 'todo'].includes(it.kind) ? it.kind : 'answer';
@@ -59,7 +69,7 @@ function normalize(x, mtime) {
   it.project = it.project || 'general';
   it.summary = it.summary || '';
   it.created = +it.created || mtime || Math.floor(Date.now() / 1000);
-  it.artifacts = Array.isArray(it.artifacts) ? it.artifacts.filter(a => a && (a.path || a.url)) : [];
+  it.artifacts = Array.isArray(it.artifacts) ? it.artifacts.filter(a => a && (a.path || a.url)).map(localFileArtifact) : [];
   it.thread = Array.isArray(it.thread) ? it.thread : [];
   it._mtime = mtime;
   return it;

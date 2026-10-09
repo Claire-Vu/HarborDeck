@@ -81,4 +81,47 @@ test('a page off the machine is refused in the pane and offered externally', asy
   expect(await paneView()).toBe(0);
   await page.locator('.web-refused').getByRole('button', { name: 'Open in your browser' }).click();
   await expect.poll(opened).toContain('https://example.net/');
+  await page.locator('.modal.web').getByRole('button', { name: 'Close' }).click();
 });
+
+test('a file:// web artifact opens its local .html page in the pane', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-fileurl-'));
+  fs.writeFileSync(path.join(dir, 'mockup.html'), '<!doctype html><title>m</title><link rel="stylesheet" href="m.css"><h1>Synthetic mockup</h1>');
+  fs.writeFileSync(path.join(dir, 'm.css'), 'h1 { color: rgb(1, 2, 3); }');
+  fs.writeFileSync(path.join(dir, 'notes.txt'), 'not html');
+  const t = Math.floor(Date.now() / 1000);
+  const url = require('url').pathToFileURL(path.join(dir, 'mockup.html')).href;
+  fs.writeFileSync(path.join(home, 'items', 'file-web.json'), JSON.stringify({ id: 'file-web', kind: 'answer', title: 'File url page', priority: 1, artifacts: [{ type: 'web', url, label: 'Mockup' }], created: t, status: 'open' }));
+  await page.locator('#queue li', { hasText: 'File url page' }).click({ timeout: 8000 });
+  await page.locator('#desk-surface .paper.prcard', { hasText: 'Mockup' }).getByRole('link').click({ position: { x: 8, y: 6 } });
+  await expect(page.locator('.modal.web')).toBeVisible();
+  await expect(page.locator('.web-refused')).toHaveCount(0);
+  await expect.poll(paneView).toBe(1);
+  await expect.poll(() => inPane('document.readyState === "complete" && document.querySelector("h1")?.textContent')).toBe('Synthetic mockup');
+  expect(await inPane('getComputedStyle(document.querySelector("h1")).color')).toBe('rgb(1, 2, 3)');
+  expect(await inPane('location.protocol')).toBe('harbor:');
+  // no general file:// access: a file URL the item does not reference stays refused
+  const r = await page.evaluate(u => window.harbor.web.open(u, { x: 0, y: 0, width: 10, height: 10 }), require('url').pathToFileURL(path.join(dir, 'notes.txt')).href);
+  expect(r.ok).toBe(false);
+  await page.locator('.modal.web').getByRole('button', { name: 'Close' }).click();
+  await expect.poll(paneView).toBe(0);
+});
+
+for (const theme of ['light', 'dark']) {
+  test(`the refusal's "Open in your browser" button is readable in the ${theme} theme`, async () => {
+    await page.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
+    await page.locator('#queue li', { hasText: 'Outside page' }).click();
+    await page.locator('#desk-surface .paper.prcard', { hasText: 'Outside' }).getByRole('link').click({ position: { x: 8, y: 6 } });
+    const btn = page.locator('.web-refused').getByRole('button', { name: 'Open in your browser' });
+    await expect(btn).toBeVisible();
+    const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(n => { n /= 255; return n <= .03928 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+    const s = await btn.evaluate(el => { const c = getComputedStyle(el); return { color: c.color, bg: c.backgroundColor, border: c.borderTopColor, bw: c.borderTopWidth }; });
+    // button face is opaque; label contrasts with it >= 4.5, and with the white panel behind it the button is bounded by an edge
+    expect(s.bg).not.toMatch(/rgba\(.*, 0\)|transparent/);
+    const [a, b] = [lum(s.color), lum(s.bg)].sort((x, y) => y - x);
+    expect((a + .05) / (b + .05)).toBeGreaterThanOrEqual(4.5);
+    const face = lum(s.bg), panel = 1;
+    expect((panel + .05) / (face + .05)).toBeGreaterThanOrEqual(1.5);
+    await page.locator('.modal.web').getByRole('button', { name: 'Close' }).click();
+  });
+}

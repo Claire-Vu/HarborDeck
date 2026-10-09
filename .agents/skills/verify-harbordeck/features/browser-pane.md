@@ -9,6 +9,7 @@ An item can carry a `web` or `lavish` artifact; the desk shows it as a `Web page
 - `web-interactive` the page is live: clicks and scripts work inside it.
 - `web-controls` `←` Back, `↻` Reload, `Browser ↗`, `Full`/`Restore`, `Close` (removes the pane).
 - `web-refused` a non-loopback URL not in Settings → Web hosts shows `.web-refused` with `Open in your browser`; no pane opens.
+- `web-file-url` a `file://` artifact URL (item JSON, or `-a web:file:///abs/x.html` which the CLI stores as a `path` artifact) is a local-page artifact: `View` opens it through `harbor://page/`, like a path `.html`. A non-html or missing file shows the file / `not available locally` card; the pane never opens `file://` itself.
 - `web-cli` `hd ... -a web:<url>` and `-a lavish:<file.html>` write those artifacts.
 
 ## How to get to it (user POV)
@@ -30,6 +31,9 @@ Preconditions:
 - **Close.** Run `$U click --css '.modal.web [aria-label=Close]'`, then `$U wait --css '.modal.web' --gone`; `$U text --pane --css h1` now fails with `no browser pane open`.
 - **CLI entry.** Run `$H hd review hdv-web "Web artifact from the CLI" -a "web:${HDV_SITE}plan.html"`; the new item's card opens the same page.
 - **Refused.** Run `$H hd answer hdv-ext "Outside page" -a web:https://example.net/`, select it, press `View`. `$U wait --css '.web-refused'` succeeds and `--pane` finds no page. Do not press `Open in your browser`.
+
+- **File URL.** Write `/tmp/x/mockup.html` (+ `m.css`), then `$H hd review hdv-fu "File url mockup" -a web:file:///tmp/x/mockup.html` (the item stores `{type: report, path}`), or drop an item JSON whose artifact is `{type: web, url: file:///tmp/x/mockup.html}`. Select, press `View`; `$U text --css '.modal.web .web-addr'` prints `harbor://page/tmp/x/mockup.html`, `$U text --pane --css h1` the page heading, and `.web-refused` is absent. `-a web:file:///tmp/x/notes.txt` gives a `REPORT` card, a missing `.html` a `not available locally` card.
+- **Refusal button.** In the refused panel `.web-refused .tbtn` is white on `#1b2633` in light and dark (`$U eval "document.documentElement.setAttribute('data-theme','dark')"` first); `$U shot` it.
 
 ## Gotchas
 
