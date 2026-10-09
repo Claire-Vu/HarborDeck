@@ -340,11 +340,14 @@ const scenes = HS.view({ h, sprite: it => (w => spriteSVG(w.id, it.kind, { mate:
   age: it => age(now() - it.created), away: it => st(it.id).awaiting, impatience: it => impatience(it), flagged: it => flaggedCount(it), coat: it => G.regular(it.project).coat, now, current: () => S.current,
   open: id => stepUp(id), flip: d => setScene(HS.step(sceneKind(), d)), jump: k => setScene(k), cat: (bell, nap) => harbor.cat(nap ? 'on-pier' : 'on-visitor', bell, nap) });
 const sceneKind = () => (HS.byKind[S.prefs.scene] ? S.prefs.scene : HS.byKind[S.prefs.filter] ? S.prefs.filter : HS.KINDS[0]);
-function setScene(k) { S.prefs.scene = k; S.prefs.filter = k; save(); snd('flip'); renderAll(true); }
+// switching scenes calls the front of that scene's line to the desk; an empty scene leaves the desk empty (all clear)
+function setScene(k) { S.prefs.scene = k; S.prefs.filter = k; const f = sceneLine(k).find(i => !st(i.id).awaiting); S.current = f ? f.id : null; if (f) st(f.id).read = true; save(); snd('flip'); renderAll(); }
+// the line at a scene (HS.line); `back` is when the item was sent to the back of the line: view state, never written out
+const sceneLine = k => HS.line(queueItems(k), it => ({ prio: prio(it), created: it.created, back: st(it.id).back, away: !!st(it.id).awaiting }));
 // the top window: the current kind's scene over the harbor sky; the ship cat (F8) sits by its most urgent figure
 // (highest priority, then the most impatient), and naps when the scene is clear
 function renderScenes() {
-  const open = queueItems('all'); const groups = HS.group(open, () => true); const kind = sceneKind();
+  const open = queueItems('all'); const groups = Object.fromEntries(HS.KINDS.map(k => [k, sceneLine(k)])); const kind = sceneKind();
   const here = groups[kind].filter(i => !st(i.id).awaiting && i.id !== S.current);
   const urgent = here.reduce((a, b) => (!a || (prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), null);
   scenes.render($('#scenes'), { kind, groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size, urgent: urgent?.id, catBell: S.fun.owned.includes('bell') });
@@ -353,17 +356,17 @@ function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
   $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].filter(k => k === 'all' || counts[k] || S.prefs.filter === k).map(k =>
-    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; if (k !== 'all') S.prefs.scene = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
+    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { if (k !== 'all') return setScene(k); S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
 }
 function renderQueue() {
-  const list = queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
+  const kindShown = !!HS.byKind[S.prefs.filter]; const list = kindShown ? sceneLine(S.prefs.filter) : queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
   const heads = list.filter(it => (groups.get(it.id) || [it])[0] === it); const lanes = new Set(heads.map(it => it.project || 'general'));
   let lane = null;
   for (const it of list) {
     const s = st(it.id); const m = mateFor(it); const c = crewFor(it); const flagged = flaggedCount(it); const g = groups.get(it.id) || [it];
     if (g[0] !== it) continue; // bundle members ride with the first
     const p = it.project || 'general';
-    if (lanes.size > 1 && p !== lane) { lane = p; ul.append(h('li', { class: 'q-lane', 'aria-hidden': 'true' }, h('span', null, p), h('span', null, heads.filter(x => (x.project || 'general') === p).length))); }
+    if (!kindShown && lanes.size > 1 && p !== lane) { lane = p; ul.append(h('li', { class: 'q-lane', 'aria-hidden': 'true' }, h('span', null, p), h('span', null, heads.filter(x => (x.project || 'general') === p).length))); }
     ul.append(h('li', { 'aria-current': String(g.some(x => x.id === S.current)), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
       h('div', { html: (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired() }))(whoBrings(it)) }),
       h('div', null,
@@ -444,7 +447,23 @@ function pickLetter(i) {
   st(it.id).choice = o.key; save(); afterPick(it.id);
 }
 function moveRow(d) { const it = byId[S.current]; if (!it) return; const g = bundleOf(it); const nx = g[g.indexOf(it) + d]; if (nx) focusRow(nx.id); }
-function next() { const list = queueItems().filter(i => !st(i.id).awaiting && i.id !== S.current); if (list.length) stepUp(list[0].id); else { S.current = null; save(); renderAll(); } }
+// who is at the window, in order: the scene's line when a kind is shown, else the queue; nobody away on an ask
+const walkOrder = () => (HS.byKind[S.prefs.filter] ? sceneLine(S.prefs.filter) : queueItems()).filter(i => !st(i.id).awaiting);
+// after a stamp: the front of the line steps up (nobody when the scene is clear)
+function next() { const f = walkOrder().find(i => i.id !== S.current); if (f) stepUp(f.id); else { S.current = null; save(); renderAll(); } }
+// N: the one behind the visitor at the desk; past the end of the line, the next busy scene, else back to the front
+function walk() {
+  const ids = walkOrder().map(i => i.id); const nx = ids[ids.indexOf(S.current) + 1]; if (nx) return stepUp(nx);
+  const k = HS.byKind[S.prefs.filter] && HS.nextBusy(S.prefs.filter, Object.fromEntries(HS.KINDS.map(x => [x, sceneLine(x).filter(i => !st(i.id).awaiting).length])));
+  if (k && k !== S.prefs.filter) setScene(k); else if (ids.length && ids[0] !== S.current) stepUp(ids[0]);
+}
+// Back of the line (W): the visitor at the desk goes to the end of their scene's line and the next one steps up.
+// Not a stamp: nothing is written to answers.jsonl; the order is desk state, cleared when the office opens a new day.
+function backOfLine() {
+  const it = byId[S.current]; if (!it || statusOf(it) !== 'open' || st(it.id).awaiting) { toast('Nobody at the desk.'); return; }
+  st(it.id).back = Date.now(); const f = sceneLine(it.kind).find(i => !st(i.id).awaiting && i.id !== it.id);
+  if (f) stepUp(f.id); else { save(); toast('Nobody else in line.'); renderAll(); }
+}
 
 // ------------------------------------------------------------ desk papers
 let inspectPick = null, deskShown = null;
@@ -468,7 +487,7 @@ function renderDesk() {
     it.rules?.length ? h('div', { class: 'check-row' }, checksFor(it).map(({ rule, check }) => h('button', { class: `chk ${check ? (check.ok ? 'ok' : 'flag') : 'none'}`, title: `${rule}: ${check ? (check.ok ? 'passed' : 'FLAGGED') + ' · ' + check.note : 'tagged, not auto-checked'}`, onclick: () => openDrawer('orders') }, check ? (check.ok ? '✓' : '⚠') : '§', ' ', rule))) : null,
     (it.checks || []).some(x => x.ok === false) ? h('div', { class: 'flag-note' }, (it.checks || []).filter(x => x.ok === false).map(x => h('div', null, '⚠ ', x.note))) : null,
     h('p', { class: 'claims' }, claims.map((cl, i) => h('span', { class: `fact ${s.flags[i] === 'match' ? 'matched' : s.flags[i] === 'flag' ? 'flagged' : ''}${fresh.has(cl) ? ' chg' : ''}`, onclick: e => pickFact({ type: 'claim', label: cl, anchor: { claim: cl }, idx: i }, e.currentTarget) }, cl, ' ')))
-  ], 'm'));
+  ], 'm', h('button', { class: 'ibtn back-btn', title: 'Back of the line (W): step aside to the end of the line; the next one steps up. Writes nothing.', onclick: backOfLine }, 'Back of the line')));
   const seen = new Set();
   const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body, true));
   arts.forEach((a, i) => { const key = a.path || a.url; if (seen.has(key)) return; seen.add(key); const p = artifactPaper(it, a, i, ch); if (p) { if (ch?.arts?.includes(key)) markNew(p); papers.push(p); } });
@@ -1056,7 +1075,7 @@ function openManifest() {
     week.length ? h('p', { class: 'ms-foot' }, `Last 7 days: ${week.map(([n, w]) => `${n} ${w}`).join(', ')}.`) : null);
   modal('ledger manifest', 'Morning manifest', content, [h('span', { class: 'legend' }, 'Space'), h('button', { class: 'pbtn', onclick: () => openOffice() }, 'Open the office')]);
 }
-function openOffice(quiet) { S.dayOpen = true; S.dayStart = S.dayStart || now(); S.closedSig = null; markDay(); save(); closeModal(); if (!quiet) snd('ding'); if (!S.current) next(); else renderAll(); }
+function openOffice(quiet) { S.dayOpen = true; S.dayStart = S.dayStart || now(); S.closedSig = null; for (const s of Object.values(S.items)) delete s.back; markDay(); save(); closeModal(); if (!quiet) snd('ding'); if (!S.current) next(); else renderAll(); }
 // What is waiting, for "did anything change overnight": open items and their last rewrite.
 const openSig = () => ITEMS.filter(i => statusOf(i) === 'open').map(i => `${i.id}@${i.updated || i.created}`).sort().join(' ');
 // A closed office: the manifest, unless nothing changed since the day was closed; then straight to work.
@@ -1249,7 +1268,7 @@ bridge.onMenu(async what => {
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
 tickClock(); setInterval(tickClock, 1000); let parkedSig = ITEMS.filter(i => statusOf(i) === 'later').length;
 setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); } }, 30000);
-$('#btn-next').onclick = next;
+$('#btn-next').onclick = walk;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-shop').onclick = () => harbor.openChandlery();
 $('#btn-orders').onclick = () => $('#orders').classList.contains('open') ? closeDrawers() : openDrawer('orders');
@@ -1334,7 +1353,7 @@ document.addEventListener('keydown', e => {
   if (tgt.closest('#rail')) { railKeys(e); if (e.key.startsWith('Arrow')) return; }
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
   if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
-  else if (k === 'n') next(); else if (k === 'b' && e.shiftKey) $('#btn-shop').click(); /* plain B picks option B (quick calls) */ else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
+  else if (k === 'n') walk(); else if (k === 'w') backOfLine(); else if (k === 'b' && e.shiftKey) $('#btn-shop').click(); /* plain B picks option B (quick calls) */ else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
   else if (box) return;

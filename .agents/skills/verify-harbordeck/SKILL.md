@@ -58,7 +58,7 @@ U=.agents/skills/verify-harbordeck/scripts/ui.mjs
 ```bash
 $U click --role button --name 'Open the office'      # ARIA role + accessible name
 $U click --css '#queue li' --text 'Merge PR 142'     # app id/class + visible text
-$U press 1                                           # keyboard: 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, t tickets, p plain, Shift+B book, l ships out, Escape
+$U press 1                                           # keyboard: 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, w back of the line, t tickets, p plain, Shift+B book, l ships out, Escape
 $U fill --css '.modal.noteslip textarea' --value 'why?'
 $U drag --css '#desk-surface .paper .grip' --to '#stow-box'   # pointer drag (or --by dx,dy)
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]
@@ -79,7 +79,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.waitn`, `.upd`, `.chg`, `.chg-note`, `.modal.search .sr-in` / `.sr-row[aria-selected=true]`, `#btn-search`, key `Meta+k` | review tools (features/review-tools.md) |
-| `#scenes[data-scene][data-count]`, `.sc-fig[.leaving\|.at-desk\|.away]`, `.sc-arrow.prev\|.next`, `.sc-pip`, `.sc-go`, `.sc-clear`, keys `ArrowLeft`/`ArrowRight` | scenes (features/scenes.md) |
+| `#scenes[data-scene][data-count]`, `.sc-fig[.leaving\|.at-desk\|.away]`, `.sc-arrow.prev\|.next`, `.sc-pip`, `.sc-go`, `.sc-clear`, `.paper.manifest .back-btn`, keys `ArrowLeft`/`ArrowRight`/`w`/`n` | scenes (features/scenes.md) |
 | `#stow[data-n]`, `#stow-n`, `#stow-box`, `#stow-stack .leaf`, `#stow-view .stow-card[data-pid]` / `.all`, `.paper .stow-btn`, keys `x`/`Shift+X` | storage box (features/storage-box.md) |
 | `.toast.undo` | small bottom-right chip: the 4 s undo hold after a stamp; `u` drops it |
 | `.cash-pop` | floating `+$n` under the cash chip (merges quick earnings, no clicks); cash is no longer a `.toast`. Info `.toast`s are small corner chips; `.toast.warn` stays until its `×` |

@@ -135,8 +135,9 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `U` / `Z` | undo the last stamp (about 4 s) |
 | `Tab` | slide the stamp tray in and out |
 | `X` / `Shift+X` | stow the last-raised paper in the storage box (foot of the stamp tray) / bring all stowed papers back; also a stow button on each paper's grip or drag it onto the box; the stowed papers stand in the box as a pile; click it to see a small copy of each, click one to bring it back; per item, kept across reloads |
-| `N` | next visitor at the window |
-| `←` / `→` | flip the top window's scene: one per kind (Signpost Square, Customs Shed, Bottle Cove for research, Notice Board), a figure per open item; click a figure to bring it to the desk, a kind chip to jump; goal: zero everywhere |
+| `N` | next visitor: the one behind the visitor at the desk; past the end of the line, the next busy scene |
+| `W` | back of the line: the visitor at the desk goes to the end of the scene's line and the next one steps up (also the slip's **Back of the line** button); writes nothing, the order resets when the office opens a new day |
+| `←` / `→` | flip the top window's scene: one per kind (Signpost Square, Customs Shed, Bottle Cove for research, Notice Board), a figure per open item standing single file toward the desk; switching scenes (arrows, kind chip, pip) brings the front of the line (P1 first, then oldest) to the desk; click a figure to bring it instead; goal: zero everywhere |
 | `T` | focus the ticket rail (`←`/`→`, `Enter`) |
 | `I` | inspect: pair a claim with evidence, then Match or Mismatch (writes a `comment` with an anchor) |
 | `R` | standing orders |

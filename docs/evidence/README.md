@@ -32,3 +32,7 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Pixel-block stamps
 
 `docs/evidence/stamp-pixel/` are headless captures (`test/smoke/launch.js`, seeded demo data) of the stamp tray (`2-tray`, `1-tray-desk`), the Approve stamp pressed (`3-pressed`), a stamp in hand (`4-in-hand`), the five impressions on the decision slip (`5-impression-*`) and the narrow tray (`6-phone-tray`).
+
+## Scene legibility and the scene line
+
+`docs/evidence/scene-legibility/{before,after}/` are headless captures (`hdv launch`, synthetic seed, window crop at 2x) of the top scene window at 1000x630, 1280x800 and 1440x900: `busy-*` is Signpost Square with every decision waiting, `allclear-*` is Bottle Cove emptied (research resolved with `hd resolve`). The left column is a fixed 300 px, so the window is the same size at all three. `before` has the title, tide label and all-clear text drawn over the boats; `after` plates every word (title, arrows, the tide bar on the sill, the all-clear card), and the decisions stand single file with the one at the desk in front. `after/back-of-line-1280x800.png` is the same scene after `W`: the next one steps up.
