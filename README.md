@@ -9,6 +9,7 @@ The app is a live view, not an import: it watches the data directory, so new ite
 | Part | Where | For |
 |---|---|---|
 | Desktop app (Electron) | [`app/`](app) | the person at the desk |
+| Architecture and where new code goes | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | contributors |
 | Data contract + JSON Schemas | [`docs/CONTRACT.md`](docs/CONTRACT.md), [`schema/`](schema) | anyone writing or reading the files |
 | Agent CLI `harbordeck` / `hd` (+ MCP server) | [`cli/`](cli) | agents: write items cheaply, read answers |
 | Agent skill | [`skill/`](skill) | teaching any agent to use the desk |
@@ -183,6 +184,8 @@ npm run test:roundtrip          # a real claude -p agent -> desk -> stamp -> bri
 Tests and verification run the app headless (`HARBORDECK_HEADLESS=1`: the window is never shown, focused or in the Dock, but still paints for screenshots and UI driving). Set `HARBORDECK_HEADLESS=0` to watch a run.
 
 `npm run garden` runs the ystack garden gate (`.garden/`) when `~/.agents/skills/garden` is installed, and skips otherwise. It ratchets two rules: no new source files over 400 code lines (the renderer and the CLI dispatcher are grandfathered, so add features as new modules), and no generic module names (`utils`, `helpers`).
+
+Architecture, security rules and where a new feature goes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). CI (`.github/workflows/ci.yml`) runs tests, syntax check, the headless smoke suite and `npm audit` on every PR to `main`.
 
 Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (store, watch, hook, settings, and the browser pane: `web-pane.js` + `web-allow.js`), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
 

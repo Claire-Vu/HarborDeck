@@ -53,8 +53,8 @@ for (const tray of ['open', 'closed']) {
       await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [w, h]);
       await page.waitForFunction(w => window.innerWidth === w, w);
       await page.waitForTimeout(400); // the tray's width transition, then the desk lays out again
-      const m = await measure();
-      expect(m, `${w}x${h}`).toEqual({ doc: 0, body: 0, header: 0, col: 0, desk: 0, surface: 0, scrollX: 0, outside: [], overlaps: [] });
+      // poll: a slow runner can take longer than the fixed wait to finish laying the desk out
+      await expect.poll(measure, { message: `${w}x${h}`, timeout: 5000 }).toEqual({ doc: 0, body: 0, header: 0, col: 0, desk: 0, surface: 0, scrollX: 0, outside: [], overlaps: [] });
     }
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
     await page.waitForFunction(() => window.innerWidth === 1280);
