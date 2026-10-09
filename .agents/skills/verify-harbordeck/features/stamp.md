@@ -9,7 +9,8 @@ A person picks an item at the window and stamps it; after a 4 second undo hold t
 - `stamp-reject` key `2` writes `reject`.
 - `stamp-needswork` key `3` opens a note slip; `Send` writes `needs-work` with the note.
 - `stamp-tray` the `#stamps` tray buttons do the same as the keys; the fifth, `Later`, writes `defer` (see quick-call.md).
-- `stamp-undo` `u` or `z` (or the chip's `Undo`) during the hold drops the line. The hold starts at the key press: an undo during the ~0.4 s stamp flight, before the chip shows, cancels too.
+- `stamp-undo` `u` or `z` (or the chip's `Undo`) during the hold drops the line and brings the item back to the desk. The hold starts at the key press: an undo during the ~0.4 s stamp flight cancels too.
+- `stamp-advance` the next visitor steps up the moment a stamp lands (the stamped papers leave as a ghost), so quick presses each stamp the next item; none are dropped.
 - `stamp-log` the Agent log drawer shows the written lines and a held line.
 
 ## How to get to it (user POV)

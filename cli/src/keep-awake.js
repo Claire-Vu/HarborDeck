@@ -9,6 +9,15 @@ import { writeAtomic } from './store.js';
 import { fmtTime } from './when.js';
 
 export const AWAKE_SLACK = 300;
+export const AWAKE_LEAD = 3600;
+
+// The end of the hold for these pending items (scheduler.json shape), or null for none. An order queued for a clock
+// time counts only within AWAKE_LEAD of it, so a far "queue at time" does not keep the Mac up for hours (if it sleeps
+// through, the order goes out on wake); reset and limit items hold it all the way so idle sleep cannot skip the reset.
+export function awakeUntil(pending, t) {
+  const near = pending.filter((i) => i.kind !== 'at' || (i.due || t) - t <= AWAKE_LEAD);
+  return near.length ? Math.max(t, ...near.map((i) => i.due || t)) + AWAKE_SLACK : null;
+}
 
 export const awakeOps = (env) => ({
   bin: env.HARBORDECK_CAFFEINATE || 'caffeinate',

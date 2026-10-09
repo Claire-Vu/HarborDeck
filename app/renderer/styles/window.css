@@ -114,6 +114,7 @@ body.tired .steam { animation-duration: 3.5s; }
 .queue li .visitor { width: 34px; height: 48px; }
 .queue li .q-title { font-size: 13px; line-height: 1.25; display: flex; gap: 6px; align-items: flex-start; }
 .queue li .q-meta { font-size: 11px; color: var(--ui-muted); margin-top: 3px; display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.queue li.q-empty { display: block; }
 .q-empty { color: var(--ui-muted); font-size: 12.5px; padding: 10px 6px !important; cursor: default !important; }
 .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ui-accent); flex: none; margin-top: 5px; }
 .tag { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 3px; color: #fff; }

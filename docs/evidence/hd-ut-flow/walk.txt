@@ -1,0 +1,25 @@
+PASS F1 click a review -> scene review
+PASS F1 click a notice -> scene todo, All still pressed
+PASS F2 arrows x4, scene arrow, N x17: All pressed, 15 rows
+PASS F5 seed reply ticket reads 'new reply'
+PASS F5 sent order reads 'awaiting reply'
+PASS F6 ask line written
+PASS F6 T focuses the newest reply (Quarantine, not Newsletter)
+PASS F4 first Space opens the unread reply, writes nothing
+PASS F4 second Space stamps (undo chip)
+PASS F4 undo: nothing written
+PASS F3 three quick Spaces -> three notices filed
+PASS F8 empty list text on one line
+PASS F10 manifest has no stow control and stays after 5x X
+PASS F11 slip draft kept after Esc
+PASS F9 reopened phone keeps draft and dial (mate-growth)
+PASS F12 Match shows undo chip, nothing written yet
+PASS F12 undo: no comment written
+PASS F12 Match kept: comment line after the hold
+PASS F12 bridge routes the ask but not the match: comment
+PASS F7 overflow cue beside the rail, no ticket clipped
+PASS F13 toast warns the Mac is kept awake only from an hour before
+PASS F13 no keep-awake held for an order 3 h away
+PASS F14 help works, versions match, missing --opt-art exits 1
+--- 23 pass, 0 fail
+build  fm/hd-ut-flow@2b9887a

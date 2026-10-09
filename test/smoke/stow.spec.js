@@ -36,7 +36,7 @@ test('stow by control, key and drag; count; restore one, restore all', async () 
   const n0 = await papers().count();
   expect(n0).toBeGreaterThan(2);
   // control
-  await papers().first().locator('.stow-btn').click();
+  await papers().locator('.stow-btn').first().click(); // the manifest has none
   await expect(papers()).toHaveCount(n0 - 1);
   await expect(count()).toHaveAttribute('data-n', '1');
   await expect(sheets()).toHaveCount(1);
@@ -100,7 +100,7 @@ test('stowed state survives a reload; bring all back', async () => {
   await page.keyboard.press('Shift+X'); await expect(count()).toHaveAttribute('data-n', '0');
 });
 
-test('the decision slip can never be stowed: no control, drag or key', async () => {
+test('the decision slip and the manifest can never be stowed: no control, drag or key', async () => {
   const slip = page.locator('#desk-surface .paper[data-pid="ask"]');
   await expect(slip).toBeVisible();
   await expect(slip.locator('.stow-btn')).toHaveCount(0);
@@ -114,9 +114,11 @@ test('the decision slip can never be stowed: no control, drag or key', async () 
   await page.keyboard.press('x');
   await expect(slip).toBeVisible();
   await expect(count()).toHaveAttribute('data-n', '1');
-  while (await page.locator('#desk-surface .paper:not([data-pid="ask"])').count()) await page.keyboard.press('x');
+  while (await page.locator('#desk-surface .paper:not([data-pid="ask"]):not([data-pid="m"])').count()) await page.keyboard.press('x');
   await page.keyboard.press('x');
   await expect(slip).toBeVisible();
+  await expect(page.locator('#desk-surface .paper.manifest')).toBeVisible();
+  await expect(page.locator('#desk-surface .paper.manifest .stow-btn')).toHaveCount(0);
   await expect(count()).not.toHaveAttribute('data-n', '0');
   await page.locator('#stow-box').click();
   await expect(page.locator('#stow-view .stow-card[data-pid="ask"]')).toHaveCount(0);

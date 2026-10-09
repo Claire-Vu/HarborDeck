@@ -19,6 +19,8 @@ async function queueOrder(note, to, when, attachments, rule) {
   const r = await bridge.schedule({ when, request: { id: `req-${now()}-${hash(note) % 1000}`, note, to, attachments, ...(rule ? { rule: true } : {}) } });
   if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return false; }
   S.prefs.lastMate = to; save(); snd('slide');
+  // the scheduler keeps the Mac awake only in the last hour before a clock time (cli/src/keep-awake.js AWAKE_LEAD)
+  if (typeof when === 'number' && when - now() > 3600) toast(`Queued for ${fmtTime(when)}. The Mac is kept awake from ${fmtTime(when - 3600)}; if it sleeps through, the order goes out when it wakes.`);
   applySnapshot(r.snapshot); return true;
 }
 function staminaPanel() {

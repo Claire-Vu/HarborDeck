@@ -5,11 +5,12 @@ The big top window shows one scene per item kind, over the harbor sky: Signpost 
 ## Sub-features
 
 - `scene-count` `#scenes[data-scene][data-count]`; `#scenes .sc-fig:not(.leaving)` count = the kind's chip count = `.sc-count`.
-- `scene-flip` `ArrowLeft`/`ArrowRight` and `.sc-arrow.prev|.next` cycle decision → review → answer → todo and wrap; the matching `#filters .chip` is pressed; the front of that scene's line comes to the desk (none when the scene is empty).
+- `scene-follow` the window always shows the scene of the item at the desk: clicking a queue row, a search hit, a ticket's `Open item`, `N` or the auto-advance after a stamp flips `#scenes[data-scene]` to that item's kind.
+- `scene-flip` `ArrowLeft`/`ArrowRight` and `.sc-arrow.prev|.next` cycle decision → review → answer → todo and wrap; the front of that scene's line comes to the desk (none when the scene is empty). With `All` pressed the list stays `All` (the window flips, the list does not); with a kind chip pressed the filter moves along with the scene.
 - `scene-line` figures stand single file toward the desk (right), the one at the desk first (`.sc-fig.at-desk`, a step ahead); the line is P1 first, then oldest, then anyone sent back, then anyone away. With a kind shown, `#queue` lists that line (no lanes).
 - `scene-back` key `W` or `.paper.manifest .back-btn` (`Back of the line`) moves the desk item to the end of its line and calls the next; writes nothing to `answers.jsonl`; marks clear when the office opens a new day.
-- `scene-walk` `N` / `#btn-next` steps to the one behind the desk item; past the end, the next busy scene's front; else back to the front.
-- `scene-index` clicking a kind chip, a `.sc-pip` or `.sc-go` (shown when empty) jumps to that scene and calls its front of the line.
+- `scene-walk` `N` / `#btn-next` steps to the one behind the desk item in the list shown; with a kind chip pressed, past the end, the next busy scene's front; else back to the front. `All` stays `All`.
+- `scene-index` clicking a `.sc-pip` or `.sc-go` (shown when empty) jumps to that scene and calls its front of the line (the list filter as for the arrows); a kind chip also narrows the list to that kind.
 - `scene-open` clicking `.sc-fig` puts its item on the desk (`.sc-fig.at-desk`); an item away on an ask is `.sc-fig.away`.
 - `scene-leave` a resolving stamp leaves a `.sc-fig.leaving` ghost for ~1 s; `u` brings the figure back.
 - `scene-quirks` decisions: `.placard` with option letters, `★` on the recommended one; reviews: `.sc-fig.flagged .pennant` when a standing order is flagged; research: `.sink1`/`.sink2` with age; to-dos: `.soon` flutters within a day, `.overdue` pinned red.
@@ -28,16 +29,17 @@ Preconditions:
 - Baseline instance, office opened, doctor `ok`.
 
 - **Before.** Run `$H capture scenes before`. `$U eval "document.querySelector('#scenes').dataset.scene + ' ' + document.querySelectorAll('#scenes .sc-fig').length"` prints `decision <n>` with `<n>` equal to the `Decisions` chip count.
-- **Flip.** `$U press ArrowRight`; `#scenes[data-scene=review]`, `.sc-name` reads `Customs Shed`, and the desk title is the first `#queue li` that is not `.away`. `$U click --css '#scenes .sc-arrow.prev'` returns to `decision`.
+- **Follow.** `$U click --css '#queue li' --text 'Review the new dashboard'`; `#scenes[data-scene=review]`. `$U click --css '#queue li' --text 'Renew the domain'`; `#scenes[data-scene=todo]`. `#filters .chip[aria-pressed=true]` still reads `All`.
+- **Flip.** `$U click --css '#queue li' --text 'Merge PR 142'`, `$U press ArrowRight`; `#scenes[data-scene=review]`, `.sc-name` reads `Customs Shed`, the desk title is the scene's front figure, and `#filters .chip[aria-pressed=true]` still reads `All` with the same row count. `$U click --css '#scenes .sc-arrow.prev'` returns to `decision`.
 - **Open + leave.** `$U click --css '#filters .chip' --text 'Notices'`, then `$U click --css '#scenes .sc-fig'`; the desk title is that notice. `$U press 1`; `$U wait --css '#scenes .sc-fig.leaving'`; the figure count drops by one and the `answers.jsonl` line lands after the hold.
 - **All clear.** Stamp the remaining notices the same way; `$U wait --css '#scenes .sc-clear' --text 'All clear'`; `$U click --css '#scenes .sc-go'` jumps to the next busy scene.
 - **Back of the line.** `$U press w`; the desk title becomes the second in line, that title is now last in `#queue`, and `answers.jsonl` is unchanged.
-- **Walk.** `$U press n` repeatedly visits every figure once, then flips to the next busy scene.
+- **Walk.** With `All` pressed, `$U press n` repeatedly walks the whole list in order (the window follows each visitor) and `All` stays pressed. With a kind chip pressed it visits every figure once, then flips to the next busy scene.
 - **After.** Run `$H capture scenes after`.
 
 ## Gotchas
 
-- Flipping a scene also sets the queue filter to that kind and replaces the desk item with the front of its line; click `All` to widen the list (then `N` walks the lane-sorted queue).
+- Flipping a scene replaces the desk item with the front of its line but never narrows an `All` list; only a kind chip narrows it (then arrows move that filter along; click `All` to widen it again).
 - A kind chip with zero items is hidden; reach an empty kind with its `.sc-pip` or the arrows.
 - Arrow keys do nothing while a modal or the phone is open.
 - Arrow keys inside the ticket rail still move between tickets; they flip scenes only outside it.

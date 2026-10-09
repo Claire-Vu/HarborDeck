@@ -38,7 +38,7 @@ step "stow box: Shift+X brings all back" bash -c "$U press Escape && $U press Sh
 step "inspect: i shows banner, claim + order -> popover" bash -c "$U press i && $U wait --css '#inspect-banner:not([hidden])' && $U click --css '#desk-surface .paper.manifest .fact' && $U press r && $U click --css '#orders .rule .fact' && $U wait --css '.popover'"
 shot 06-inspect
 n1=$(lines)
-step "inspect: Match writes a comment line" bash -c "$U click --role button --name 'Match' && sleep 1 && [ \$(wc -l < '$A' | tr -d ' ') = $((n1+1)) ] && tail -1 '$A' | grep -q '\"action\":\"comment\".*match:'"
+step "inspect: Match is held for undo, then writes a comment line" bash -c "$U click --role button --name 'Match' && $U wait --css '.toast.undo' && [ \$(wc -l < '$A' | tr -d ' ') = $n1 ] && sleep 5 && [ \$(wc -l < '$A' | tr -d ' ') = $((n1+1)) ] && tail -1 '$A' | grep -q '\"action\":\"comment\".*match:'"
 step "drawers: Escape closes, menu -> Agent log shows lines" bash -c "$U press Escape && $U press i && $U press m && $U click --css '#btn-log' && $U text --css '#log-lines' | grep -q 'flaky-e2e'"
 shot 07-agent-log
 step "drawers: menu -> Archive lists the stamped PR" bash -c "$U press Escape && $U press m && $U click --css '#btn-vault' && $U text --css '#vault-content' | grep -q 'Merge PR 142'"

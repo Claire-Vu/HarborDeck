@@ -25,7 +25,7 @@ Preconditions:
 - **Before.** Run `$H capture storage-box before`. `$U text --css '#stow-n'` prints nothing (empty tray).
 - **Key.** `$U press x`; `$U text --css '#stow-n'` prints `1`.
 - **Button.** `$U click --css '#desk-surface .paper .stow-btn'`; `#stow-n` prints `2`; `$U eval "document.querySelector('#stow-box').getAttribute('aria-label')"` prints `Storage box: 2 stowed`; `$U eval "[...document.querySelectorAll('#stow-stack .leaf')].map(e=>e.className)"` lists two kinds.
-- **Drag.** `$U drag --css '#desk-surface .paper:not([data-pid=ask]) .grip' --to '#stow-box'`; `#stow-n` prints `3`.
+- **Drag.** `$U drag --css '#desk-surface .paper:not([data-pid=ask]):not([data-pid=m]) .grip' --to '#stow-box'`; `#stow-n` prints `3`.
 - **Slip stays.** `$U drag --css '#desk-surface .paper[data-pid=ask] .grip' --to '#stow-box'`; the count is unchanged and the slip is still on the desk.
 - **View + restore one.** `$U click --css '#stow-box'`, `$U wait --css '#stow-view .stow-card .paper.mini'`, `$H capture storage-box view`; `$U click --css '#stow-view .stow-card'`; the count drops by one, the paper is back on the desk and the view stays open.
 - **Bring all.** `$U press Shift+X`; `#stow-n` prints nothing and `$U eval "document.querySelector('#stow-view').hidden"` prints `true`.
@@ -34,7 +34,7 @@ Preconditions:
 
 ## Gotchas
 
-- The decision slip (`data-pid="ask"`) is never stowable: no stow button, a drag onto the box is ignored, `x` skips it, the view never holds it.
+- The decision slip (`data-pid="ask"`) and the manifest (`data-pid="m"`, the title of what is at the desk) are never stowable: no stow button, a drag onto the box is ignored, `x` skips them, the view never holds them. A manifest an older desk stowed comes back on load.
 - The count is per item: selecting another item shows that item's tray.
 - Stowing writes nothing to `answers.jsonl`; the only stored proof is the desk localStorage state and the tray after a reload.
 - Smoke: `test/smoke/stow.spec.js`.

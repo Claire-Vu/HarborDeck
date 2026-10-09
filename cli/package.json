@@ -1,6 +1,6 @@
 {
   "name": "harbordeck",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Agent-side CLI for HarborDeck: write desk items, read the user's answers back, log format gaps.",
   "license": "MIT",
   "type": "module",

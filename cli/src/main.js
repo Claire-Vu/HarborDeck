@@ -2,14 +2,14 @@
 // artifacts by path or URL only, answers read back from a byte offset.
 import fs from 'node:fs';
 import path from 'node:path';
-import { tokenize, parseFlags } from './args.js';
+import { tokenize, parseFlags, wantsHelp } from './args.js';
 import { Store, SLUG, homeDir, writeAtomic } from './store.js';
 import { validate } from './schema.js';
 import { SCHEDULER_COMMANDS } from './scheduler-cli.js';
 import { TOPIC_COMMANDS, NOTE_FLAGS } from './topics-cli.js';
 import { parseArt, isUrl, absPath, attachOptArt } from './artifacts.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version; // = the app's (cli.test.js)
 const KINDS = ['decision', 'answer', 'review', 'todo'];
 const SNAPSHOTS = ['fleet', 'quota', 'rules'];
 
@@ -481,7 +481,7 @@ export async function run(argv, io) {
     store: new Store(homeDir(env)),
   };
   const [cmd, ...rest] = argv;
-  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { io.out(HELP.trimEnd()); return cmd ? 0 : 2; }
+  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h' || wantsHelp(rest)) { io.out(HELP.trimEnd()); return cmd ? 0 : 2; }
   if (cmd === '--version' || cmd === '-v') { io.out(VERSION); return 0; }
   const fn = COMMANDS[cmd];
   if (!fn) { io.err(`hd: unknown command "${cmd}" (hd help)`); return 2; }

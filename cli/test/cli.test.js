@@ -310,7 +310,7 @@ test('decision options carry an optional why line; --why needs a known key', () 
 test('--opt-art attaches a sample to an option; unknown key, repeats, non-decisions fail', () => {
   const { hd, item, cwd: c } = setup();
   const cwd = fs.realpathSync(c);
-  fs.writeFileSync(path.join(cwd, 'a.wav'), 'x');
+  for (const f of ['a.wav', 'shot.png', 'x.png', 'y.png']) fs.writeFileSync(path.join(cwd, f), 'x');
   const r = hd(['decision', 'voice', 'Which voice?', '--opt', 'amy+=Amy', '--opt', 'bo', '--opt', 'cy', '--opt-art', 'amy=a.wav', '--opt-art', 'bo=image:shot.png', '--opt-art', 'cy=http://localhost:3000/v.html']);
   assert.equal(r.code, 0, r.err);
   const o = item('voice').options;
@@ -322,6 +322,29 @@ test('--opt-art attaches a sample to an option; unknown key, repeats, non-decisi
   assert.match(hd(['decision', 'v4', 'V?', '--opt', 'a', '--opt-art', 'a=']).err, /missing the path or URL/);
   assert.match(hd(['review', 'r3', 'R', '--opt-art', 'a=x.png']).err, /--opt-art is for decision options only/);
   assert.match(hd(['decision', 'v5', 'V?', '--opt', 'a', '--opt-art', 'a=web:nofile.html']).err, /web needs a URL/);
+});
+
+test('--opt-art with a missing local file fails and writes nothing', () => {
+  const { hd, home } = setup();
+  const r = hd(['decision', 'v6', 'V?', '--opt', 'a+', '--opt-art', 'a=art/missing.png']);
+  assert.equal(r.code, 1);
+  assert.match(r.err, /--opt-art a: file not found: .*art\/missing\.png/);
+  assert.doesNotMatch(r.err, /warning/);
+  assert.equal(fs.existsSync(path.join(home, 'items', 'v6.json')), false);
+});
+
+test('--help and -h work on every command; the CLI version is the app version', () => {
+  const { hd, home } = setup();
+  for (const args of [['--help'], ['-h'], ['help'], ['batch', '--help'], ['decision', '-h'], ['schedule', '--help'], ['answers', '--help']]) {
+    const r = hd(args, '');
+    assert.equal(r.code, 0, `${args.join(' ')}: ${r.err}`);
+    assert.match(r.out, /^harbordeck \(hd\) /, args.join(' '));
+  }
+  assert.equal(fs.existsSync(path.join(home, 'items')), false);
+  const app = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+  const cli = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  assert.equal(cli, app);
+  assert.equal(hd(['--version']).out.trim(), app);
 });
 
 test('item schema: an option artifact needs type and url or path', () => {
