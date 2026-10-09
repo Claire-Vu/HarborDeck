@@ -12,7 +12,7 @@ Clearing the desk takes one keystroke per answer: letter keys pick a decision's 
 - `qc-sweep` Shift+A opens `.modal.sweep` listing P3-P4 decisions with a recommendation; untick rows; Shift+A again or `Stamp N recommended` writes one `decide` per ticked row; undoable as one; never counts toward a tidy run.
 - `qc-lanes` `#queue li.q-lane` headers per project; `.wt[data-weight]` on each row (`video`, `pr`, `report`, `quick`); filter chips with a zero count are hidden.
 - `qc-speech` `#at-window .speech` says the ask: the item's title, or `N quick calls on <Topic>` for a sheet.
-- `qc-layout` desk papers never overlap; the main artifact (report, image, video, PDF) fills a reading column; file names only, the full path on hover.
+- `qc-layout` desk papers never overlap; the main artifact (report, image, video, PDF) fills a reading column; a desk too narrow for two columns (small window, stamps open) stacks them full width and scrolls; the papers lay out again when the stamp tray opens or closes; file names only, the full path on hover. The page never scrolls sideways at any window size, tray open or closed (`test/smoke/layout.spec.js`).
 - `qc-html` a local `.html` artifact shows as a `.paper.web` card; `Open in the desk browser` opens it in `.modal.web` with its own CSS/JS from the same folder; nothing outside that folder and no hidden files are served.
 - `qc-manifest` empty manifest sections are hidden; Space opens the office; at launch the manifest is skipped when nothing changed since `Close the day`.
 - `qc-rail` an overflowing ticket rail scrolls with the mouse wheel; `#rail-right` / `#rail-left` show `N more ›` / `‹ N` and page the rail on click.

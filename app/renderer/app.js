@@ -209,7 +209,6 @@ const tired = () => { const m = staminaMin(); return m != null && m < 20; };
 
 // scheduler: requests queued for after the usage-limit reset or a time (scheduler.json via the main process)
 const queuedRequests = () => (SCHED?.pending || []).filter(p => p.request && !S.answers.some(a => a.action === 'request' && a.id === p.request.id));
-const awakeUntil = () => (SCHED?.keep_awake && SCHED.keep_awake.until > now() ? SCHED.keep_awake.until : null);
 const { dur, nextClockEpoch } = window.HarborSchedule;
 const queuedLabel = p => window.HarborSchedule.queuedLabel(p, SCHED, now(), fmtTime);
 
@@ -474,7 +473,7 @@ function renderDesk() {
   deskShown = it ? it.id : null;
   if (!it || statusOf(it) !== 'open') {
     lastDeskGroup = null;
-    surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
+    surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or pick up the ship phone for a new order.' : 'The office is closed. Open the day from the morning manifest.'));
     renderTray(null); renderStow(); return;
   }
   const s = st(it.id); const papers = []; const claims = sentences(it.summary); const m = mateFor(it); const c = crewFor(it);
@@ -507,10 +506,18 @@ function renderDesk() {
   shown.forEach((p, i) => { p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms'; makeDraggable(p, it.id); addStowBtn(p, it.id); surf.append(p); });
   layoutPapers(shown, surf, pos);
   const sh = surf.querySelector('.paper.qsheet');
-  if (sh) { if (calm && sheetScroll != null) sh.scrollTop = sheetScroll; sh.querySelector('.b-row.cur')?.scrollIntoView({ block: 'nearest' }); sheetCount(); }
+  if (sh) { if (calm && sheetScroll != null) sh.scrollTop = sheetScroll; keepRowInView(sh); sheetCount(); }
   renderTray(it); renderStow();
 }
 let lastDeskGroup = null, sheetScroll = null;
+// The sheet's current row stays in view by scrolling the sheet only: scrollIntoView would also scroll the desk (and,
+// when stacked, push the manifest off the top). Below 860 px the papers flow and the desk itself is the scroller.
+function keepRowInView(sh) {
+  const row = sh.querySelector('.b-row.cur'); if (!row) return;
+  if (window.innerWidth <= 860) { row.scrollIntoView({ block: 'nearest' }); return; }
+  const r = row.getBoundingClientRect(), b = sh.getBoundingClientRect();
+  if (r.top < b.top) sh.scrollTop += r.top - b.top; else if (r.bottom > b.bottom) sh.scrollTop += Math.min(r.bottom - b.bottom, r.top - b.top);
+}
 const isNewMsg = (x, ch) => ch?.since != null && !x.me && x.from !== 'captain' && x.at > ch.since;
 const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.after(h('span', { class: 'upd' }, 'new')); };
 // Storage box: stowed papers leave the desk (per item, persisted) and wait in the box at the foot of the stamp tray.
@@ -551,6 +558,12 @@ function layoutPapers(papers, surf, pos) {
   const reading = papers.find(p => p.classList.contains('reading'));
   const rest = papers.filter(p => p !== man && p !== ask && p !== reading);
   const leftW = ask?.classList.contains('qsheet') ? Math.min(440, Math.max(340, W * .36)) : 320;
+  // Too narrow for a reading column beside the left stack (small window, stamps open): one full-width column, the desk scrolls.
+  if (W - X0 * 2 < leftW + G * 1.5 + 300) {
+    let y = Y0; const w = W - X0 * 2;
+    for (const p of [man, reading, ask, ...rest].filter(Boolean)) { at(p, X0, y, w, p === reading ? Math.max(240, H * .7) : null); if (p === reading) p.style.height = p.style.maxHeight; y += p.offsetHeight + G; }
+    return;
+  }
   let manH = 0;
   if (man) { man.style.width = leftW + 'px'; man.style.maxHeight = (H * .42) + 'px'; manH = Math.min(man.offsetHeight, H * .42); at(man, X0, Y0, leftW); }
   if (ask) at(ask, X0, man ? Y0 + manH + G : Y0, leftW, H - Y0 * 2 - (man ? manH + G : 0));
@@ -954,47 +967,21 @@ function openNote(opts, onSubmit) {
 }
 
 // ------------------------------------------------------------ requests (orders to firstmates), crew flavour, stamina
-// One order line, from the Requests tab or the ship phone. false when answers.jsonl could not be written.
+// One order line, from the ship phone or plain mode. false when answers.jsonl could not be written.
 function sendOrder(note, to) {
   const n = S.answers.length;
   emit({ id: `req-${now()}-${hash(note) % 1000}`, action: 'request', note, to }); if (S.answers.length === n) return false;
   S.prefs.lastMate = to; save(); snd('ding');
-  if (S.prefs.plain) renderPlain(); else { renderRail(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); }
+  if (S.prefs.plain) renderPlain(); else renderRail();
   return true;
 }
-function renderRequests() {
-  const pane = $('#requests-pane'); pane.replaceChildren();
-  const mates = FLEET.firstmates;
-  let to = S.prefs.lastMate || mates[0]?.id;
-  const ta = h('textarea', { class: 'order-text', placeholder: 'New order: a request, feature or idea…', rows: 3 });
-  const picks = h('div', { class: 'counter' }, mates.map(m => h('button', { class: `mate-pick ${m.id === to ? 'sel' : ''}`, onclick: e => { to = m.id; picks.querySelectorAll('.mate-pick').forEach(b => b.classList.toggle('sel', b === e.currentTarget)); snd('tick'); }, title: m.domain || '' },
-    h('div', { html: spriteSVG(m.id, 'slip', { mate: true, tired: tired() }) }), h('div', { class: 'mate-name' }, m.label), h('div', { class: 'mate-dom' }, m.domain || ''))));
-  const send = () => { const v = ta.value.trim(); if (!v) { ta.focus(); return; } if (sendOrder(v, to)) renderRequests(); };
-  // Queued orders wait in the scheduler and go out by themselves (harbordeck tick), no prompt needed.
-  const queue = async when => {
-    const v = ta.value.trim(); if (!v) { ta.focus(); return; }
-    const id = `req-${now()}-${hash(v) % 1000}`;
-    const r = await bridge.schedule({ when, request: { id, note: v, to } });
-    if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return; }
-    S.prefs.lastMate = to; save(); ta.value = ''; snd('slide');
-    applySnapshot(r.snapshot);
-  };
-  const at = h('input', { type: 'time', class: 'order-time', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
-  const atBtn = h('button', { class: 'pbtn ghost', disabled: true, onclick: () => { if (at.value) queue(nextClockEpoch(at.value)); } }, 'Queue at time');
-  at.addEventListener('input', () => { atBtn.disabled = !at.value; });
-  ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send(); });
-  const sched = SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable';
-  pane.append(h('p', { class: 'legend' }, 'Write an order slip and hand it across the counter. The first mate decides who cooks it. Out of stamina? Queue it: it goes out by itself once the usage limit resets.'), picks,
-    h('div', { class: 'order-slip' }, ta,
-      h('div', { class: 'row' }, h('span', { class: 'legend' }, '⌘/Ctrl+Enter sends now'), h('button', { class: 'pbtn', onclick: send }, 'Send now')),
-      h('div', { class: 'row when-row' }, h('button', { class: 'pbtn ghost', onclick: () => queue('reset') }, 'Queue for after reset'), h('span', { class: 'at-group' }, at, atBtn)),
-      sched ? h('div', { class: 'legend sched-note' }, sched) : null,
-      awakeUntil() ? h('div', { class: 'legend sched-note' }, `☕ Keeping this Mac awake until ${fmtTime(awakeUntil())} so queued work goes out (display can still sleep).`) : null));
-  const queued = queuedRequests();
-  const sent = S.answers.filter(a => a.action === 'request').slice().reverse();
-  if (queued.length || sent.length) pane.append(h('h3', { class: 'oh' }, 'On the counter'),
-    ...queued.map(p => h('div', { class: 'slip-row queued' }, h('div', null, p.request.note), h('div', { class: 'si-meta' }, `${mateLabel(p.request.to)} · ⏳ ${queuedLabel(p)}`))),
-    ...sent.map(a => h('div', { class: 'slip-row' }, h('div', null, a.note), h('div', { class: 'si-meta' }, `${mateLabel(a.to)} · ${fmtDate(a.at)} ${fmtTime(a.at)} · ${byId[a.id] ? 'replied' : a.at >= S.dayStart ? 'handed over, waiting for an item to come back' : 'earlier'}`))));
+// A queued order waits in the scheduler and goes out by itself (harbordeck tick), no prompt needed.
+// when: 'reset' (after the next usage-limit reset) or an epoch. false when the scheduler refused it.
+async function queueOrder(note, to, when) {
+  const r = await bridge.schedule({ when, request: { id: `req-${now()}-${hash(note) % 1000}`, note, to } });
+  if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return false; }
+  S.prefs.lastMate = to; save(); snd('slide');
+  applySnapshot(r.snapshot); return true;
 }
 function renderCrewPane() {
   const pane = $('#crew-pane'); pane.replaceChildren(staminaPanel());
@@ -1050,7 +1037,7 @@ function renderStaminaMini() {
   box.className = `stamina-cluster ${m != null && m < 10 ? 'empty' : m != null && m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
   $('#tab-crew-flag').hidden = m == null || m >= 25; document.body.classList.toggle('tired', m != null && m < 20);
 }
-function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'requests') renderRequests(); if (name === 'topics') $('#topics-pane').replaceChildren(topicView.list()); }
+function selectTab(name) { if (!document.querySelector(`.tab[data-tab="${name}"]`)) name = 'window'; S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'topics') $('#topics-pane').replaceChildren(topicView.list()); }
 
 // ------------------------------------------------------------ day cycle: morning manifest, shift report
 function meter(score, max) { const pct = Math.max(0, Math.min(100, Math.round(((score + max) / (2 * max)) * 100))); return h('div', { class: 'meter' }, h('span', { style: `width:${pct}%` })); }
@@ -1245,7 +1232,8 @@ async function openSettings() {
 // ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
 let phoneDraft = '';
 const phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
-  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder });
+  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, clockEpoch: nextClockEpoch,
+  resetNote: () => SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable' });
 function renderPhoneButton() {
   const set = SNAP.settings || {}, key = HarborPhoneKeys.label(set.phoneShortcut), b = $('#btn-phone');
   const note = { taken: ' The system-wide shortcut is taken by another app: it works inside Harbor Deck only. Pick another in Settings.', invalid: ' The shortcut in Settings is not valid.' }[set.phoneKey] || '';
@@ -1262,7 +1250,7 @@ bridge.onMenu(async what => {
 
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
 tickClock(); setInterval(tickClock, 1000); let parkedSig = ITEMS.filter(i => statusOf(i) === 'later').length;
-setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
+setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-shop').onclick = () => harbor.openChandlery();
@@ -1308,7 +1296,7 @@ menuEl.addEventListener('keydown', e => {
   its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]?.focus();
 });
 document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
-$('#sched-chip').onclick = () => { if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('requests'); };
+$('#sched-chip').onclick = () => phone.open();
 $('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('crew'); };
 $('#cash').onclick = () => harbor.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
@@ -1369,6 +1357,8 @@ function sweep(list) {
 }
 window.addEventListener('beforeunload', commitPending);
 window.addEventListener('resize', () => { if (!S.prefs.plain) { renderDesk(); railCues(); } });
+// the stamp tray opening or closing resizes the desk: lay the papers out again once it settles
+$('#stamps').addEventListener('transitionend', e => { if (e.target === e.currentTarget && e.propertyName === 'width' && !S.prefs.plain) { renderDesk(); railCues(); } });
 
 renderAll();
 if (!S.dayOpen) morning(); else { markDay(); if (!S.current) next(); }

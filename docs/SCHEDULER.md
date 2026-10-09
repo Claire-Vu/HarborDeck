@@ -11,7 +11,7 @@ quota.json window at 100 %    ──►  (detected)         │    1. wake the a
 
 ## What it does
 
-- **Queue**: from the app (Requests → *Queue for after reset* or *Queue at time*) or the CLI (`hd schedule reset "<msg>"`, `hd schedule 01:10 "<msg>"`, `+30m`, `2026-10-09 01:10`, ISO, `@epoch`).
+- **Queue**: from the app (ship phone → `⌥Enter` / *Queue for after reset*, or a time and *Queue at time*) or the CLI (`hd schedule reset "<msg>"`, `hd schedule 01:10 "<msg>"`, `+30m`, `2026-10-09 01:10`, ISO, `@epoch`).
 - **Detect the reset**, agent-agnostic:
   - Claude Code: a `StopFailure` hook (matcher `rate_limit`) runs `hd limit record`. Reset time comes from the status line's `rate_limits` (exhausted window, via [`adapters/claude-code`](../adapters/claude-code)), else the limit message (`resets 3pm (Europe/Paris)`), else `quota.json`.
   - Any agent or adapter that keeps `quota.json` fresh: a window at `used_pct: 100` with a future `resets_at` counts as a limit. No hook needed.

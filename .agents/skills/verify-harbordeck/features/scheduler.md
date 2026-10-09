@@ -15,7 +15,7 @@ Out of usage, a person queues an order for after the limit resets (or for a time
 
 ## How to get to it (user POV)
 
-- Left `Requests` tab: write the order, press `Queue for after reset`, or pick a time and press `Queue at time`.
+- Ship phone: write the order, press `⌥Enter` (or `Queue for after reset`), or pick a time and press `Queue at time`.
 - Terminal: `hd schedule reset "<msg>" --request`.
 - The rail ticket, the top-bar chip, and `Withdraw` in the ticket popover.
 
@@ -26,7 +26,7 @@ Preconditions:
 - Baseline instance, office opened, doctor `ok` (doctor's last check proves the stub wake is configured; `launch` set margin 0).
 - An exhausted window resetting soon. Run `echo '[{"name":"Solo","window":"5h","used_pct":100,"resets_at":'$(( $(date +%s)+30 ))'}]' | $H hd quota -`.
 
-- **Queue.** Run `$U click --css '.tab[data-tab="requests"]'`, `$U fill --css '#requests-pane textarea' --value 'Write the weekly digest'`, `$U click --role button --name 'Queue for after reset'`. `$U wait --css '#rail .ticket.queued' --text 'Write the weekly digest'` succeeds and `$U text --css '#rail .ticket.queued .tk-foot'` reads `⏳ waiting for reset · <n>m`.
+- **Queue.** Run `$U press Meta+Shift+Space`, `$U fill --css '.phone-pad' --value 'Write the weekly digest'`, `$U press Alt+Enter`. `$U wait --css '#rail .ticket.queued' --text 'Write the weekly digest'` succeeds and `$U text --css '#rail .ticket.queued .tk-foot'` reads `⏳ waiting for reset · <n>m`.
 - **Held, not sent.** `$H hd schedule list` lists `reset-req-...` and a `limit-<reset>` wake; `answers.jsonl` has no `Write the weekly digest`; `$U text --css '#sched-chip'` reads `⏳ 1 queued · ↻ ... · ☕ ...`; `$HDV_HOME/schedule/keep-awake.json` names a live pid running `$HDV_STATE/bin/caffeinate -i -t <secs>`. Run `$H capture scheduler queued`.
 - **Too early.** Run `$H tick` before the reset. It delivers nothing.
 - **Deliver.** After the reset time run `$H tick`. Stdout `delivered limit-<reset>` then `delivered reset-req-...`; `$H wake-log` shows one `limit` and one `reset` line; `answers.jsonl` ends with `{"id":"req-...","action":"request","note":"Write the weekly digest","to":"mate-main","queued_at":...,"at":...}`.

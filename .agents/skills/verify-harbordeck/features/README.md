@@ -14,7 +14,7 @@ This directory is the maintained source for verifying Harbor Deck's user-facing 
 
 - UI actions go through `ui.mjs` with an ARIA role + name or the app's ids/classes listed in the skill. Never click chrome-devtools-axi `@uid` refs (the desk re-renders every second).
 - Agent actions go through `$H hd`, scheduler delivery through `$H tick`. Wait on visible state (`$U wait ...`) and on files, never on a fixed sleep, except the 4 s undo hold.
-- The queue lives in the `Window` tab; after using `Requests` or `Crew`, click `.tab[data-tab="window"]` before selecting an item.
+- The queue lives in the `Window` tab; after using `Crew` or `Topics`, click `.tab[data-tab="window"]` before selecting an item.
 - Select the item you mean (`$U click --css '#queue li' --text '<title>'`) before every stamp key; the desk moves on after a stamp.
 - Use ids prefixed `hdv-` for anything you create, so it never collides with seed ids.
 - Restart from baseline (`$H cleanup && $H launch`) instead of undoing mutations by hand.
@@ -39,8 +39,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Stamina](./stamina.md) covers the top bar usage chips: % left per window, countdowns, run-out warning, per-model windows, stale readings, quota.json vs the Claude Code status line.
 - [Live agent writes](./live-feed.md) covers CLI and file item writes, resolve, and fleet/quota snapshots appearing on the running desk.
 - [Ask and reply](./ask-reply.md) covers the ask slip, the waiting ticket, the agent's `hd reply`, and reading it on the rail.
-- [Requests](./requests.md) covers new orders sent now and the agent answering a request id.
-- [Ship phone](./phone.md) covers the phone shortcut and header icon, dialing a first mate, sending with Enter, hanging up, and the shortcut setting.
+- [Ship phone](./phone.md) covers the phone shortcut and header icon, dialing a first mate, sending with Enter, queueing for the reset or a time, the agent answering a request id, hanging up, and the shortcut setting.
 - [Browser pane](./browser-pane.md) covers web/lavish artifact cards, the in-desk page, its controls, and the refusal of off-machine pages.
 - [Scenes](./scenes.md) covers one scene per kind with a figure per open item, arrow and chip navigation, figures leaving on a stamp, the per-scene quirks and progress to zero.
 - [Storage box](./storage-box.md) covers stowing desk papers (control, `X`, drag onto the box), the count, restoring one or all, and persistence across reloads.

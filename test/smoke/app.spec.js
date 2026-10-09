@@ -131,16 +131,15 @@ test('queue for after reset: countdown ticket, delivered by tick, then replied',
   const t = Math.floor(Date.now() / 1000);
   const reset = t + 2 * 3600 + 14 * 60 + 30;
   fs.writeFileSync(path.join(home, 'quota.json'), JSON.stringify([{ name: 'Solo', window: '5h', used_pct: 100, resets_at: reset }]));
-  await page.locator('.tab[data-tab="requests"]').click();
-  await page.locator('#requests-pane textarea').fill('Write the weekly digest');
-  await page.getByRole('button', { name: 'Queue for after reset' }).click();
+  await page.locator('#btn-phone').click();
+  await page.locator('.phone-pad').fill('Write the weekly digest');
+  await page.keyboard.press('Alt+Enter'); // the phone's queue-for-reset key
+  await expect(page.locator('#phone')).toHaveCount(0);
   const ticket = page.locator('#rail .ticket.queued', { hasText: 'Write the weekly digest' });
   await expect(ticket).toBeVisible();
   await expect(ticket.locator('.tk-foot')).toHaveText(/waiting for reset · 2h 1[56]m/);
   await expect(page.locator('#sched-chip')).toContainText('1 queued');
   await expect(page.locator('#sched-chip')).toContainText('☕');
-  await expect(page.locator('#requests-pane .slip-row.queued')).toContainText('waiting for reset');
-  await expect(page.locator('#requests-pane')).toContainText('Keeping this Mac awake until');
   await page.screenshot({ path: path.join(os.tmpdir(), 'harbordeck-queued.png') });
   for (const width of [1280, 1180, 960, 1280]) {
     await app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setContentSize(w, 760), width);

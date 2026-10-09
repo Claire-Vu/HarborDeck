@@ -1,5 +1,5 @@
-// Ship phone: the shortcut opens it centered with the pad focused, dialing picks the first mate, Enter sends the
-// same `request` line the Requests tab writes, Esc/the shortcut hangs up keeping the draft, and the main-process
+// Ship phone: the shortcut opens it centered with the pad focused, dialing picks the first mate, Enter sends
+// one `request` line (Alt+Enter or a time queues it in the scheduler instead), Esc/the shortcut hangs up keeping the draft, and the main-process
 // hotkey (fired through its test seam, never registered system-wide in headless runs) opens it without showing the window.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
@@ -17,7 +17,9 @@ const answers = () => fs.readFileSync(path.join(home, 'answers.jsonl'), 'utf8').
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-phone-'));
   home = seedDemo(path.join(tmp, 'home'));
-  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
+  // queueing may start keep-awake: a stub, never the real caffeinate
+  const caffeinate = path.join(tmp, 'caffeinate-stub'); fs.writeFileSync(caffeinate, '#!/bin/sh\nsleep 120\n'); fs.chmodSync(caffeinate, 0o755);
+  app = await launchApp({ home, profile: path.join(tmp, 'profile'), env: { HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
   await page.getByRole('button', { name: 'Open the office' }).click();
@@ -103,4 +105,37 @@ test('the shortcut is a setting: a new one opens the phone, the old one no longe
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+K' : 'Control+Shift+K');
   await expect(page.locator('#phone .phone-box')).toBeVisible();
   await page.keyboard.press('Escape');
+});
+
+test('queue at a time from the keyboard: Tab to the time, digits never dial, Enter queues it in the scheduler', async () => {
+  const before = answers().length;
+  await page.locator('#btn-phone').click();
+  await page.locator('.phone-pad').fill(''); // an earlier test left a draft
+  await page.keyboard.press('2');
+  const dial = page.locator('.dial-pos[aria-checked="true"]');
+  await expect(dial).toHaveAttribute('data-mate', 'mate-web');
+  await page.keyboard.type('Rotate the staging keys');
+  await expect(page.getByRole('button', { name: 'Queue at time' })).toBeDisabled();
+  await page.keyboard.press('Tab'); await expect(page.getByRole('button', { name: 'Queue for after reset' })).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(page.getByLabel('Send at time')).toBeFocused();
+  await page.keyboard.type('0345'); await page.keyboard.press('a'); // fills the time field (am, where the locale asks): the dial stays on the Web mate
+  await expect(dial).toHaveAttribute('data-mate', 'mate-web');
+  await expect(page.getByRole('button', { name: 'Queue at time' })).toBeEnabled();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#phone')).toHaveCount(0);
+  await expect(page.locator('#rail .ticket.queued', { hasText: 'Rotate the staging keys' })).toBeVisible();
+  await expect(page.locator('#sched-chip')).toContainText('queued');
+  expect(answers().length).toBe(before); // held in the scheduler, nothing sent yet
+  const queued = fs.readdirSync(path.join(home, 'schedule', 'queue')).map(f => JSON.parse(fs.readFileSync(path.join(home, 'schedule', 'queue', f), 'utf8')));
+  const q = queued.find(x => x.request?.note === 'Rotate the staging keys');
+  expect(q.request).toMatchObject({ to: 'mate-web', id: expect.stringMatching(/^req-\d+-\d+$/) });
+  // the scheduler chip opens the phone again
+  await page.locator('#sched-chip').click();
+  await expect(page.locator('#phone .phone-box')).toBeVisible();
+  await page.keyboard.press('Escape');
+});
+
+test('no Requests tab: the phone is the one place to write an order', async () => {
+  await expect(page.locator('.tab[data-tab="requests"]')).toHaveCount(0);
+  await expect(page.locator('#requests-pane')).toHaveCount(0);
 });

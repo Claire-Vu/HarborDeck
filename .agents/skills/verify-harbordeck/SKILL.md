@@ -73,7 +73,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | button `Open the office` | closes the Morning manifest shown on a fresh profile; every drive starts here |
 | `#queue li` + item title | an item in the window queue; click selects it onto the desk |
 | `#desk-surface .paper.manifest h3` | title of the item on the desk |
-| `.tab[data-tab="window"\|"requests"\|"crew"]` | left tabs |
+| `.tab[data-tab="window"\|"crew"\|"topics"]` | left tabs |
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.waitn`, `.upd`, `.chg`, `.chg-note`, `.modal.search .sr-in` / `.sr-row[aria-selected=true]`, `#btn-search`, key `Meta+k` | review tools (features/review-tools.md) |
@@ -83,10 +83,9 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `.cash-pop` | floating `+$n` under the cash chip (merges quick earnings, no clicks); cash is no longer a `.toast`. Info `.toast`s are small corner chips; `.toast.warn` stays until its `×` |
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |
-| `#requests-pane textarea`, buttons `Send now`, `Queue for after reset`, `Queue at time`, input `Send at time` | Requests tab |
 | `#btn-menu`, key `m`; `#menu` with `#btn-inspect`, `#btn-plain`, `#btn-shop`, `#btn-orders`, `#btn-vault`, `#btn-ledger`, `#btn-log`, `#btn-sound`, `#btn-music`, `#music-vol`, `#btn-theme`, `#btn-settings` | header menu: every moved control lives here (open it first; Esc/outside click/action closes it; sound, music, theme keep it open). Header keeps only `#btn-phone`, `#btn-menu` (+`#orders-flag`) |
-| `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, sent cue |
-| `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
+| `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`, key `Alt+Enter`, `.phone-q` buttons `Queue for after reset` / `Queue at time`, input `Send at time`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, queue for the reset or a time, sent cue (the only desk entry point for new orders) |
+| `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>`; click opens the phone |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .ms-group` (`.ms-prov`), `.mini-sub[.model][.stale]` (`.ms-name`, `.ms-pct`, `.ms-time` = `↻ <countdown>`, `.ms-warn`, `.ms-stale`, `[title]`), `#yard .yc.cook` | usage left per window (features/stamina.md; from quota.json + `schedule/rate-limits.json`), crew sprites (fleet.json) |
 | `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#pier-queue .pq.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |

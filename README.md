@@ -92,7 +92,7 @@ Agents that run a loop can skip the hook and block on `hd answers --cursor <name
 
 ## Queue work for after the usage reset
 
-Out of stamina? In **Requests**, write the order and press **Queue for after reset** (or pick a time and **Queue at time**). The order clips to the ticket rail as *waiting for reset · 2h 14m*, flips to *sent* when the scheduler hands it over, and to *replied* when the agent answers. The chip next to the stamina bars shows queued count, time to reset and, on macOS, how long the Mac is kept awake (`caffeinate -i`, display still sleeps). Withdraw a queued order from its ticket.
+Out of stamina? On the ship phone, write the order and press `⌥Enter` or **Queue for after reset** (or pick a time and **Queue at time**). The order clips to the ticket rail as *waiting for reset · 2h 14m*, flips to *sent* when the scheduler hands it over, and to *replied* when the agent answers. The chip next to the stamina bars shows queued count, time to reset and, on macOS, how long the Mac is kept awake (`caffeinate -i`, display still sleeps). Withdraw a queued order from its ticket.
 
 Delivery needs the scheduler job and a wake command once:
 
@@ -148,7 +148,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `Esc` | close drawers and dialogs |
 | `⇧⌘Space` | ship phone (see below; the key is a setting) |
 
-Ship phone: the speaking tube in the top bar, or `⇧⌘Space` (Ctrl+Shift+Space elsewhere) from any app, brings a phone to the middle of the desk with the pad focused. Dial a first mate with `1`-`9` or the arrows (before you start typing; `⌘1`-`⌘9` any time), speak, `Enter` sends (`Shift+Enter` for a new line). It writes the same `request` line as the Requests tab, remembers who you dialed last, and hangs up with a check on the icon. `Esc` or the shortcut hangs up and keeps an unsent message. The system-wide shortcut is the only thing that ever brings the window forward.
+Ship phone: the speaking tube in the top bar, or `⇧⌘Space` (Ctrl+Shift+Space elsewhere) from any app, brings a phone to the middle of the desk with the pad focused. Dial a first mate with `1`-`9` or the arrows (before you start typing; `⌘1`-`⌘9` any time), speak, `Enter` sends (`Shift+Enter` for a new line), `⌥Enter` queues it for after the usage reset, and a time plus **Queue at time** queues it for then. Sending writes one `request` line to `answers.jsonl`; it remembers who you dialed last, and hangs up with a check on the icon. `Esc` or the shortcut hangs up and keeps an unsent message. The system-wide shortcut is the only thing that ever brings the window forward.
 
 Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (Topics tab for the list). Items that share a topic or a `rel` link arrive as one visitor with one question sheet (a row per item, letter keys per row) and are settled with one stamp; agents number a task's questions `<task>.q1`, `.q2`, ... and the CLI gives them that topic. Options can carry a grey `why` line. The queue groups visitors in lanes by project, each with weight icons (quick call, report, PR, video); the speech bubble says the ask. Desk papers never overlap: the main artifact fills a reading column, and paths show as file names (hover for the full path). A local `.html` report opens in the browser pane with its own CSS and scripts. Parked (`Later`) items wait in a lane at the bottom of the queue and come back by themselves; click one to bring it back now.
 
@@ -158,7 +158,7 @@ The harbor in the window carries status, with no extra keys: one boat per open t
 
 The top bar keeps only status (day, clock, cash, usage left per window with reset countdowns, scheduler chip), the ship phone and one menu button (key `M`); search, standing orders, archive, ships out, agent log, chandlery, inspect, plain mode, sound, music and volume, theme and Settings live in that menu, each with its shortcut. A badge on the menu button flags orders needing attention.
 
-Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, plus gaps), crew tab with stamina per subscription window, requests tab and ship phone for new orders to an agent, desk sounds and generated harbor music (both off by default), light/dark/auto theme.
+Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, plus gaps), crew tab with stamina per subscription window, ship phone for new orders to an agent, desk sounds and generated harbor music (both off by default), light/dark/auto theme.
 
 | | |
 |---|---|
