@@ -20,3 +20,7 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Stamp art
 
 `docs/evidence/stamp-art/{before,after}/` are headless captures (`HARBORDECK_HEADLESS=1`, `test/smoke/launch.js`, seeded demo data) of the stamp tray (dark, light, hover), a stamp in hand mid-flight, a stamped slip, every ink colour, and the top-bar megaphone (dark, light, open).
+
+## Megaphone colour
+
+`docs/evidence/megaphone/` are headless captures (`HARBORDECK_HEADLESS=1`, `test/smoke/launch.js`, seeded demo data) of the top-bar megaphone in light and dark, magnified 6x: `before` is the pre-stamp-art icon (monochrome), `current` the red/cream drawing that was replaced, `after` the original shape with colour (brown handle, red horn, brass bell rim).
