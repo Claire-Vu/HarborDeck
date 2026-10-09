@@ -238,6 +238,16 @@ body.tired .steam { animation-duration: 3.5s; }
 .paper.ask legend .hint { font-weight: 400; font-size: 10px; color: var(--paper-faint); margin-left: 4px; }
 .paper.ask label.opt:hover { background: rgba(0,0,0,.05); }
 .paper.ask label.opt { position: relative; }
+/* option previews (quick-call.js): a sample of the option in its row */
+.paper.ask label.opt .o-text { flex: 1; min-width: 0; }
+.op-art { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; }
+.op-art button { font: inherit; cursor: pointer; border: 1px solid rgba(0,0,0,.25); border-radius: 4px; background: rgba(255,255,255,.7); color: inherit; padding: 1px 6px; line-height: 16px; }
+.op-art .op-thumb { padding: 0; width: 56px; height: 40px; overflow: hidden; cursor: zoom-in; }
+.op-art .op-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.op-art .op-play.on { background: var(--approve); color: #fff; border-color: var(--approve); }
+.op-art video.op-media { width: 56px; height: 40px; object-fit: cover; border-radius: 4px; background: #000; }
+.op-art audio.op-media { display: none; }
+.op-art.gone { font-size: 10px; color: var(--paper-faint); border: 1px dashed rgba(0,0,0,.25); border-radius: 4px; padding: 2px 6px; }
 .paper.ask .rec { font-size: 10px; color: var(--approve); font-weight: 700; margin-left: 4px; }
 .paper.ask .stamp-zone { position: relative; min-height: 88px; margin-top: 8px; border: 1px dashed rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; color: var(--paper-faint); font-size: 11px; text-transform: uppercase; letter-spacing: .15em; }
 .paper.photo { background: #fff; color: #222; padding: 10px 10px 14px; width: 260px; }

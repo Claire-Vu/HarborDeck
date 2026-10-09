@@ -333,6 +333,7 @@ const choiceOf = it => st(it.id).choice || it.options?.find(o => o.recommended)?
 // quick calls: letter keys, question sheet, lanes, weights, Later, take-all-recommended (quick-call.js)
 const quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, modal, closeModal, prioChip, choiceOf, artType: a => artType(a), bodyArtifact: b => bodyArtifact(b),
   inspectOption: (e, it, o) => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } },
+  base: p => base(p), srcFor: a => srcFor(a), openArtifact: a => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a),
   focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount() });
 // scenes (scene-view.js): one per kind, a figure per open item; the filter chips are the scene index
 const HS = HarborScenes;
@@ -983,6 +984,7 @@ function openViewer(a) {
   if (type === 'pdf') body = h('div', { class: 'mount' }, f ? h('iframe', { class: 'pdf-full', src: f.url, title: base(a.path) }) : missing(a.path));
   else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : missing(a.path));
   else if (type === 'diff' && f?.text != null) body = h('article', { class: 'sheet' }, diffView(f.text));
+  else if (type === 'audio') body = h('div', { class: 'mount' }, srcFor(a) ? h('audio', { src: srcFor(a), controls: true, autoplay: true }) : missing(a.path));
   else if (type === 'video') body = h('div', { class: 'mount' }, srcFor(a) ? h('video', { src: srcFor(a), controls: true, autoplay: true }) : missing(a.path));
   else { const lit = a.isBody && S.current ? S.items[S.current]?.shown?.lines : null; body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text, lit && new Set(lit)) : `<p>not available locally: ${esc(base(a.path))}</p>` }); }
   let zoom = 1; const apply = () => { body.style.setProperty('--zoom', zoom); };

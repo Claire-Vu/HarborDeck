@@ -19,6 +19,7 @@ Data dir: $HARBORDECK_HOME or ~/.harbordeck
 Items (re-running with the same id rewrites it; created and thread are kept):
   hd decision <id> "<title>" --opt key+ --opt key=Label [flags]   + = recommended
              --why key="<one line>" (repeat)   what an option means or costs, shown under it
+             --opt-art key=[type:]<path|url> (repeat)   a sample of an option (image, audio, video, page), previewed in its row
   hd answer   <id> "<title>" [flags]       research/report to read and file
   hd review   <id> "<title>" [flags]       work to approve/reject/send back
   hd todo     <id> "<title>" [flags]       something only the user can do
@@ -116,7 +117,7 @@ function findProject(cwd) {
 }
 
 const ITEM_FLAGS = {
-  sum: { alias: 's' }, body: { alias: 'b' }, opt: { alias: 'o', multi: true }, art: { alias: 'a', multi: true },
+  sum: { alias: 's' }, body: { alias: 'b' }, opt: { alias: 'o', multi: true }, 'opt-art': { multi: true }, art: { alias: 'a', multi: true },
   pri: { alias: 'p' }, due: { alias: 'd' }, from: { alias: 'f' }, project: {}, stream: {},
   rule: { alias: 'r', multi: true }, ok: { multi: true }, flag: { multi: true },
   topic: { alias: 't' }, rel: { multi: true }, waiting: { alias: 'w', multi: true }, why: { multi: true },
@@ -159,7 +160,17 @@ function buildItem(kind, argv, ctx) {
       const why = v.slice(i + 1).trim();
       if (why) o.why = why;
     }
+    for (const v of flags['opt-art'] || []) {
+      const i = v.indexOf('=');
+      const o = i > 0 && item.options.find((x) => x.key === v.slice(0, i).trim());
+      if (!o) fail(`decision ${id}: --opt-art "${v}" needs <option key>=<[type:]path|url> for one of ${keys.join(', ')}`);
+      if (o.artifact) fail(`decision ${id}: option ${o.key} already has an --opt-art`);
+      const ref = v.slice(i + 1).trim();
+      if (!ref) fail(`decision ${id}: --opt-art "${v}" is missing the path or URL`);
+      try { o.artifact = parseArt(ref, ctx); } catch (e) { fail(`decision ${id}: ${e.message}`); }
+    }
   } else if (kind === 'decision') fail(`decision ${id}: needs at least one --opt`);
+  if (flags['opt-art'] && kind !== 'decision') fail(`${kind} ${id}: --opt-art is for decision options only`);
   if (flags.why && kind !== 'decision') fail(`${kind} ${id}: --why is for decision options only`);
   if (flags.art) item.artifacts = flags.art.map((a) => parseArt(a, ctx));
   const checks = [...(flags.ok || []).map((v) => parseCheck(v, true)), ...(flags.flag || []).map((v) => parseCheck(v, false))];

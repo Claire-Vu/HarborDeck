@@ -80,7 +80,7 @@ Required: `id`, `kind`, `title`, `created`, `status`.
 | `title` | string ≤ 300 | One line. Phrase decisions as a question. |
 | `summary` | string ≤ 2000 | One to three plain sentences. The app treats each sentence as an inspectable claim. |
 | `body` | path or URL | Markdown or text to read in full. Never inline prose. |
-| `options` | `[{key, label, recommended?, why?}]` | **Decision only, required there.** Keys are slugs. At most one should be recommended. `why` (≤ 200) is one short line on what the option means or costs, shown in grey under it. |
+| `options` | `[{key, label, recommended?, why?, artifact?}]` | **Decision only, required there.** Keys are slugs. At most one should be recommended. `why` (≤ 200) is one short line on what the option means or costs, shown in grey under it. `artifact` (`{type, url \| path, label?}`, same shape and types as [artifacts](#artifacts)) is a sample of that option: the desk previews it in the option's row, a thumbnail for an image, an inline play button for audio or video (one plays at a time), an open-in-pane link for a web or HTML page; clicking enlarges it in the viewer. Letter keys are unchanged. A missing file shows a quiet placeholder. Set from the CLI with `--opt-art key=[type:]<path\|url>`. |
 | `artifacts` | `[{type, url \| path, label?}]` | Evidence by reference. See [artifacts](#artifacts). |
 | `rules` | `[rule key]` | Standing orders this item should be read against (keys in `rules.json`). |
 | `checks` | `[{rule, ok, note?}]` | The agent's own check of a standing order: `ok: true` passed, `ok: false` flagged (note says why). Advisory; the user decides. |

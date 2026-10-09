@@ -9,6 +9,29 @@ window.HarborQuickCall = deps => {
   const LETTERS = 'ABCDE';
   const human = slug => { const s = String(slug || '').replace(/[-_.]+/g, ' ').trim(); return s.charAt(0).toUpperCase() + s.slice(1); };
 
+  // A sample of an option, small, in its row: an image thumbnail, a play button (audio, video: inline, one at a time),
+  // or an open link (web page, anything else). A click on the thumbnail or the enlarge button opens the viewer.
+  // A local file that is gone leaves a quiet placeholder. Clicks here never pick the option.
+  let playing = null;
+  const stop = el => { if (playing && playing !== el) { playing.pause(); playing.dispatchEvent(new Event('hd-stop')); } playing = el; };
+  function preview(a) {
+    if (!a || !(a.path || a.url)) return null;
+    const type = deps.artType(a), label = a.label || deps.base(a.path || a.url), src = deps.srcFor(a);
+    const quiet = e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.blur(); };
+    const view = h('button', { type: 'button', class: 'op-open', title: `Enlarge ${label}`, 'aria-label': `Enlarge ${label}`, onclick: e => { quiet(e); deps.openArtifact(a); } }, '⤢');
+    const wrap = (kind, ...kids) => h('span', { class: `op-art ${kind}`, dataset: { art: type } }, ...kids);
+    if (type === 'image') return !src ? wrap('gone', 'not available') : wrap('img', h('button', { type: 'button', class: 'op-thumb', title: `Enlarge ${label}`, 'aria-label': `Enlarge ${label}`, onclick: e => { quiet(e); deps.openArtifact(a); } }, h('img', { src, alt: '' })));
+    if (type === 'audio' || type === 'video') {
+      if (!src) return wrap('gone', 'not available');
+      const m = h(type, { src, preload: 'metadata', class: 'op-media' });
+      const play = h('button', { type: 'button', class: 'op-play', title: `Play ${label}`, 'aria-label': `Play ${label}`, onclick: e => { quiet(e); if (m.paused) { stop(m); m.play().catch(() => {}); } else m.pause(); } }, '▶');
+      const sync = () => { play.textContent = m.paused ? '▶' : '❚❚'; play.classList.toggle('on', !m.paused); };
+      for (const ev of ['play', 'pause', 'ended', 'hd-stop']) m.addEventListener(ev, sync);
+      return wrap(type, m, play, view);
+    }
+    return wrap('link', h('button', { type: 'button', class: 'op-link', title: label, onclick: e => { quiet(e); deps.openArtifact(a); } }, type === 'web' ? 'Open page ↗' : 'Open ↗'));
+  }
+
   // One option on a slip or a sheet row: [A] Label rec. / why. `name` groups the radios of one decision.
   function option(it, o, i, chosen, onPick, name) {
     const k = i < LETTERS.length ? LETTERS[i] : null;
@@ -16,7 +39,8 @@ window.HarborQuickCall = deps => {
       h('input', { type: 'radio', name, value: o.key, checked: chosen, onchange: () => onPick(o.key) }),
       k ? h('span', { class: 'k', 'aria-hidden': 'true' }, k) : null,
       h('span', { class: 'o-text fact', onclick: e => deps.inspectOption(e, it, o) }, o.label, o.recommended ? h('span', { class: 'rec' }, 'rec.') : null,
-        o.why ? h('span', { class: 'why' }, o.why) : null));
+        o.why ? h('span', { class: 'why' }, o.why) : null),
+      preview(o.artifact));
   }
   // Re-mark the chosen option in place (no re-render, so nothing jumps under the captain's eyes).
   function mark(root, key) { root?.querySelectorAll('label.opt').forEach(l => { const on = l.dataset.key === key; l.classList.toggle('on', on); const r = l.querySelector('input'); if (r) r.checked = on; }); }
@@ -99,5 +123,5 @@ window.HarborQuickCall = deps => {
       [h('span', { class: 'legend' }, 'Shift+A again stamps'), h('button', { class: 'pbtn ghost', onclick: deps.closeModal }, 'Cancel'), go]);
   }
 
-  return { LETTERS, option, mark, weightIcons, weightsOf, laneSort, ask, laterUntil, sheet, sweepCandidates, openSweep, human };
+  return { LETTERS, option, preview, mark, weightIcons, weightsOf, laneSort, ask, laterUntil, sheet, sweepCandidates, openSweep, human };
 };

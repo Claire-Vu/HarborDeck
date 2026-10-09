@@ -107,6 +107,15 @@ test('reads the contract sample directory (docs/sample-data) cleanly', () => {
   for (const [p, f] of Object.entries(snap.files)) if (f) assert.ok(f.exists, `missing ${p}`);
 });
 
+test('snapshot serves the files of option artifacts', () => {
+  const home = tmp();
+  write(path.join(home, 'items/d.json'), { id: 'd', kind: 'decision', title: 'D', options: [{ key: 'a', label: 'A', artifact: { type: 'audio', path: 'a.wav' } }, { key: 'b', label: 'B', artifact: { type: 'image', path: 'gone.png' } }] });
+  write(path.join(home, 'a.wav'), 'wav');
+  const snap = store.snapshot(home);
+  assert.ok(snap.files['a.wav'].exists);
+  assert.strictEqual(snap.files['gone.png'].exists, false);
+});
+
 test('web pane allow-list: loopback http(s) only, plus hosts from settings', () => {
   const { isAllowedWebUrl } = require('../../app/lib/web-allow');
   for (const u of ['http://localhost:5173/', 'https://127.0.0.1:4387/session/x', 'http://[::1]:8080/', 'http://LOCALHOST/']) assert.ok(isAllowedWebUrl(u), u);

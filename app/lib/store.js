@@ -120,7 +120,7 @@ function resolveFiles(items, opts, notes = []) {
     if (exists && TEXT_EXT.has(ext)) { try { f.text = readHead(abs, Math.min(size, MAX_TEXT)); f.truncated = size > MAX_TEXT; } catch (e) { /* unreadable */ } }
     files[p] = f;
   };
-  for (const it of items) { add(it.body); for (const a of it.artifacts || []) add(a.path); }
+  for (const it of items) { add(it.body); for (const a of it.artifacts || []) add(a.path); for (const o of it.options || []) add(o.artifact?.path); }
   for (const n of notes) add(n.artifact?.path);
   return files;
 }

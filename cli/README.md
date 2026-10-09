@@ -50,6 +50,7 @@ hd answer|review|todo <id> "<title>" [flags]
   -r/--rule <key> (repeat)   --ok <rule>[:note]   --flag <rule>:<note>
   -t/--topic <slug>   --rel <id>[,<id>]   -w/--waiting <worker>[,<worker>]   (kept when a rewrite omits them)
   --why key="<one line>"   (decisions, repeat) what an option means or costs
+  --opt-art key=[type:]<path|url>   (decisions, repeat) a sample of an option, previewed in its row
 hd reply <id> "<text>"            append to the item's thread (also answers a request id)
 hd resolve <id>...
 hd waiting <id> [<worker>...]     who is blocked on it (none: clear); not an edit, nothing written if unchanged

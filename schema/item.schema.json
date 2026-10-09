@@ -25,24 +25,12 @@
           "key": { "$ref": "#/$defs/slug" },
           "label": { "type": "string", "minLength": 1, "maxLength": 200 },
           "recommended": { "type": "boolean" },
-          "why": { "type": "string", "maxLength": 200, "description": "Optional: one short line on what this option means or costs, shown in grey under it on the desk." }
+          "why": { "type": "string", "maxLength": 200, "description": "Optional: one short line on what this option means or costs, shown in grey under it on the desk." },
+          "artifact": { "$ref": "#/$defs/artifact", "description": "Optional: a sample of this option (image, voice clip, video, page), previewed in its row on the desk. Same shape as an item artifact." }
         }
       }
     },
-    "artifacts": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$", "description": "pr | video | image | report | audio | link | file | diff | web | lavish | ... ; unknown types render as a link. web/lavish: a url shown in the desk's browser pane when its host is allowed (loopback by default)" },
-          "url": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*:" },
-          "path": { "type": "string", "minLength": 1 },
-          "label": { "type": "string", "maxLength": 200 }
-        },
-        "oneOf": [{ "required": ["url"] }, { "required": ["path"] }]
-      }
-    },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
     "rules": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
     "checks": {
       "type": "array",
@@ -80,6 +68,17 @@
   "then": { "required": ["options"] },
   "else": { "not": { "required": ["options"] } },
   "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$", "description": "pr | video | image | report | audio | link | file | diff | web | lavish | ... ; unknown types render as a link. web/lavish: a url shown in the desk's browser pane when its host is allowed (loopback by default)" },
+        "url": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*:" },
+        "path": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "maxLength": 200 }
+      },
+      "oneOf": [{ "required": ["url"] }, { "required": ["path"] }]
+    },
     "slug": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
     "epoch": { "type": "integer", "minimum": 0 }
   }
