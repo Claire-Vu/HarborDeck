@@ -117,7 +117,8 @@
       <button class="tab" role="tab" data-tab="topics" aria-selected="false" title="Topics: everything said about one subject">Topics <span class="badge" id="tab-topics-count">0</span></button>
     </div>
     <section class="tabpane" data-pane="window">
-      <div class="filters" id="filters"></div>
+      <div class="filters" id="filters" role="group" aria-label="Scenes by kind"></div>
+      <section class="scenes" id="scenes" aria-label="Scene"></section>
       <ul class="queue" id="queue" aria-label="Waiting at the window"></ul>
       <div class="queue-actions"><button class="tbtn" id="btn-next" title="Next at the window (N)"><svg class="ic"><use href="#i-next"/></svg> Next <span class="kbd">N</span></button></div>
     </section>
@@ -142,7 +143,7 @@
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
       <button class="stamp later" data-verdict="later" aria-label="Later" title="Later (S): back tomorrow 9:00 · Shift: after the next usage reset"><span class="handle"></span><span class="base"><span class="lbl">Later</span></span></button>
-      <div class="keys">Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ⌘K search · M menu · Esc</div>
+      <div class="keys">Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ←/→ scene · ⌘K search · M menu · Esc</div>
     </div>
   </aside>
 </main>
@@ -179,6 +180,7 @@
 <script src="changes.js"></script>
 <script src="search-view.js"></script>
 <script src="quick-call.js"></script>
+<script src="scene-view.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
