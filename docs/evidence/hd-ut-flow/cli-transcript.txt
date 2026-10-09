@@ -1,0 +1,13 @@
+$ hd --help | head -1
+harbordeck (hd) 0.1.0: put agent output on the HarborDeck desk.
+$ hd -h | head -1
+harbordeck (hd) 0.1.0: put agent output on the HarborDeck desk.
+$ hd batch --help | head -1
+harbordeck (hd) 0.1.0: put agent output on the HarborDeck desk.
+$ hd --version
+0.1.0
+package.json version:
+0.1.0
+$ hd decision hdv-x "Pick?" --opt a+ --opt-art a=art/missing.png
+hd: decision hdv-x: --opt-art a: file not found: /private/tmp/hdflow/HarborDeck/art/missing.png
+exit 1

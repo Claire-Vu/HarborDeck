@@ -24,6 +24,7 @@ Preconditions:
 
 - Fresh baseline instance (`$H cleanup && $H launch`), doctor `ok`, office not yet opened.
 
+- **Flow walk.** `.agents/skills/verify-harbordeck/scripts/flow-walk.sh <dir>` on a fresh baseline drives the busy-captain flow (scene follows the desk, All stays All, fast Space, unread reply first, ticket wording, T, rail overflow, empty list, manifest, slip draft, phone dial, Inspect undo, far timed order, `hd --help`); it ends `--- 23 pass, 0 fail`.
 - **Walk.** Run `.agents/skills/verify-harbordeck/scripts/desk-walk.sh [dir]`. It prints `PASS`/`FAIL` per step and ends `--- N pass, 0 fail`; `walk.log` and `01-manifest.png` ... `11-narrow.png` land in `dir` (default `$H evidence desk-walk`).
 - **Proof.** Each stamp step checks the line in `$HDV_HOME/answers.jsonl`, not the toast; the reply step goes through `$H hd reply`; the error steps read a page error collector installed at boot and after the reload.
 
