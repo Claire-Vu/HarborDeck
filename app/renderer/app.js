@@ -546,7 +546,7 @@ $('#stow-box').addEventListener('click', () => { const l = $('#stow-list'); if (
 function layoutPapers(papers, surf, pos) {
   if (window.innerWidth <= 860) return;
   const W = surf.clientWidth || 900, H = surf.clientHeight || 600, G = 14, X0 = 16, Y0 = 16;
-  const at = (p, x, y, w, hMax) => { if (w) p.style.width = w + 'px'; if (hMax) p.style.maxHeight = Math.max(120, hMax) + 'px'; const u = pos[p.dataset.pid]; p.style.left = (u ? Math.max(0, Math.min(u.x, W - 120)) : x) + 'px'; p.style.top = (u ? Math.max(0, Math.min(u.y, H - 60)) : y) + 'px'; };
+  const at = (p, x, y, w, hMax) => { if (w) p.style.width = w + 'px'; if (hMax) p.style.maxHeight = Math.max(120, hMax) + 'px'; const u = pos[p.dataset.pid]; const c = u && clampToDesk(p, u.x, u.y); p.style.left = (c ? c.x : x) + 'px'; p.style.top = (c ? c.y : y) + 'px'; };
   const man = papers.find(p => p.dataset.pid === 'm'), ask = papers.find(p => p.dataset.pid === 'ask');
   const reading = papers.find(p => p.classList.contains('reading'));
   const rest = papers.filter(p => p !== man && p !== ask && p !== reading);
@@ -667,10 +667,15 @@ function askSlip(it, ch) {
   kids.push(h('div', { class: 'stamp-zone', id: 'stamp-zone' }, s.awaiting ? 'sent back; awaiting reply' : 'Space to stamp'));
   return paper('ask', 'The ask', kids, 'ask');
 }
+// Keeps a paper's whole grab handle on the desk (below the ticket rail, inside the side and bottom edges).
+function clampToDesk(p, x, y) {
+  const surf = p.parentElement, grip = p.querySelector('.grip');
+  return { x: Math.max(0, Math.min(x, surf.clientWidth - p.offsetWidth)), y: Math.max(0, Math.min(y, surf.clientHeight - (grip ? grip.getBoundingClientRect().bottom - p.getBoundingClientRect().top : 30))) };
+}
 function makeDraggable(p, itemId) {
   const grip = p.querySelector('.grip'); let sx, sy, ox, oy, dragging = false;
   grip.addEventListener('pointerdown', e => { if (window.innerWidth <= 860 || e.target.closest('button,a')) return; dragging = true; grip.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = p.offsetLeft; oy = p.offsetTop; p.style.zIndex = 90; p.style.animation = 'none'; });
-  grip.addEventListener('pointermove', e => { if (!dragging) return; p.style.left = (ox + e.clientX - sx) + 'px'; p.style.top = (oy + e.clientY - sy) + 'px'; $('#stow-box').classList.toggle('drop', p.dataset.pid !== 'ask' && overStow(e)); });
+  grip.addEventListener('pointermove', e => { if (!dragging) return; const c = clampToDesk(p, ox + e.clientX - sx, oy + e.clientY - sy); p.style.left = c.x + 'px'; p.style.top = c.y + 'px'; $('#stow-box').classList.toggle('drop', p.dataset.pid !== 'ask' && overStow(e)); });
   grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (p.dataset.pid !== 'ask' && overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
   p.addEventListener('pointerdown', () => { document.querySelectorAll('.paper').forEach(q => { if (q.style.zIndex === '90') q.style.zIndex = 40; }); if (!dragging) p.style.zIndex = 89; });
 }
