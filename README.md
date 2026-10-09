@@ -157,6 +157,7 @@ npm run check       # syntax check of main, preload, renderer and the scheduler 
 (cd cli && npm test)             # CLI + scheduler (parsing, claim/no-resend, retries, keep-awake, installer, wake presets)
 adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
 test/evidence/run.sh demo        # recorded proof of the live round trip (ystack evidence runner)
+npm run test:roundtrip          # a real claude -p agent -> desk -> stamp -> bridge -> agent, timed per leg (needs claude)
 ```
 
 Tests and verification run the app headless (`HARBORDECK_HEADLESS=1`: the window is never shown, focused or in the Dock, but still paints for screenshots and UI driving). Set `HARBORDECK_HEADLESS=0` to watch a run.

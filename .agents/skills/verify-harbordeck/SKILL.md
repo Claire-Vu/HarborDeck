@@ -118,6 +118,19 @@ Proof standards:
 
 Recorded proof (video, contact sheet, manifest) of the live round trip including the firstmate bridge: `test/evidence/run.sh demo` (repo-owned; launches its own isolated instance with a stub firstmate home, needs `~/.agents/skills/evidence`). Output lands in `~/.local/share/evidence/harbordeck/<run-id>/`. It never uses the `hdv` instance.
 
+## Live agent round trip
+
+`npm run test:roundtrip` (`node test/live/agent-roundtrip.mjs [--model <m>] [--keep]`) proves the firstmate loop with a real agent and times each leg. It launches its own headless `hdv` instance (own `HDV_STATE`, so it runs beside yours), a stub firstmate home whose `fm-captain-hold.sh`/`fm-inbox.sh` write ms-stamped lines to `received.log`, and `hd-bridge.sh --follow` in live mode. A `claude -p` agent (default `--model haiku`; `AGENT_CMD` to swap) posts a decision with the CLI and blocks on `fm-wait`; the script stamps it on the desk through Playwright, and the agent must reply with the stamped key. It prints one line per leg and PASS/FAIL, and saves `legs.json`, `bridge.log`, `agent.log`, `received.log` under `~/.local/share/verify-harbordeck/roundtrip-<id>/`.
+
+| Leg | Typical |
+|---|---|
+| item posted -> on the desk | ~0.2 s |
+| stamp -> answer line | ~4.4 s (the desk's undo hold, by design) |
+| answer line -> firstmate received (bridge) | ~0.4 s |
+| firstmate received -> agent acted | ~1-2 s (agent turn) |
+
+A bridge leg over ~2 s, or a FAIL, is a regression: read `bridge.log` (timestamped `hd-bridge: routed ...` per answer).
+
 ## Cleanup
 
 ```bash
