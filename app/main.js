@@ -1,7 +1,7 @@
 'use strict';
 // Electron main process: owns the data directory (read, watch, append answers), the harbor:// file protocol,
 // settings, the optional on-answer hook, the in-desk browser pane and demo mode. The renderer only talks through preload.js.
-const { app, BrowserWindow, ipcMain, protocol, shell, dialog, Menu, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, shell, dialog, Menu, nativeTheme, globalShortcut } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
@@ -41,7 +41,7 @@ function snapshot() {
   const topics = topicsMod ? topicsMod.buildTopics(snap) : {};
   return Object.assign(snap, { scheduler, topics, demo, demoSeed: demo ? demoSeed : 0, settings: publicSettings() });
 }
-const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '' });
+const publicSettings = () => ({ ...settings, home, demo, envHome: process.env.HARBORDECK_HOME || '', phoneKey: phoneKey.state });
 
 function useHome(next, isDemo) {
   watcher?.close(); demoAgent?.stop(); demoAgent = null;
@@ -86,6 +86,23 @@ function createWindow() {
   win.webContents.on('did-start-navigation', e => { if (e.isMainFrame && !e.isSameDocument) webPane.close(); }); // a renderer reload drops the pane's frame
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
+// Ship phone: settings.phoneShortcut is a system-wide hotkey that brings the desk forward with the phone open. It is
+// the only thing that ever raises the window. Headless runs never register it (it would grab the key system-wide).
+let phoneKey = { accelerator: '', state: 'off' }; // state: ok | taken (another app holds it) | invalid | off
+function registerPhoneKey() {
+  if (phoneKey.state === 'ok') globalShortcut.unregister(phoneKey.accelerator);
+  phoneKey = { accelerator: settings.phoneShortcut, state: 'off' };
+  if (!phoneKey.accelerator || headless) return;
+  try { phoneKey.state = globalShortcut.register(phoneKey.accelerator, phoneHotkey) ? 'ok' : 'taken'; } catch (e) { phoneKey.state = 'invalid'; }
+  log(`phone shortcut ${phoneKey.accelerator}: ${phoneKey.state}`);
+}
+function phoneHotkey() {
+  if (!win || win.isDestroyed()) return;
+  const front = win.isFocused();
+  if (!headless) { if (win.isMinimized()) win.restore(); win.show(); app.focus({ steal: true }); win.focus(); }
+  win.webContents.send('harbor:phone', front ? 'toggle' : 'open');
+}
+app.on('harbor:phone-hotkey', phoneHotkey); // test seam: smoke tests fire the hotkey without a system-wide registration
 function openExternal(url) { if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
 const webPane = createWebPane({ getWin: () => win, getHosts: () => settings.webHosts, openExternal, log });
 
@@ -136,6 +153,7 @@ ipcMain.handle('harbor:open-path', (e, url) => { const abs = store.pathFromUrl(u
 ipcMain.handle('harbor:get-settings', () => publicSettings());
 ipcMain.handle('harbor:set-settings', (e, next) => {
   settings = saveSettings(SETTINGS_FILE(), next);
+  registerPhoneKey();
   if (!demo) useHome(effectiveHome(settings), false);
   return snapshot();
 });
@@ -156,8 +174,8 @@ app.whenReady().then(async () => {
   const wantDemo = process.argv.includes('--demo') || process.env.HARBORDECK_DEMO === '1';
   if (wantDemo) await startDemo(); else useHome(effectiveHome(settings), false);
   protocol.handle('harbor', serveFile);
-  buildMenu(); createWindow();
+  buildMenu(); createWindow(); registerPhoneKey();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('will-quit', () => { watcher?.close(); demoAgent?.stop(); demoSite?.close(); });
+app.on('will-quit', () => { globalShortcut.unregisterAll(); watcher?.close(); demoAgent?.stop(); demoSite?.close(); });

@@ -3,6 +3,8 @@
 //   a real agent session (`claude -p`) posts a decision with the harbordeck CLI -> the headless app shows it ->
 //   a stamp in the app (Playwright, the same driver as ui.mjs) -> answers.jsonl -> hd-bridge.sh --follow (live)
 //   -> a stub firstmate home records the keyed answer -> the agent, blocked on `fm-wait`, gets it and replies.
+// Then the ship phone: the phone shortcut, dial the first mate, speak, Enter -> a request line -> the same live
+// bridge -> the stub firstmate inbox.
 // The firstmate home is a stub (bin/fm-captain-hold.sh, fm-inbox.sh write ms-stamped lines to received.log);
 // the data dir and app come from `hdv launch` under its own state dir. Nothing touches ~/.harbordeck or a real home.
 //
@@ -134,6 +136,21 @@ done; echo "no answer" >&2; exit 1`);
   const reply = JSON.parse(fs.readFileSync(itemFile, 'utf8')).thread.at(-1).text;
   log(`agent acted: reply "${reply}"`);
   await Promise.race([agentExit, new Promise((r) => setTimeout(r, 30000))]);
+
+  // 7. the ship phone: shortcut, dial 1 (mate-main), speak, Enter; no undo hold on orders
+  const said = `Phone check ${id}: tidy the release notes`;
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+Space' : 'Control+Shift+Space');
+  await page.locator('.phone-pad').waitFor();
+  await page.keyboard.press('1');
+  await page.keyboard.type(said);
+  t.phone = Date.now();
+  await page.keyboard.press('Enter');
+  t.phoneLine = await when(home, () => fs.readFileSync(answers, 'utf8').includes(said), 30000, 'the phone request line');
+  const order = JSON.parse(fs.readFileSync(answers, 'utf8').trim().split('\n').find((l) => l.includes(said)));
+  t.phoneRecv = await when(fm, () => fs.readFileSync(recv, 'utf8').includes(said), 30000, 'firstmate to receive the phone order');
+  const heard = fs.readFileSync(recv, 'utf8').trim().split('\n').find((l) => l.includes(said));
+  t.phoneRecvExact = Number(heard.split('\t')[0]);
+  log(`firstmate received the phone order: ${heard.split('\t').slice(1).join(' | ')}`);
   await browser.close();
 
   const legs = [
@@ -142,12 +159,16 @@ done; echo "no answer" >&2; exit 1`);
     ['stamp -> answer line (undo hold, by design)', t.line - t.stamp],
     ['answer line -> firstmate received (bridge)', t.recvExact - t.line],
     ['firstmate received -> agent acted (wait + agent think)', t.reply - t.recvExact],
-    ['stamp -> firstmate received', t.recvExact - t.stamp]
+    ['stamp -> firstmate received', t.recvExact - t.stamp],
+    ['phone Enter -> request line', t.phoneLine - t.phone],
+    ['phone Enter -> firstmate received', t.phoneRecvExact - t.phone]
   ];
   console.log('\nleg\tms');
   for (const [k, v] of legs) console.log(`${k}\t${v}`);
-  const ok = /merge/i.test(reply);
-  console.log(`\n${ok ? 'PASS' : 'FAIL'}: agent ${ok ? 'acted on' : 'did not act on'} the stamped key (reply "${reply}")`);
+  const phoneOk = order.action === 'request' && order.to === 'mate-main' && heard.includes(order.id) && heard.includes('mate-main');
+  const ok = /merge/i.test(reply) && phoneOk;
+  console.log(`\n${/merge/i.test(reply) ? 'PASS' : 'FAIL'}: agent ${/merge/i.test(reply) ? 'acted on' : 'did not act on'} the stamped key (reply "${reply}")`);
+  console.log(`${phoneOk ? 'PASS' : 'FAIL'}: phone order ${order.id} to ${order.to} reached firstmate`);
   const out = path.join(os.homedir(), '.local/share/verify-harbordeck', `roundtrip-${id}`);
   fs.mkdirSync(out, { recursive: true });
   fs.writeFileSync(path.join(out, 'legs.json'), JSON.stringify({ id, model, legs: Object.fromEntries(legs), reply }, null, 2));

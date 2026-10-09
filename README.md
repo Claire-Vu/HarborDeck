@@ -112,6 +112,7 @@ Open with ⌘, (or the gear icon). Stored in the app's user-data folder as `sett
 | Data directory | `~/.harbordeck` | `HARBORDECK_HOME` overrides it for the session |
 | Artifact root | empty | extra base for relative artifact paths |
 | Web hosts | empty | hosts besides localhost the browser pane may show (`host` or `host:port`) |
+| Phone shortcut | `CommandOrControl+Shift+Space` | opens the ship phone in the app and from any other app (an Electron accelerator; empty: icon only). If another app holds it (1Password Quick Access defaults to ⇧⌘Space), Settings says so and it works inside Harbor Deck only |
 | On answer | off | command run per answer line (above) |
 | Demo | | load the synthetic demo day, or go back to your data |
 
@@ -137,12 +138,15 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `O` | topic page of the item at the desk |
 | `P` | plain mode (a flat list with the same actions) |
 | `Esc` | close drawers and dialogs |
+| `⇧⌘Space` | ship phone (see below; the key is a setting) |
+
+Ship phone: the speaking tube in the top bar, or `⇧⌘Space` (Ctrl+Shift+Space elsewhere) from any app, brings a phone to the middle of the desk with the pad focused. Dial a first mate with `1`-`9` or the arrows (before you start typing; `⌘1`-`⌘9` any time), speak, `Enter` sends (`Shift+Enter` for a new line). It writes the same `request` line as the Requests tab, remembers who you dialed last, and hangs up with a check on the icon. `Esc` or the shortcut hangs up and keeps an unsent message. The system-wide shortcut is the only thing that ever brings the window forward.
 
 Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (Topics tab for the list). Items that share a topic or a `rel` link arrive as one visitor with a bundle of papers and can be settled with one stamp.
 
 The harbor in the window carries status, with no extra keys: one boat per open task (the sail grows with its question count; it sails out once settled), the project's own recurring regular at the window with a mood and a one-line memory of your recent calls, a ship cat sitting on the most urgent visitor, sky and weather from the real clock and the lowest stamina (rain when low), and a tide line rising toward the next refill (the top bar keeps the refill times). Quick clearing stamps (within 8 s) build a tidy run with rising stamp and coin pitch; undo breaks it and bundle stamps never count. Clear the pier before high tide to beat the tide. Cash buys cosmetics at the chandlery (dock lamp, pennants, lighthouse, stamp inks, a second tune); milestones land as round ink stamps in the stamp book; the town on the far shore gains a building every two days you open the office; the harbor music adds a layer per item cleared today and resolves when the harbor is clear. All of it runs after the stamp lands; nothing waits on an animation.
 
-Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, plus gaps), crew tab with stamina per subscription window, requests tab for new orders to an agent, desk sounds and generated harbor music (both off by default), light/dark/auto theme.
+Also: morning manifest, archive, agent log (the exact JSONL lines, copy/export, plus gaps), crew tab with stamina per subscription window, requests tab and ship phone for new orders to an agent, desk sounds and generated harbor music (both off by default), light/dark/auto theme.
 
 | | |
 |---|---|
