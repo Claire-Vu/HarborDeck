@@ -177,6 +177,7 @@ function snd(kind, pitch = 1) {
     else if (kind === 'ding') { for (const [f, d] of [[880, 0], [1320, .05]]) { const o = ctx().createOscillator(); o.type = 'triangle'; o.frequency.value = f; const gg = ctx().createGain(); gg.gain.setValueAtTime(.18, t + d); gg.gain.exponentialRampToValueAtTime(.001, t + d + .6); o.connect(gg); gg.connect(ctx().destination); o.start(t + d); o.stop(t + d + .62); } }
     else if (kind === 'coin') { for (const [f, d] of [[1760, 0], [2217, .07]]) { const o = ctx().createOscillator(); o.type = 'square'; o.frequency.value = f * pitch; const gg = ctx().createGain(); gg.gain.setValueAtTime(.05, t + d); gg.gain.exponentialRampToValueAtTime(.001, t + d + .25); o.connect(gg); gg.connect(ctx().destination); o.start(t + d); o.stop(t + d + .3); } }
     else if (kind === 'tick') { const o = ctx().createOscillator(); o.type = 'square'; o.frequency.value = 1800; g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .05); o.connect(g); o.start(t); o.stop(t + .06); }
+    else if (kind === 'whistle') { const o = ctx().createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(1900, t); o.frequency.linearRampToValueAtTime(2300, t + .12); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .22); o.connect(g); o.start(t); o.stop(t + .24); }
     else if (kind === 'flip') { const n = noise(.12); const f = ctx().createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500; g.gain.setValueAtTime(.1, t); g.gain.exponentialRampToValueAtTime(.001, t + .12); n.connect(f); f.connect(g); n.start(t); }
   } catch (e) { /* no audio */ }
 }
@@ -759,6 +760,14 @@ function openNote(opts, onSubmit) {
 }
 
 // ------------------------------------------------------------ requests (orders to firstmates), crew flavour, stamina
+// One order line, from the Requests tab or the ship phone. false when answers.jsonl could not be written.
+function sendOrder(note, to) {
+  const n = S.answers.length;
+  emit({ id: `req-${now()}-${hash(note) % 1000}`, action: 'request', note, to }); if (S.answers.length === n) return false;
+  S.prefs.lastMate = to; save(); snd('ding'); toast(`Order handed to ${mateLabel(to)}`);
+  if (S.prefs.plain) renderPlain(); else { renderRail(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); }
+  return true;
+}
 function renderRequests() {
   const pane = $('#requests-pane'); pane.replaceChildren();
   const mates = FLEET.firstmates;
@@ -766,7 +775,7 @@ function renderRequests() {
   const ta = h('textarea', { class: 'order-text', placeholder: 'New order: a request, feature or idea…', rows: 3 });
   const picks = h('div', { class: 'counter' }, mates.map(m => h('button', { class: `mate-pick ${m.id === to ? 'sel' : ''}`, onclick: e => { to = m.id; picks.querySelectorAll('.mate-pick').forEach(b => b.classList.toggle('sel', b === e.currentTarget)); snd('tick'); }, title: m.domain || '' },
     h('div', { html: spriteSVG(m.id, 'slip', { mate: true, tired: tired() }) }), h('div', { class: 'mate-name' }, m.label), h('div', { class: 'mate-dom' }, m.domain || ''))));
-  const send = () => { const v = ta.value.trim(); if (!v) { ta.focus(); return; } const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); ta.value = ''; snd('ding'); toast(`Order handed to ${mateLabel(to)}`); renderRequests(); renderRail(); };
+  const send = () => { const v = ta.value.trim(); if (!v) { ta.focus(); return; } if (sendOrder(v, to)) renderRequests(); };
   // Queued orders wait in the scheduler and go out by themselves (harbordeck tick), no prompt needed.
   const queue = async when => {
     const v = ta.value.trim(); if (!v) { ta.focus(); return; }
@@ -929,7 +938,7 @@ function applyPrefs() {
   $('#btn-sound').setAttribute('aria-pressed', String(S.prefs.sound)); $('#btn-music').setAttribute('aria-pressed', String(S.prefs.music)); $('#music-vol').value = S.prefs.musicVol;
   $('#btn-plain').setAttribute('aria-pressed', String(S.prefs.plain)); $('#btn-plain').replaceChildren(icon(S.prefs.plain ? 'desk' : 'plain')); $('#btn-plain').title = S.prefs.plain ? 'Back to the desk (P)' : 'Plain mode: flat list (P)';
   $('#desk-mode').hidden = S.prefs.plain; $('#plain-mode').hidden = !S.prefs.plain; $('#btn-inspect').disabled = S.prefs.plain;
-  $('#cash-n').textContent = money(S.cash); document.body.dataset.ink = S.fun.ink || 'red'; renderStaminaMini();
+  $('#cash-n').textContent = money(S.cash); document.body.dataset.ink = S.fun.ink || 'red'; renderStaminaMini(); renderPhoneButton();
   const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); $('#orders-flag').hidden = !flagged; $('#orders-flag').textContent = flagged;
 }
 function renderAll(keepDesk) {
@@ -972,7 +981,7 @@ function applySnapshot(snap) {
   const { replies, fresh } = syncItems(prevById);
   save();
   if (S.current && !byId[S.current]) S.current = null;
-  renderAll(deskSig() === curBefore);
+  renderAll(deskSig() === curBefore); phone.refresh();
   if ($('#agentlog').classList.contains('open')) renderLog();
   topicView.update(prevNotes);
   if (replies) { snd('ding'); if (!S.prefs.plain) renderRail(true); toast(replies > 1 ? `${replies} replies landed on the rail` : 'A reply landed on the rail'); }
@@ -995,11 +1004,13 @@ async function openSettings() {
   const dir = field('Data directory', cur.dataDir, '~/.harbordeck', true);
   const root = field('Artifact root', cur.artifactRoot, 'optional: relative paths not found in the data directory resolve here', true);
   const hosts = field('Web hosts', (cur.webHosts || []).join(', '), 'optional: hosts besides localhost the desk browser may show, e.g. devbox.lan:8080');
+  const phoneKey = field('Phone shortcut', cur.phoneShortcut, 'empty: no shortcut, the top-bar icon only. e.g. CommandOrControl+Shift+Space');
+  const phoneNote = { ok: 'Works from any app: brings the desk forward with the phone open.', taken: 'Taken by another app: works inside Harbor Deck only.', invalid: 'Not a valid shortcut.', off: '' }[cur.phoneKey] || '';
   const hookOn = h('input', { type: 'checkbox', checked: !!cur.onAnswer.enabled });
   const hookCmd = h('textarea', { rows: 2, placeholder: 'e.g. ~/bin/wake-agent.sh   (the JSON line arrives on stdin and in $HARBORDECK_LINE)', value: cur.onAnswer.command || '', spellcheck: false });
   const content = h('div', { class: 'settings' },
     h('p', { class: 'legend' }, 'Now reading ', h('code', null, cur.home), cur.demo ? ' (demo data)' : '', cur.envHome && !cur.demo ? ' · set by HARBORDECK_HOME, which wins over the field below' : ''),
-    dir.row, root.row, hosts.row,
+    dir.row, root.row, hosts.row, phoneKey.row, phoneNote ? h('p', { class: 'legend set-hint' }, phoneNote) : null,
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'On answer'), h('span', { class: 'set-in col' }, h('label', { class: 'set-check' }, hookOn, ' Run a command after every line written to answers.jsonl'), hookCmd)),
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'Demo'), h('span', { class: 'set-in' },
       h('button', { class: 'tbtn', type: 'button', onclick: async () => { commitPending(); closeModal(); applySnapshot(await bridge.demo(true)); toast('Demo data loaded (fresh day)'); } }, cur.demo ? 'Restart demo' : 'Load demo data'),
@@ -1007,10 +1018,23 @@ async function openSettings() {
     SNAP.errors?.length ? h('div', { class: 'flag-note' }, h('div', null, `${SNAP.errors.length} item file(s) skipped:`), SNAP.errors.slice(0, 8).map(e => h('div', null, `${e.file}: ${e.error}`))) : null);
   modal('settings-modal', 'Settings', content, [h('button', { class: 'pbtn ghost', onclick: closeModal }, 'Cancel'), h('button', { class: 'pbtn', onclick: async () => {
     commitPending();
-    const snap = await bridge.setSettings({ dataDir: dir.inp.value.trim(), artifactRoot: root.inp.value.trim(), webHosts: hosts.inp.value, onAnswer: { enabled: hookOn.checked, command: hookCmd.value.trim() } });
+    const snap = await bridge.setSettings({ dataDir: dir.inp.value.trim(), artifactRoot: root.inp.value.trim(), webHosts: hosts.inp.value, phoneShortcut: phoneKey.inp.value.trim(), onAnswer: { enabled: hookOn.checked, command: hookCmd.value.trim() } });
     closeModal(); applySnapshot(snap); toast('Settings saved');
   } }, 'Save')]);
 }
+// ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
+let phoneDraft = '';
+const phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
+  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder });
+function renderPhoneButton() {
+  const set = SNAP.settings || {}, key = HarborPhoneKeys.label(set.phoneShortcut), b = $('#btn-phone');
+  const note = { taken: ' The system-wide shortcut is taken by another app: it works inside Harbor Deck only. Pick another in Settings.', invalid: ' The shortcut in Settings is not valid.' }[set.phoneKey] || '';
+  b.title = `Ship phone: a quick order to a first mate${key ? ` (${key})` : ''}.${note}`; b.classList.toggle('key-off', !!note);
+  if (key) b.setAttribute('aria-keyshortcuts', set.phoneShortcut.replace(/CommandOrControl|CmdOrCtrl/i, /Mac/.test(navigator.platform) ? 'Meta' : 'Control')); else b.removeAttribute('aria-keyshortcuts');
+}
+$('#btn-phone').onclick = () => phone.toggle();
+bridge.onPhone(how => how === 'toggle' ? phone.toggle() : phone.open());
+
 bridge.onMenu(async what => {
   if (what === 'settings') openSettings();
   else if (what === 'demo-on' || what === 'demo-off') { commitPending(); closeModal(); applySnapshot(await bridge.demo(what === 'demo-on')); }

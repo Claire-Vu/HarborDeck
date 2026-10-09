@@ -146,7 +146,7 @@ The app appends one line per user action to `answers.jsonl`:
 | `needs-work` | needs-work stamp | `note` | Redo with the note; keep the item open. |
 | `ask` | ask slip | `note` | A question. Reply with a `thread` entry. |
 | `comment` | inspect match/mismatch | `note`, `anchor` | Feedback pinned to something. `anchor` may carry `claim`, `artifact`, `t` (seconds), `x`,`y` (position on an image), `heading`, `rule`. |
-| `request` | new order slip | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
+| `request` | new order slip or ship phone | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
 
 **Undo is not an action.** After a stamp the app holds the line for about 4 seconds; Undo drops it and nothing is written. Closing the app flushes a held line. Agents therefore only ever see final lines and never need to reconcile undo.
 

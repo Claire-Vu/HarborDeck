@@ -27,6 +27,7 @@
     <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L5 13h6l-1 9 9-12h-6z" fill="currentColor"/></symbol>
     <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7zM18 5v14" fill="currentColor"/></symbol>
     <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 22v-7a6 6 0 0 1 6-6h2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M13 6.5l5-3.5v12l-5-3.5z" fill="currentColor"/><ellipse cx="18.6" cy="9" rx="1.6" ry="6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </defs>
 </svg>
@@ -40,6 +41,7 @@
     <button class="stamina-cluster" id="stamina-cluster" title="Subscription stamina: left and time to refill" aria-label="Stamina per subscription window"></button>
   </div>
   <nav class="tools" aria-label="Desk tools">
+    <button class="ibtn-top" id="btn-phone" aria-expanded="false" aria-label="Ship phone" title="Ship phone: a quick order to a first mate"><svg class="ic"><use href="#i-phone"/></svg></button>
     <button class="ibtn-top" id="btn-inspect" aria-pressed="false" aria-label="Inspect mode (I)" title="Inspect: pair a claim with evidence (I)"><svg class="ic"><use href="#i-inspect"/></svg></button>
     <button class="ibtn-top" id="btn-orders" aria-label="Standing orders (R)" title="Standing orders: your saved preferences (R)"><svg class="ic"><use href="#i-orders"/></svg><span class="badge warn" id="orders-flag" hidden>0</span></button>
     <button class="ibtn-top" id="btn-vault" aria-label="Archive" title="Archive: stamped and filed items"><svg class="ic"><use href="#i-archive"/></svg><span class="badge" id="vault-count">0</span></button>
@@ -145,6 +147,7 @@
 <script src="topic-view.js"></script>
 <script src="harbor-game.js"></script>
 <script src="harbor-scene.js"></script>
+<script src="phone-view.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -79,6 +79,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |
 | `#requests-pane textarea`, buttons `Send now`, `Queue for after reset`, `Queue at time`, input `Send at time` | Requests tab |
+| `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, sent cue |
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .mini-sub` (`.ms-time` = `↻ <refill>`), `#yard .yc.cook` | stamina per window (wave glyph + refill time), crew sprites (from quota.json / fleet.json) |
@@ -122,7 +123,7 @@ Recorded proof (video, contact sheet, manifest) of the live round trip including
 
 ## Live agent round trip
 
-`npm run test:roundtrip` (`node test/live/agent-roundtrip.mjs [--model <m>] [--keep]`) proves the firstmate loop with a real agent and times each leg. It launches its own headless `hdv` instance (own `HDV_STATE`, so it runs beside yours), a stub firstmate home whose `fm-captain-hold.sh`/`fm-inbox.sh` write ms-stamped lines to `received.log`, and `hd-bridge.sh --follow` in live mode. A `claude -p` agent (default `--model haiku`; `AGENT_CMD` to swap) posts a decision with the CLI and blocks on `fm-wait`; the script stamps it on the desk through Playwright, and the agent must reply with the stamped key. It prints one line per leg and PASS/FAIL, and saves `legs.json`, `bridge.log`, `agent.log`, `received.log` under `~/.local/share/verify-harbordeck/roundtrip-<id>/`.
+`npm run test:roundtrip` (`node test/live/agent-roundtrip.mjs [--model <m>] [--keep]`) proves the firstmate loop with a real agent and times each leg. It launches its own headless `hdv` instance (own `HDV_STATE`, so it runs beside yours), a stub firstmate home whose `fm-captain-hold.sh`/`fm-inbox.sh` write ms-stamped lines to `received.log`, and `hd-bridge.sh --follow` in live mode. A `claude -p` agent (default `--model haiku`; `AGENT_CMD` to swap) posts a decision with the CLI and blocks on `fm-wait`; the script stamps it on the desk through Playwright, and the agent must reply with the stamped key. It then sends an order through the ship phone (shortcut, dial `1`, type, `Enter`) and requires the stub firstmate inbox to receive it for `mate-main`. It prints one line per leg and PASS/FAIL, and saves `legs.json`, `bridge.log`, `agent.log`, `received.log` under `~/.local/share/verify-harbordeck/roundtrip-<id>/`.
 
 | Leg | Typical |
 |---|---|
@@ -130,6 +131,7 @@ Recorded proof (video, contact sheet, manifest) of the live round trip including
 | stamp -> answer line | ~4.4 s (the desk's undo hold, by design) |
 | answer line -> firstmate received (bridge) | ~0.4 s |
 | firstmate received -> agent acted | ~1-2 s (agent turn) |
+| phone Enter -> firstmate received | ~0.4 s (no undo hold on orders) |
 
 A bridge leg over ~2 s, or a FAIL, is a regression: read `bridge.log` (timestamped `hd-bridge: routed ...` per answer).
 
