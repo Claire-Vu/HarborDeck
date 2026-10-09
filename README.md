@@ -134,6 +134,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `Shift+A` | take all recommended: a checklist of every P3-P4 decision with a recommendation; untick, then one stamp (Shift+A again) |
 | `U` / `Z` | undo the last stamp (about 4 s) |
 | `Tab` | slide the stamp tray in and out |
+| `X` / `Shift+X` | stow the last-raised paper in the storage box (foot of the stamp tray) / bring all stowed papers back; also a stow button on each paper's grip or drag it onto the box; click the box for the list, click a paper to bring it back; per item, kept across reloads |
 | `N` | next visitor at the window |
 | `←` / `→` | flip scenes: one per kind (Signpost Square, Customs Shed, Bottle Cove, Notice Board), a figure per open item; click a figure to bring it to the desk, a kind chip to jump; goal: zero everywhere |
 | `T` | focus the ticket rail (`←`/`→`, `Enter`) |
