@@ -34,6 +34,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 ## Features
 
 - [Quick calls](./quick-call.md) covers letter keys + Space, question sheets, why lines, Later/defer, take all recommended, lanes and weights, paper layout, local HTML in the pane, the lean manifest, rail scrolling and the stamp tray.
+- [Review tools](./review-tools.md) covers who's waiting (badge, queue lift, `hd waiting`, the firstmate fleet fill), what changed (updated marks, only-new highlights, cleared once seen) and Cmd/Ctrl+K search.
 - [Stamp items](./stamp.md) covers stamping each kind by key and tray, the undo hold, and the line in `answers.jsonl`.
 - [Live agent writes](./live-feed.md) covers CLI and file item writes, resolve, and fleet/quota snapshots appearing on the running desk.
 - [Ask and reply](./ask-reply.md) covers the ask slip, the waiting ticket, the agent's `hd reply`, and reading it on the rail.

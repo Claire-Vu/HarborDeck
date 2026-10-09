@@ -39,7 +39,9 @@ test('morning manifest opens, then the desk fills from the data dir', async () =
   await expect(page.locator('.modal .box h2', { hasText: 'Morning manifest' })).toBeVisible();
   await page.getByRole('button', { name: 'Open the office' }).click();
   await expect(page.locator('#queue li').first()).toBeVisible();
-  // queue order: priority, then due date; the overdue P1 notice is first
+  // queue order: priority lifted one step per worker waiting on the item, then due date; the P1 merge a crew waits on is first
+  await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Merge PR 142 (calmer checkout)?');
+  await page.locator('#queue li', { hasText: 'Sign the app store' }).click();
   await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Sign the app store developer agreement');
   await page.locator('#queue li', { hasText: 'Merge PR 142' }).click();
   await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Merge PR 142 (calmer checkout)?');

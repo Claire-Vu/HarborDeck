@@ -35,6 +35,7 @@ hd todo     <id> "<what to do>" -s "<why, by when>" -d 2026-11-01
 - `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic or a link reach the user together, as one question sheet.
 - Several questions on one task: ids `<task>.q1`, `<task>.q2`, ...; the CLI defaults their topic to `<task>`.
 - `--why <key>="<few words>"`: what an option means or costs, shown under it, so the recommendation explains itself.
+- `-w <worker>,<worker>`: who is blocked until the user answers; the desk shows the count and puts the item earlier. Update it later with `hd waiting <id> [<worker>...]` (no workers clears it); that is not an edit.
 
 ## Keep later remarks with their item
 

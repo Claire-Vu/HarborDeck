@@ -48,10 +48,11 @@ hd answer|review|todo <id> "<title>" [flags]
   -s/--sum "<one line>"   -b/--body <path|url>   -a/--art [type:]<path|url> (repeat)
   -p/--pri 1-4   -d/--due <epoch|ISO|+12h|+2d>   -f/--from <agent>   --project <p>   --stream <s>
   -r/--rule <key> (repeat)   --ok <rule>[:note]   --flag <rule>:<note>
-  -t/--topic <slug>   --rel <id>[,<id>]   (kept when a rewrite omits them)
+  -t/--topic <slug>   --rel <id>[,<id>]   -w/--waiting <worker>[,<worker>]   (kept when a rewrite omits them)
   --why key="<one line>"   (decisions, repeat) what an option means or costs
 hd reply <id> "<text>"            append to the item's thread (also answers a request id)
 hd resolve <id>...
+hd waiting <id> [<worker>...]     who is blocked on it (none: clear); not an edit, nothing written if unchanged
 hd batch                          stdin, one command per line, all-or-nothing validation
 hd note <id|topic:slug> "<text>" [-a <path|url>]   keep a remark with its item or topic
 hd topics [--json]                one line per topic
@@ -75,7 +76,7 @@ The `schedule`/`limit`/`tick`/`scheduler` commands are the limit-reset scheduler
 
 Behaviour worth knowing:
 
-- Writing an item with an existing id rewrites it, keeps `created`, `thread`, and `topic`/`rel` unless given again, sets `updated`, and reopens it.
+- Writing an item with an existing id rewrites it, keeps `created`, `thread`, and `topic`/`rel`/`waiting` unless given again, sets `updated`, and reopens it.
 - `hd note <id> "..."` appends to `notes.jsonl` with the item's topic; `hd note topic:<slug> "..."` notes a topic directly and creates it if new (`ok note topic:x (new topic)`). An unknown item id is an error: note the topic instead, or log a gap.
 - `hd topic <slug>` prints one line per event (`MM-DD HH:MM`, local time): `+ <kind> <id> "<title>"`, `reply`, `you <action>`, `note`, `resolved`, after the open items. Long text is clipped; `--json` has it all.
 - Relative paths are made absolute against the current directory. A missing file is a warning on stderr, not an error.

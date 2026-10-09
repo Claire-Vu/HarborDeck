@@ -85,10 +85,13 @@ Required: `id`, `kind`, `title`, `created`, `status`.
 | `rules` | `[rule key]` | Standing orders this item should be read against (keys in `rules.json`). |
 | `checks` | `[{rule, ok, note?}]` | The agent's own check of a standing order: `ok: true` passed, `ok: false` flagged (note says why). Advisory; the user decides. |
 | `thread` | `[{from, text, at}]` | Agent follow-ups, oldest first. Replies to the user's asks land here. |
-| `priority` | 1 critical, 2 high, 3 normal (default), 4 low | Queue order and emphasis. |
+| `waiting` | `[worker or task id]` | Who is blocked or paused until the user answers. The app shows the count on the item and lifts it one priority step per worker, so items that unblock work come first. Changing it is not an edit: `hd waiting <id> [<worker>...]` rewrites only this field and leaves `updated` alone. Crew in `fleet.json` whose `item` is this id and whose state is `waiting` count too. |
+| `priority` | 1 critical, 2 high, 3 normal (default), 4 low | Queue order and emphasis (lifted by `waiting`). |
 | `due` | epoch seconds | Deadline. |
 | `created`, `updated` | epoch seconds | `created` is kept across rewrites. `updated` is set on every rewrite after the first. |
 | `status` | `open` \| `resolved` | Resolved items leave the queue and stay in the archive. Writing an item again reopens it. |
+
+**Rewrites show what changed.** When an agent rewrites an item the user has already looked at, the app highlights only what is new since that look: the title, new summary sentences, new or relabelled options, new artifacts, new thread replies and notes, and new lines of a text `body` (bodies up to 20 KB). The version the user last saw is desk state kept by the app, not part of this contract; agents do nothing extra.
 
 ### Kinds
 

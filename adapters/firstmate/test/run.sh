@@ -27,7 +27,7 @@ printf 'inbox %s\n' "$*" >> "$FM_HOME/calls.log"
 EOF
 cat > "$FM_HOME/bin/fm-crew-state.sh" <<'EOF'
 #!/usr/bin/env bash
-case $1 in a) echo "state: working · source: pane · busy" ;; b) echo "state: parked · source: run-step · gate" ;; *) echo "state: unknown · source: none" ;; esac
+case $1 in a) echo "state: working · source: pane · busy" ;; b) echo "state: ${B_STATE:-parked} · source: run-step · gate" ;; *) echo "state: unknown · source: none" ;; esac
 EOF
 chmod +x "$FM_HOME"/bin/*.sh
 printf 'kind=ship\nharness=claude\nmodel=opus\neffort=medium\nproject=/x/projects/weather-app\nendpoint_task_id=a\n' > "$FM_HOME/state/a.meta"
@@ -42,6 +42,25 @@ check "fleet: crew states mapped" test "$(jq -c '[.crew[] | [.id, .state]]' "$fl
 check "fleet: crew linked to its item" test "$(jq -r '.crew[] | select(.id == "b") | .item' "$fleet")" = b
 check "fleet: secondmate is counter staff" test "$(jq -c '[.firstmates[].id]' "$fleet")" = '["mate-main","sm"]'
 check "fleet: project basenames" test "$(jq -c '[.regulars[].id]' "$fleet")" = '["bakery-site","weather-app"]'
+
+# who's waiting: crew blocked/paused on an item by id, hold question (<task>.qN) or topic
+"$HD" batch >/dev/null <<'EOF'
+decision b.q1 "Which palette?" --opt warm+ --opt cool
+decision by-topic "Ship it?" --opt yes -t b
+todo for-a "Busy crew's item" -t a
+EOF
+"$here/hd-fleet.sh" >/dev/null
+w() { jq -c '.waiting // []' "$HARBORDECK_HOME/items/$1.json"; }
+check "waiting: crew on its own item" test "$(w b)" = '["b"]'
+check "waiting: hold question and topic match" test "$(w b.q1)$(w by-topic)" = '["b"]["b"]'
+check "waiting: working crew blocks nothing" test "$(w for-a)" = '[]'
+check "waiting: not an edit, updated untouched" test "$(jq -r '.updated // "none"' "$HARBORDECK_HOME/items/b.json")" = none
+ino=$(ls -i "$HARBORDECK_HOME/items/b.json" | awk '{print $1}')
+"$here/hd-fleet.sh" >/dev/null
+check "waiting: unchanged refresh writes nothing" test "$(ls -i "$HARBORDECK_HOME/items/b.json" | awk '{print $1}')" = "$ino"
+B_STATE=working "$here/hd-fleet.sh" >/dev/null
+check "waiting: cleared once the crew works again" test "$(w b)$(w by-topic)" = '[][]'
+"$HD" resolve b.q1 by-topic for-a >/dev/null
 
 # quota
 cat > "$tmp/quota.json" <<'EOF'

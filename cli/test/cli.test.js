@@ -79,6 +79,27 @@ test('rewrite keeps created and thread; reply appends; resolve closes', () => {
   assert.match(hd(['reply', 'ghost', 'hi']).err, /no such item or request/);
 });
 
+test('waiting: --waiting sets it, rewrites keep it, `waiting` changes it without an edit', () => {
+  const { home, hd, item } = setup();
+  assert.equal(hd(['decision', 'hold-3', 'Pick a host?', '--opt', 'a+', '-w', 'crew-1,crew-2', '--waiting', 'crew-1']).code, 0);
+  assert.deepEqual(item('hold-3').waiting, ['crew-1', 'crew-2']);
+  hd(['decision', 'hold-3', 'Pick a host now?', '--opt', 'a+']);
+  assert.deepEqual(item('hold-3').waiting, ['crew-1', 'crew-2']);
+  const updated = item('hold-3').updated;
+  const file = path.join(home, 'items', 'hold-3.json');
+  const ino = fs.statSync(file).ino;
+  assert.equal(hd(['waiting', 'hold-3', 'crew-1', 'crew-2']).out, 'ok waiting hold-3 2 unchanged\n');
+  assert.equal(fs.statSync(file).ino, ino, 'unchanged list writes nothing');
+  assert.equal(hd(['waiting', 'hold-3', 'crew-3']).out, 'ok waiting hold-3 1\n');
+  assert.deepEqual(item('hold-3').waiting, ['crew-3']);
+  assert.equal(item('hold-3').updated, updated, 'not an edit');
+  assert.match(hd(['ls']).out, /hold-3 decision p3 open waiting=1 /);
+  assert.equal(hd(['waiting', 'hold-3']).code, 0);
+  assert.equal(item('hold-3').waiting, undefined);
+  assert.match(hd(['waiting', 'ghost', 'x']).err, /no such item/);
+  assert.match(hd(['waiting', 'hold-3', 'bad id']).err, /bad waiting id/);
+});
+
 test('reply to a request id creates an answer item', () => {
   const { hd, item, append } = setup();
   append({ id: 'req-1', action: 'request', note: 'Add a weekly digest', to: 'mate-ops', at: 5 });

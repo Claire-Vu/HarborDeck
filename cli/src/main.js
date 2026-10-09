@@ -28,8 +28,10 @@ Items (re-running with the same id rewrites it; created and thread are kept):
          -r/--rule <key> (repeat)  --ok <rule>[:note]  --flag <rule>:<note>  (standing-order checks)
          -t/--topic <slug>  --rel <id>[,<id>]   what it is about; related items (kept on rewrite)
                              an id <task>.q<N> defaults the topic to <task>, so a hold's questions arrive as one sheet
+         -w/--waiting <worker>[,<worker>]   workers blocked until this is answered (kept on rewrite)
   hd reply <id> "<text>"     append to the item's thread (answers an ask, or a request id)
   hd resolve <id>...         mark resolved
+  hd waiting <id> [<worker>...]   set who is blocked on it (none: clear); not an edit, no write if unchanged
   hd batch                   read commands from stdin, one per line (same syntax, no "hd")
 
 Topics (one subject across items, stamps, replies and notes):
@@ -117,11 +119,13 @@ const ITEM_FLAGS = {
   sum: { alias: 's' }, body: { alias: 'b' }, opt: { alias: 'o', multi: true }, art: { alias: 'a', multi: true },
   pri: { alias: 'p' }, due: { alias: 'd' }, from: { alias: 'f' }, project: {}, stream: {},
   rule: { alias: 'r', multi: true }, ok: { multi: true }, flag: { multi: true },
-  topic: { alias: 't' }, rel: { multi: true }, why: { multi: true },
+  topic: { alias: 't' }, rel: { multi: true }, waiting: { alias: 'w', multi: true }, why: { multi: true },
 };
 
 // "<task>.q<N>": one of several questions on one hold; they share the task as their topic.
 const QUESTION_ID = /^(.+)\.q\d+$/;
+
+const idList = (vals, what) => [...new Set(vals.flatMap((v) => v.split(',')).map((v) => v.trim()).filter(Boolean).map((v) => checkId(v, what)))];
 
 function buildItem(kind, argv, ctx) {
   const { pos, flags } = parseFlags(argv, ITEM_FLAGS);
@@ -133,7 +137,8 @@ function buildItem(kind, argv, ctx) {
   item.project = flags.project || ctx.env.HARBORDECK_PROJECT || findProject(ctx.cwd);
   if (flags.stream) item.stream = flags.stream;
   if (flags.topic) item.topic = checkId(flags.topic, 'topic');
-  if (flags.rel) item.rel = [...new Set(flags.rel.flatMap((v) => v.split(',')).map((r) => checkId(r.trim(), 'rel id')))];
+  if (flags.rel) item.rel = idList(flags.rel, 'rel id');
+  if (flags.waiting) item.waiting = idList(flags.waiting, 'waiting id');
   if (flags.sum) item.summary = flags.sum;
   if (flags.body) {
     if (isUrl(flags.body)) item.body = flags.body;
@@ -176,7 +181,7 @@ function saveItem(item, ctx) {
   const t = now();
   item.created = prev?.created ?? t;
   if (prev?.thread) item.thread = prev.thread;
-  for (const k of ['topic', 'rel']) if (item[k] === undefined && prev?.[k] !== undefined) item[k] = prev[k];
+  for (const k of ['topic', 'rel', 'waiting']) if (item[k] === undefined && prev?.[k] !== undefined) item[k] = prev[k];
   if (item.topic === undefined && QUESTION_ID.test(item.id)) item.topic = QUESTION_ID.exec(item.id)[1];
   if (prev) item.updated = t;
   item.status = 'open';
@@ -233,6 +238,22 @@ function cmdResolve(argv, ctx) {
     ctx.store.writeItem(item);
     ctx.out(`ok resolve ${id}`);
   }
+}
+
+// Who is blocked on an item is a fleet fact, not an edit: `updated` stays, and an unchanged list writes nothing.
+function cmdWaiting(argv, ctx) {
+  const { pos } = parseFlags(argv, {});
+  const [id, ...rest] = pos;
+  checkId(id);
+  const item = ctx.store.readItem(id);
+  if (!item) fail(`waiting ${id}: no such item`);
+  const list = idList(rest, 'waiting id');
+  if (JSON.stringify(item.waiting || []) === JSON.stringify(list)) { ctx.out(`ok waiting ${id} ${list.length} unchanged`); return; }
+  if (list.length) item.waiting = list; else delete item.waiting;
+  const errs = validate('item', item);
+  if (errs.length) fail(`${id}: ${errs.join('; ')}`);
+  ctx.store.writeItem(item);
+  ctx.out(`ok waiting ${id} ${list.length}`);
 }
 
 const GAP_FLAGS = { sample: {}, item: {}, from: { alias: 'f' } };
@@ -332,7 +353,8 @@ function cmdLs(argv, ctx) {
     try { it = JSON.parse(fs.readFileSync(path.join(ctx.store.items, name), 'utf8')); } catch { ctx.out(`${name} (unreadable)`); continue; }
     if (it.status === 'resolved' && !flags.all) continue;
     const reply = it.thread?.length ? ` +${it.thread.length}` : '';
-    ctx.out(`${it.id} ${it.kind} p${it.priority ?? 3} ${it.status}${reply}${it.topic ? ` #${it.topic}` : ''} ${it.title}`);
+    const waiting = it.waiting?.length ? ` waiting=${it.waiting.length}` : '';
+    ctx.out(`${it.id} ${it.kind} p${it.priority ?? 3} ${it.status}${reply}${waiting}${it.topic ? ` #${it.topic}` : ''} ${it.title}`);
   }
 }
 
@@ -399,7 +421,7 @@ function cmdValidate(argv, ctx) {
   return errors.length ? 1 : 0;
 }
 
-const BATCH_FLAGS = { reply: REPLY_FLAGS, resolve: {}, gap: GAP_FLAGS, note: NOTE_FLAGS };
+const BATCH_FLAGS = { reply: REPLY_FLAGS, resolve: {}, waiting: {}, gap: GAP_FLAGS, note: NOTE_FLAGS };
 const BATCH_VERBS = new Set([...KINDS, ...Object.keys(BATCH_FLAGS)]);
 
 function cmdBatch(argv, ctx) {
@@ -440,7 +462,7 @@ async function cmdMcp(argv, ctx) {
 }
 
 const COMMANDS = {
-  reply: cmdReply, resolve: cmdResolve, gap: cmdGap, answers: cmdAnswers, ls: cmdLs,
+  reply: cmdReply, resolve: cmdResolve, waiting: cmdWaiting, gap: cmdGap, answers: cmdAnswers, ls: cmdLs,
   validate: cmdValidate, batch: cmdBatch, '-': cmdBatch, mcp: cmdMcp,
   ...SCHEDULER_COMMANDS, ...TOPIC_COMMANDS,
   path: (argv, ctx) => { parseFlags(argv, {}); ctx.out(ctx.store.home); },

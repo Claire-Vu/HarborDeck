@@ -7,8 +7,12 @@
 # current state from bin/fm-crew-state.sh (forge reads off). Secondmates
 # (kind=secondmate) become counter staff (firstmates[]); every other endpoint is
 # crew, titled from bin/fm-tasks-axi.sh show <task>. A crew whose id matches an open HarborDeck item gets "item" set, so the
-# desk can show what a decision unblocks. --print writes to stdout instead of
-# installing through `harbordeck fleet -`.
+# desk can show what a decision unblocks. Then each open item's `waiting` list
+# is set to the crew blocked or paused on it: a waiting crew whose id or task id
+# is the item id (or the item is one question `<task>.qN` of its hold), or whose
+# id or task id is the item's topic. Only changed lists are written, in one
+# `harbordeck batch`, so a quiet fleet costs no writes. --print writes fleet.json
+# to stdout instead of installing through `harbordeck fleet -`, and sets nothing.
 # Env: FM_HOME (required), HD (default: harbordeck), HD_MATE_ID (default:
 # mate-main), HD_MATE_LABEL (default: First Mate).
 set -euo pipefail
@@ -71,6 +75,16 @@ fleet=$(jq -s --arg mate "$MATE" --arg label "$MATE_LABEL" '
 
 if [ "${1:-}" = --print ]; then
   printf '%s\n' "$fleet"
-else
-  printf '%s\n' "$fleet" | "$HD" fleet -
+  exit 0
 fi
+printf '%s\n' "$fleet" | "$HD" fleet -
+
+items=("$HD_HOME"/items/*.json)
+[ -e "${items[0]}" ] || exit 0
+updates=$(jq -rs --argjson crew "$(jq -s '[.[] | select(.kind != "secondmate" and .state == "waiting")]' <<<"$rows")" '
+  .[] | select(.status == "open") | . as $it
+  | [$crew[] as $c | $c | select(.id == $it.id or .task == $it.id or (.task != null and ($it.id | startswith($c.task + ".")))
+      or ($it.topic != null and (.id == $it.topic or .task == $it.topic))) | .id] as $w
+  | select($w != ($it.waiting // [])) | (["waiting", $it.id] + $w) | join(" ")
+' "${items[@]}") || { echo "hd-fleet: waiting not updated (an item is unreadable)" >&2; exit 0; }
+[ -z "$updates" ] || printf '%s\n' "$updates" | "$HD" batch >/dev/null
