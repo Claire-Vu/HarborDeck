@@ -932,14 +932,15 @@ function renderPlain() {
 }
 
 // ------------------------------------------------------------ wiring
+function setMi(sel, ic, label) { const b = $(sel); b.querySelector('use').setAttribute('href', `#i-${ic}`); b.querySelector('.mi-l').textContent = label; b.title = label; }
 function applyPrefs() {
   if (S.prefs.theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = S.prefs.theme;
-  $('#btn-theme').replaceChildren(icon({ auto: 'auto', light: 'sun', dark: 'moon' }[S.prefs.theme])); $('#btn-theme').title = `Theme: ${S.prefs.theme} (click to change)`;
+  setMi('#btn-theme', { auto: 'auto', light: 'sun', dark: 'moon' }[S.prefs.theme], `Theme: ${S.prefs.theme}`);
   $('#btn-sound').setAttribute('aria-pressed', String(S.prefs.sound)); $('#btn-music').setAttribute('aria-pressed', String(S.prefs.music)); $('#music-vol').value = S.prefs.musicVol;
-  $('#btn-plain').setAttribute('aria-pressed', String(S.prefs.plain)); $('#btn-plain').replaceChildren(icon(S.prefs.plain ? 'desk' : 'plain')); $('#btn-plain').title = S.prefs.plain ? 'Back to the desk (P)' : 'Plain mode: flat list (P)';
+  $('#btn-plain').setAttribute('aria-pressed', String(S.prefs.plain)); setMi('#btn-plain', S.prefs.plain ? 'desk' : 'plain', S.prefs.plain ? 'Back to the desk' : 'Plain mode');
   $('#desk-mode').hidden = S.prefs.plain; $('#plain-mode').hidden = !S.prefs.plain; $('#btn-inspect').disabled = S.prefs.plain;
   $('#cash-n').textContent = money(S.cash); document.body.dataset.ink = S.fun.ink || 'red'; renderStaminaMini(); renderPhoneButton();
-  const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); $('#orders-flag').hidden = !flagged; $('#orders-flag').textContent = flagged;
+  const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); for (const id of ['#orders-flag', '#orders-flag2']) { $(id).hidden = !flagged; $(id).textContent = flagged; }
 }
 function renderAll(keepDesk) {
   applyPrefs();
@@ -1044,11 +1045,28 @@ const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeStrin
 tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
+$('#btn-shop').onclick = () => harbor.openChandlery();
 $('#btn-orders').onclick = () => $('#orders').classList.contains('open') ? closeDrawers() : openDrawer('orders');
 $('#btn-vault').onclick = () => $('#vault').classList.contains('open') ? closeDrawers() : openDrawer('vault');
 $('#btn-log').onclick = () => $('#agentlog').classList.contains('open') ? closeDrawers() : openDrawer('agentlog');
 $('#btn-ledger').onclick = openLedger;
 $('#btn-settings').onclick = openSettings;
+// header menu: one popover for everything that is not at-a-glance status; toggles (sound, music, theme, volume) keep it open
+const menuEl = $('#menu'), menuBtn = $('#btn-menu');
+const menuOpen = () => !menuEl.hidden;
+function setMenu(on) {
+  menuEl.hidden = !on; menuBtn.setAttribute('aria-expanded', String(on));
+  if (on) { const r = menuBtn.getBoundingClientRect(); menuEl.style.top = `${Math.round(r.bottom + 4)}px`; menuItems()[0]?.focus(); } else if (menuEl.contains(document.activeElement)) menuBtn.focus();
+}
+const menuItems = () => [...menuEl.querySelectorAll('button.mi:not(:disabled), input.vol')];
+menuBtn.onclick = () => setMenu(!menuOpen());
+menuEl.addEventListener('click', e => { const b = e.target.closest('button.mi'); if (b && !['btn-sound', 'btn-music', 'btn-theme'].includes(b.id)) setMenu(false); });
+menuEl.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const its = menuItems(), i = its.indexOf(document.activeElement); if (e.target.matches('input')) return; e.preventDefault();
+  its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]?.focus();
+});
+document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
 $('#sched-chip').onclick = () => { if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('requests'); };
 $('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('crew'); };
 $('#cash').onclick = () => harbor.openChandlery();
@@ -1064,17 +1082,19 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers)
 document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = () => stamp(b.dataset.verdict));
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => selectTab(t.dataset.tab));
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && menuOpen()) { setMenu(false); return; }
   if (e.key === 'Escape') { closeModal(); closeDrawers(); clearPick(); document.querySelector('.tk-pop')?.remove(); return; }
   const tgt = e.target instanceof Element ? e.target : document.body;
   if (tgt.matches('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === 'u' || k === 'z') { if (pending) { e.preventDefault(); undoPending(); } return; }
+  if (k === 'm') { e.preventDefault(); setMenu(!menuOpen()); return; }
   if (k === 'p') { e.preventDefault(); $('#btn-plain').click(); return; }
   if (S.prefs.plain) return;
   if (tgt.closest('#rail')) { railKeys(e); if (e.key.startsWith('Arrow')) return; }
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
   if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
-  else if (k === 'n') next(); else if (k === 'b') harbor.openChandlery(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
+  else if (k === 'n') next(); else if (k === 'b') $('#btn-shop').click(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
 });

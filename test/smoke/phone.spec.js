@@ -94,6 +94,7 @@ test('the main-process hotkey opens the phone; a headless run never shows the wi
 test('the shortcut is a setting: a new one opens the phone, the old one no longer does', async () => {
   await page.evaluate(async () => { const s = await window.harbor.getSettings(); await window.harbor.setSettings({ ...s, phoneShortcut: 'CommandOrControl+Shift+K' }); });
   await page.evaluate(() => window.harbor.snapshot()); // the renderer reads settings from snapshots
+  await page.locator('#btn-menu').click();
   await page.locator('#btn-settings').click();
   await expect(page.locator('.settings input').nth(3)).toHaveValue('CommandOrControl+Shift+K');
   await page.locator('.modal').getByRole('button', { name: 'Save' }).click();

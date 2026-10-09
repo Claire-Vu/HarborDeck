@@ -79,6 +79,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |
 | `#requests-pane textarea`, buttons `Send now`, `Queue for after reset`, `Queue at time`, input `Send at time` | Requests tab |
+| `#btn-menu`, key `m`; `#menu` with `#btn-inspect`, `#btn-plain`, `#btn-shop`, `#btn-orders`, `#btn-vault`, `#btn-ledger`, `#btn-log`, `#btn-sound`, `#btn-music`, `#music-vol`, `#btn-theme`, `#btn-settings` | header menu: every moved control lives here (open it first; Esc/outside click/action closes it; sound, music, theme keep it open). Header keeps only `#btn-phone`, `#btn-menu` (+`#orders-flag`) |
 | `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, sent cue |
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
