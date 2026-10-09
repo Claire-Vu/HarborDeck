@@ -1,0 +1,1 @@
+desk walk: 34/34 pass (settings step: PASS  settings: menu -> Settings shows data dir; Cancel closes)

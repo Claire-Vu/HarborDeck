@@ -56,7 +56,7 @@ The desk is split by area. The desk scripts are classic scripts loaded in order 
 | `day-cycle.js` | morning manifest, ships-out report |
 | `plain-mode.js` | plain mode |
 | `desk-sync.js` | `renderAll()`, applying pushed snapshots |
-| `desk-settings.js` | settings modal |
+| `desk-settings.js` | opens the settings dialog (`settings-view.js`, `styles/settings.css`) |
 | `desk-keys.js` | keyboard shortcuts |
 
 Feature modules (`*-view.js`, `quick-call.js`, `harbor-scene.js`, ...) keep their own scope and are built by `app.js` with what they need. Styles live in `styles/<area>.css`, linked from `index.html` in cascade order.

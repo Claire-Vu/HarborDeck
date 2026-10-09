@@ -188,6 +188,8 @@ ipcMain.handle('harbor:set-settings', (e, next) => {
   if (!demo) useHome(effectiveHome(settings), false);
   return snapshot();
 });
+// Settings records a new phone shortcut by key press: the system-wide hotkey is let go meanwhile so it reaches the page.
+ipcMain.on('harbor:phone-key-hold', (e, on) => { if (!on) registerPhoneKey(); else if (phoneKey.state === 'ok') globalShortcut.unregister(phoneKey.accelerator); });
 ipcMain.handle('harbor:choose-dir', async (e, title) => {
   const r = await dialog.showOpenDialog(win, { title: String(title || 'Choose a folder'), properties: ['openDirectory', 'createDirectory'] });
   return r.canceled ? null : r.filePaths[0];

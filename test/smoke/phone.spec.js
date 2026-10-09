@@ -93,13 +93,20 @@ test('the main-process hotkey opens the phone; a headless run never shows the wi
   await page.keyboard.press('Escape');
 });
 
-test('the shortcut is a setting: a new one opens the phone, the old one no longer does', async () => {
-  await page.evaluate(async () => { const s = await window.harbor.getSettings(); await window.harbor.setSettings({ ...s, phoneShortcut: 'CommandOrControl+Shift+K' }); });
-  await page.evaluate(() => window.harbor.snapshot()); // the renderer reads settings from snapshots
+test('the shortcut is a setting, recorded by pressing it: the new one opens the phone, the old one no longer does', async () => {
   await page.locator('#btn-menu').click();
   await page.locator('#btn-settings').click();
-  await expect(page.locator('.settings input').nth(3)).toHaveValue('CommandOrControl+Shift+K');
+  const rec = page.getByRole('button', { name: /Phone shortcut/ });
+  await expect(rec).toHaveAttribute('data-accel', 'CommandOrControl+Shift+Space');
+  await rec.click();
+  await expect(rec).toContainText('Press keys');
+  await page.keyboard.press('k'); // a bare letter is refused, still recording
+  await expect(page.locator('.kc-msg')).toContainText('letter');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+K' : 'Control+Shift+K');
+  await expect(rec).toHaveAttribute('data-accel', 'CommandOrControl+Shift+K');
+  await expect(page.locator('#phone')).toHaveCount(0); // recording never dials
   await page.locator('.modal').getByRole('button', { name: 'Save' }).click();
+  expect((await page.evaluate(() => window.harbor.getSettings())).phoneShortcut).toBe('CommandOrControl+Shift+K');
   await page.keyboard.press(KEY);
   await expect(page.locator('#phone')).toHaveCount(0);
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+K' : 'Control+Shift+K');
