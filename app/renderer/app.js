@@ -872,7 +872,6 @@ function tickets() {
   for (const p of queuedRequests()) out.push({ key: `queued:${p.id}`, a: { id: p.request.id, action: 'request', note: p.request.note, to: p.request.to, at: p.queued_at }, title: `Order to ${mateLabel(p.request.to)}`, reply: null, item: null, queued: p, seen: true });
   return out.sort((x, y) => ((y.reply && !y.seen) - (x.reply && !x.seen)) || ((!!y.reply) - (!!x.reply)) || (!!x.queued - !!y.queued) || x.a.at - y.a.at);
 }
-const ruleFor = id => Object.keys(RULES).find(k => RULES[k].answer === id);
 function renderRail(ring) {
   const rail = $('#rail'); if (!rail) return; const list = tickets(); const t0 = now();
   rail.replaceChildren(h('span', { class: 'rail-label', title: 'Things you asked for (T)' }, 'Tickets'));
@@ -881,7 +880,7 @@ function renderRail(ring) {
     const unread = t.reply && !t.seen;
     const state = t.queued ? queuedLabel(t.queued) : t.reply ? (unread ? 'reply waiting' : 'replied') : 'waiting ' + age(t0 - t.a.at);
     rail.append(h('button', { class: `ticket ${t.queued ? 'queued' : t.reply ? 'replied' : 'waiting'} ${unread ? 'new' : ''} ${t.a.action}`, dataset: { key: t.key, i }, tabindex: i === railFocus ? 0 : -1, 'aria-label': `${t.title}: ${t.a.note}. ${state}`, onclick: e => openTicket(t, e.currentTarget), onfocus: () => { railFocus = i; } },
-      h('span', { class: 'tk-head' }, h('span', { class: `tk-kind ${t.a.action}` }, { ask: 'ask', 'needs-work': 'rework', request: 'order' }[t.a.action]), h('span', { class: 'tk-title' }, t.title), t.a.rule || t.queued?.request?.rule ? h('span', { class: 'tk-pin', title: ruleFor(t.a.id) ? 'Standing order: recorded' : 'Standing order: waiting for your first mate to record it', 'aria-label': 'standing order' }, '📌') : null, unread ? h('span', { class: 'tk-badge' }, '1') : null),
+      h('span', { class: 'tk-head' }, h('span', { class: `tk-kind ${t.a.action}` }, { ask: 'ask', 'needs-work': 'rework', request: 'order' }[t.a.action]), h('span', { class: 'tk-title' }, t.title), t.a.rule || t.queued?.request?.rule ? h('span', { class: 'tk-pin', title: Object.values(RULES).some(r => r.answer === t.a.id) ? 'Standing order: recorded' : 'Standing order: waiting for your first mate to record it', 'aria-label': 'standing order' }, '📌') : null, unread ? h('span', { class: 'tk-badge' }, '1') : null),
       h('span', { class: 'tk-note' }, t.a.note),
       h('span', { class: 'tk-foot' }, t.queued ? `⏳ ${state}` : t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` sent · waiting ${age(t0 - t.a.at)}`], t.item && st(t.item.id).read && t.item.id !== S.current && changesOf(t.item) ? h('span', { class: 'upd' }, 'updated') : null)));
   });
