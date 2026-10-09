@@ -28,3 +28,7 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Paper tray
 
 `docs/evidence/paper-tray/` are headless captures (`HARBORDECK_SHOTS=docs/evidence/paper-tray npx playwright test test/smoke/stow.spec.js`, seeded demo data) of the storage box empty, holding three stowed papers, and its open view of mini paper cards.
+
+## Pixel-block stamps
+
+`docs/evidence/stamp-pixel/` are headless captures (`test/smoke/launch.js`, seeded demo data) of the stamp tray (`2-tray`, `1-tray-desk`), the Approve stamp pressed (`3-pressed`), a stamp in hand (`4-in-hand`), the five impressions on the decision slip (`5-impression-*`) and the narrow tray (`6-phone-tray`).
