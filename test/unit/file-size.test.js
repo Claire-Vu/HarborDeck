@@ -9,7 +9,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const LIMIT = 400;
-const GRANDFATHERED = { 'app/renderer/app.js': 1364, 'cli/src/main.js': 491, 'cli/src/scheduler.js': 461 };
+const GRANDFATHERED = { 'app/renderer/app.js': 1360, 'cli/src/main.js': 491, 'cli/src/scheduler.js': 461 };
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
   const p = path.join(dir, e.name);
   return e.isDirectory() ? (e.name === 'node_modules' ? [] : walk(p)) : [p];

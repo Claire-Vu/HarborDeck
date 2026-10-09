@@ -18,6 +18,9 @@
 # the item resolved. Item ids should therefore equal firstmate task ids when an
 # item stands for a captain hold. Each note ends with the exact `harbordeck
 # reply` command to answer on the desk.
+# Images the captain attached (pasted, dropped or snapped on the desk; copies under
+# <HARBORDECK_HOME>/attachments/) ride along as "Attached: <paths>" before that
+# command; a keyed decide/approve/reject that carries one also sends the note.
 # --dry-run prints the firstmate commands instead of running them and does not
 # move the cursor. --echo is a safe live mode: firstmate commands are printed
 # (one timestamped "would run:" line each) instead of run, while HarborDeck-side
@@ -90,10 +93,12 @@ note() {  # <request-id> <text>
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
-  local a=$1 id action key note at to anchor title='' kind='' label text rid reply until day task so=''
+  local a=$1 id action key note at to anchor att title='' kind='' label text rid reply until day task so=''
   id=$(jq -r '.id' <<<"$a"); action=$(jq -r '.action' <<<"$a")
   key=$(jq -r '.key // ""' <<<"$a"); note=$(jq -r '.note // ""' <<<"$a"); at=$(jq -r '.at // 0' <<<"$a")
   to=$(jq -r '.to // "any mate"' <<<"$a"); anchor=$(jq -c '.anchor // empty' <<<"$a")
+  # images the captain attached (desk-written copies under the data dir): the marked-up copy when there is one
+  att=$(jq -r '[.attachments[]? | (.marked // .path) | strings] | join(", ")' <<<"$a")
   if [ -f "$HD_HOME/items/$id.json" ]; then
     title=$(jq -r '.title // ""' "$HD_HOME/items/$id.json"); kind=$(jq -r '.kind // ""' "$HD_HOME/items/$id.json")
   fi
@@ -102,18 +107,23 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
   rid="hd-$id-$action-$at"
   rid=${rid:0:128}
   text="HarborDeck $action on $id${title:+ \"$title\"}"
-  reply="Reply: $HD reply $id \"<text>\""
+  reply="${att:+Attached: $att. }Reply: $HD reply $id \"<text>\""
   case "$action" in
     decide)
       label=$(jq -r --arg k "$key" '[.options[]? | select(.key == $k) | .label][0] // ""' "$HD_HOME/items/$id.json" 2>/dev/null || true)
-      text="$text: $key${label:+ ($label)}${note:+ - $note}"
+      text="$text: $key${label:+ ($label)}${note:+ - $note}${att:+. Attached: $att}"
       if keyed "$id" "$key" "$label" done; then
-        [ -z "$note" ] || note "$rid" "$text" || return 1
+        [ -z "$note$att" ] || note "$rid" "$text" || return 1
       else
         note "$rid" "$text" || return 1
       fi ;;
     approve|reject)
-      keyed "$id" "$action${note:+: $note}" "" done || note "$rid" "$text${note:+: $note}" || return 1 ;;
+      text="$text${note:+: $note}${att:+. Attached: $att}"
+      if keyed "$id" "$action${note:+: $note}" "" done; then
+        [ -z "$att" ] || note "$rid" "$text" || return 1
+      else
+        note "$rid" "$text" || return 1
+      fi ;;
     needs-work)
       keyed "$id" "needs-work: $note" "" release || true
       note "$rid" "$text: $note.$so $reply" || return 1 ;;

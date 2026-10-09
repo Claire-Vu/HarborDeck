@@ -170,6 +170,20 @@ test('tick: bounded retries, rc 3 counts as delivered, rc 75 defers without spen
   assert.equal((await S.tick(home, typed, T + 470)).delivered.length, 0);
 });
 
+test('tick: a queued request keeps its attached images in the line and the wake text', async () => {
+  const { home, answers } = setup();
+  const w = recorder(home);
+  const env = { ...process.env, HARBORDECK_WAKE_COMMAND: w.cmd };
+  const attachments = [{ type: 'image', path: '/hd/attachments/2026-10/aa.png', marked: '/hd/attachments/2026-10/aa.marked.png', source: 'paste', marks: [{ shape: 'pin', x: 0.5, y: 0.5, n: 1, note: 'here' }] }];
+  S.enqueue(home, { when: T + 60, request: { id: 'req-img', note: 'Fix this [1] here', to: 'mate-main', attachments } }, T);
+  S.enqueue(home, { when: T + 60, request: { id: 'req-none', note: 'No image', attachments: [] } }, T);
+  await S.tick(home, env, T + 61);
+  const [a, b] = answers();
+  assert.deepEqual(a.attachments, attachments);
+  assert.equal('attachments' in b, false);
+  assert.match(w.read()[0], /Fix this \[1\] here Attached: \/hd\/attachments\/2026-10\/aa\.marked\.png\./);
+});
+
 test('tick: a retried request writes its answer line only once; a deferred reset item keeps its time', async () => {
   const { home, answers } = setup();
   S.enqueue(home, { when: 'reset', request: { id: 'req-9', note: 'n' } }, T);

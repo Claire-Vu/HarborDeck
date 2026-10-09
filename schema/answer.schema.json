@@ -25,6 +25,44 @@
     },
     "to": { "type": "string", "description": "request only: the agent id (fleet firstmates[].id) the order is handed to." },
     "rule": { "const": true, "description": "request, comment, needs-work, ask only: the user marked the message \"Remember this\", a standing order to file with their preferences, not a one-off. Absent otherwise (never false)." },
+    "attachments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "description": "Images the user pasted, dropped or snapped (request, comment, ask, needs-work; any action may carry them). The app copies each into <HARBORDECK_HOME>/attachments/<yyyy-mm>/ before writing the line, so the paths stay readable after any temp file is gone.",
+      "items": {
+        "type": "object",
+        "required": ["type", "path"],
+        "properties": {
+          "type": { "const": "image" },
+          "path": { "type": "string", "pattern": "^/", "description": "Absolute path of the original (PNG, JPEG, WebP or GIF) under the data directory's attachments/ folder." },
+          "marked": { "type": "string", "pattern": "^/", "description": "The same image with the user's marks drawn in (PNG), when there are marks. Prefer it when showing the image." },
+          "source": { "enum": ["paste", "drop", "snap"] },
+          "w": { "type": "integer", "minimum": 1 },
+          "h": { "type": "integer", "minimum": 1 },
+          "marks": {
+            "type": "array",
+            "maxItems": 50,
+            "description": "What the user drew, positions normalized 0..1 of the image. Pins and boxes carry a number n; their notes are also appended to the answer note as [n] text ([k.n] for the k-th image).",
+            "items": {
+              "type": "object",
+              "required": ["shape", "x", "y"],
+              "properties": {
+                "shape": { "enum": ["pin", "box", "arrow"] },
+                "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                "w": { "type": "number", "minimum": 0, "maximum": 1 },
+                "h": { "type": "number", "minimum": 0, "maximum": 1 },
+                "x2": { "type": "number", "minimum": 0, "maximum": 1 },
+                "y2": { "type": "number", "minimum": 0, "maximum": 1 },
+                "n": { "type": "integer", "minimum": 1 },
+                "note": { "type": "string", "maxLength": 500 }
+              }
+            }
+          }
+        }
+      }
+    },
     "until": { "type": "integer", "minimum": 0, "description": "defer only: epoch seconds the user wants the item back. The item stays open; the app hides it until then." },
     "at": { "type": "integer", "minimum": 0 }
   },

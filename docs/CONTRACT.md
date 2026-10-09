@@ -17,6 +17,7 @@ The JSON Schemas in [`../schema/`](../schema) are normative. This page explains 
 | `fleet.json` | agent/adapter (optional) | app | [`fleet`](../schema/fleet.schema.json) |
 | `quota.json` | agent/adapter (optional) | app | [`quota`](../schema/quota.schema.json) |
 | `rules.json` | agent/adapter (optional) | app | [`rules`](../schema/rules.schema.json) |
+| `attachments/<yyyy-mm>/<hash>.<ext>` | app | agent | images named by an answer's [`attachments`](#attachments) |
 | `cursors/<name>` | agent | agent | byte offset into `answers.jsonl` |
 | `scheduler.json` | scheduler | app, tools | [scheduler status](#scheduler) |
 | `schedule/` | scheduler, app (queue only) | scheduler | [scheduler](#scheduler) |
@@ -25,7 +26,7 @@ File rules:
 
 - Whole-file writes are atomic: write `.<name>.<random>.tmp` in the same directory, then rename. Readers ignore dotfiles and must tolerate a file appearing or being replaced at any time.
 - JSONL files are appended one complete line per write (`\n`-terminated). A reader consumes only complete lines; a trailing partial line is still being written.
-- The app never writes items or snapshots. Agents never write `answers.jsonl`; the HarborDeck scheduler appends a `request` line on the user's behalf when a request the user queued is delivered.
+- The app never writes items or snapshots; it writes only `answers.jsonl` and `attachments/`. Agents never write `answers.jsonl`; the HarborDeck scheduler appends a `request` line on the user's behalf when a request the user queued is delivered.
 - Unknown fields are allowed everywhere and ignored, so producers can add fields before the app reads them.
 - Relative paths inside items (`body`, artifact `path`) resolve against the data directory. The CLI always writes absolute paths.
 
@@ -151,7 +152,7 @@ The app appends one line per user action to `answers.jsonl`:
 | `reject` | reject stamp | `note` | No. Stop or drop it. |
 | `needs-work` | needs-work stamp | `note` | Redo with the note; keep the item open. |
 | `ask` | ask slip | `note` | A question. Reply with a `thread` entry. |
-| `comment` | inspect match/mismatch | `note`, `anchor` | Feedback pinned to something. `anchor` may carry `claim`, `artifact`, `t` (seconds), `x`,`y` (position on an image), `heading`, `rule`. |
+| `comment` | inspect match/mismatch, or the ship phone's **Add to…** (an addition to a running order or item) | `note`, `anchor` | Feedback pinned to something. `anchor` may carry `claim`, `artifact`, `t` (seconds), `x`,`y` (position on an image), `heading`, `rule`. |
 | `request` | new order slip or ship phone | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
 | `defer` | Later stamp | `until` (required, epoch seconds), `note` | Not now: bring it back at `until` (tomorrow 9:00, or after the next usage reset). The item stays open; the app hides it until then, or until the agent rewrites it. Do not act on it; park the work until that time. |
 
@@ -162,6 +163,25 @@ The app appends one line per user action to `answers.jsonl`:
 ```
 
 **Undo is not an action.** After a stamp the app holds the line for about 4 seconds; Undo drops it and nothing is written. Closing the app flushes a held line. Agents therefore only ever see final lines and never need to reconcile undo.
+
+### Attachments
+
+`request`, `comment`, `ask` and `needs-work` lines (any action may) can carry images the user pasted, dropped or snapped on the desk:
+
+```json
+{"id":"req-1791431600-3","action":"request","note":"The tray covers the rail [1] last ticket hidden","to":"mate-main","attachments":[{"type":"image","path":"/Users/me/.harbordeck/attachments/2026-10/3f9c1e7a2b.png","marked":"/Users/me/.harbordeck/attachments/2026-10/8d01c4e5f6.png","source":"snap","w":2560,"h":1600,"marks":[{"shape":"pin","x":0.88,"y":0.17,"n":1,"note":"last ticket hidden"},{"shape":"arrow","x":0.5,"y":0.6,"x2":0.8,"y2":0.2}]}],"at":1791431600}
+```
+
+| Field | Meaning |
+|---|---|
+| `type` | `image` |
+| `path` | Absolute path of the original. The app copies the bytes into `attachments/<yyyy-mm>/<sha256:10>.<png\|jpg\|webp\|gif>` (mode 0600) the moment they arrive, so the path stays valid after any temp file (such as a macOS screenshot thumbnail) is gone. Only PNG, JPEG, WebP and GIF by their bytes, at most 15 MB; never SVG. |
+| `marked` | The same image with the user's marks drawn in (PNG). **Show or forward this one when present**; it is what the user saw. |
+| `source` | `paste`, `drop` or `snap` (the desk window, captured without its overlays). |
+| `w`, `h` | Pixel size of the original. |
+| `marks` | What the user drew, positions normalized 0..1: `pin` (`x`,`y`), `box` (`x`,`y`,`w`,`h`), `arrow` (`x`,`y` to `x2`,`y2`). Pins and boxes carry a number `n` and an optional `note`. |
+
+The pin notes are also in `note` as `[n] text` (`[k.n]` for the k-th image), so an agent that cannot see images still gets every remark. At most 8 attachments per line. The app refuses a line whose paths are not its own copies under `attachments/`. Treat the images as private: copy them where the crew can read them; never commit them to a repository.
 
 Reading answers cheaply: remember the byte offset after the last complete line you consumed and read only bytes after it (`harbordeck answers --cursor <name>` does this). If the file is shorter than the offset, it was rotated; start from 0.
 
@@ -282,7 +302,7 @@ A queue item:
 | `reset` | after every known exhausted window resets (pending `limit` items and `quota.json` windows at 100 %), else the soonest `quota.json` reset, else now; plus `margin` |
 | `limit` | the wake itself: `reset` + `margin`. Fields `reset`, `source` (`statusline`, `message`, `quota`, `manual`), `window`, `hit_at`, `stalled` (`[{pane, cwd, session}]`). Records within 15 min of each other are one reset. |
 
-An item with `request` is written to `answers.jsonl` at delivery as `{"id", "action": "request", "note", "to", "queued_at", "at"}`. The app writes queue files only to add or cancel a queued request; ids are stable, so queuing the same thing twice is one entry.
+An item with `request` is written to `answers.jsonl` at delivery as `{"id", "action": "request", "note", "to", "attachments"?, "queued_at", "at"}`. The app writes queue files only to add or cancel a queued request; ids are stable, so queuing the same thing twice is one entry.
 
 `scheduler.json` is rewritten atomically on every change (times are epoch seconds, `null` = none):
 

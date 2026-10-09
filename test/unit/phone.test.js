@@ -35,3 +35,18 @@ test('settings: phone shortcut defaults on, can be changed or turned off', () =>
   assert.strictEqual(saveSettings(file, { phoneShortcut: '' }).phoneShortcut, '');
   assert.strictEqual(saveSettings(file, {}).phoneShortcut, 'CommandOrControl+Shift+Space');
 });
+
+test('add-to targets: the open item at the desk first, then running rail tickets, one per id, never queued ones', () => {
+  const { HarborAddTo } = keys;
+  const tickets = [
+    { a: { id: 'req-1-2', action: 'request', note: 'Add a dark theme' }, title: 'Order to First Mate' },
+    { a: { id: 'logo', action: 'ask', note: 'why teal?' }, title: 'Pick a logo' },
+    { a: { id: 'logo', action: 'needs-work', note: 'bigger' }, title: 'Pick a logo' },
+    { a: { id: 'req-3-4', action: 'request', note: 'Later thing' }, title: 'Order', queued: { id: 'reset-req-3-4' } }
+  ];
+  assert.deepStrictEqual(HarborAddTo.targets({ id: 'logo', title: 'Pick a logo' }, tickets), [
+    { id: 'logo', kind: 'at the desk', label: 'Pick a logo' },
+    { id: 'req-1-2', kind: 'order', label: 'Add a dark theme' }
+  ]);
+  assert.deepStrictEqual(HarborAddTo.targets(null, []), []);
+});
