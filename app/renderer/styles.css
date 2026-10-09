@@ -323,7 +323,7 @@ body.inspect .fact:hover { background: rgba(242,181,68,.5); }
 .stamp:disabled { opacity: .35; cursor: not-allowed; }
 .stamp.later { --ink: #6b7785; }
 .stamp.approve { --ink: var(--approve); } .stamp.reject { --ink: var(--reject); } .stamp.needswork { --ink: var(--needs); } .stamp.ask { --ink: var(--ask); } .stamp.file { --ink: var(--file); }
-.tray-body .keys { margin-top: auto; flex: none; font-size: 10px; color: var(--ui-muted); line-height: 1.5; }
+.tray-body .keys { flex: none; font-size: 10px; color: var(--ui-muted); line-height: 1.5; }
 @media (min-width: 861px) and (max-height: 700px) { .stamp .handle { height: 20px; } .tray-body { gap: 6px; } }
 .impression.ink-later { color: #6b7785; }
 .flying-stamp { position: fixed; z-index: 200; width: 60px; height: 46px; pointer-events: none; padding: 0; }
@@ -786,3 +786,18 @@ pre.diff .add { color: #1f7a3a; background: rgba(46,160,67,.12); display: block;
 .sr-empty { padding: 12px 14px; color: var(--ui-muted); }
 .sr-foot { display: flex; gap: 14px; padding: 6px 14px; border-top: 1px solid var(--ui-edge); font-size: 11px; color: var(--ui-muted); }
 .sr-foot .sr-count { margin-left: auto; }
+
+/* ---------- storage box: stowed papers leave the desk and wait here (bottom of the stamp tray) ---------- */
+.stow { margin-top: auto; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.stow-box { position: relative; width: 44px; height: 32px; padding: 0; border: 1px dashed transparent; border-radius: 4px; background: none; opacity: .45; transition: opacity .15s, border-color .15s, transform .15s; }
+.stow-box svg { width: 100%; height: 100%; display: block; }
+.stow[data-n]:not([data-n="0"]) .stow-box, .stow-box:hover, .stow-box:focus-visible, .stow-box.drop { opacity: 1; }
+.stow-box.drop { border-color: var(--ui-accent); transform: scale(1.12); }
+.stow-n { position: absolute; top: -5px; right: -7px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ui-accent); color: #1b1b1b; font: 700 10px/15px var(--font-paper); text-align: center; }
+.stow-n:empty { display: none; }
+.stow-list { align-self: stretch; display: flex; flex-direction: column; gap: 3px; }
+.stow-list[hidden] { display: none; }
+.stow-list button { text-align: left; font: 10.5px var(--font-paper); color: var(--ui-fg); background: none; border: 1px solid var(--ui-edge); border-radius: 3px; padding: 2px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stow-list button:hover { background: rgba(127,127,127,.15); }
+.stow-list .all { color: var(--ui-muted); border-style: dashed; }
+.paper .ibtn.stow-btn { padding: 0 6px; line-height: 14px; }

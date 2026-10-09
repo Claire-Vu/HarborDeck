@@ -143,7 +143,11 @@
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
       <button class="stamp later" data-verdict="later" aria-label="Later" title="Later (S): back tomorrow 9:00 · Shift: after the next usage reset"><span class="handle"></span><span class="base"><span class="lbl">Later</span></span></button>
-      <div class="keys">Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ←/→ scene · ⌘K search · M menu · Esc</div>
+      <div class="stow" id="stow" data-n="0">
+        <div class="stow-list" id="stow-list" hidden></div>
+        <button class="stow-box" id="stow-box" title="Stowed papers (X stows a paper, ⇧X brings all back). Drop a paper here to stow it." aria-label="Storage box: 0 stowed" aria-expanded="false"><svg viewBox="0 0 40 28" aria-hidden="true"><rect x="3" y="9" width="34" height="17" rx="2" fill="#8a5a33"/><rect x="3" y="9" width="34" height="4" fill="#6f4525"/><rect x="2" y="5" width="36" height="5" rx="1.5" fill="#a46b3c"/><rect x="15" y="14" width="10" height="4" rx="1" fill="#2b1a0d" opacity=".55"/></svg><span class="stow-n" id="stow-n"></span></button>
+      </div>
+      <div class="keys">X stow · Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ←/→ scene · ⌘K search · M menu · Esc</div>
     </div>
   </aside>
 </main>

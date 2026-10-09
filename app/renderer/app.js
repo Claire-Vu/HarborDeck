@@ -34,7 +34,7 @@ const deskKey = () => `harbor-deck-desk:${SNAP.home}`;
 const freshPrefs = () => ({ plain: false, sound: false, music: false, musicVol: 40, theme: 'auto', filter: 'all', tab: 'window', tray: true });
 // fun: the harbor game (harbor-game.js): cosmetics owned, ink and tune in use, stamp book, days at the desk, the tide goal
 const freshFun = () => ({ owned: [], ink: 'red', track: 'harbor', badges: {}, spent: 0, dayCount: 0, lastDay: null, tide: null, bestRun: 0 });
-const fresh = () => ({ day: 1, streak: 0, dayOpen: false, dayStart: 0, cash: 0, answers: [], items: {}, positions: {}, current: null, tickets: { seen: {}, done: {} }, fun: freshFun(), prefs: freshPrefs() });
+const fresh = () => ({ day: 1, streak: 0, dayOpen: false, dayStart: 0, cash: 0, answers: [], items: {}, positions: {}, stowed: {}, current: null, tickets: { seen: {}, done: {} }, fun: freshFun(), prefs: freshPrefs() });
 let S = fresh();
 function loadState() {
   const prefs = S.prefs; S = fresh(); S.prefs = prefs;
@@ -475,7 +475,7 @@ function renderDesk() {
   if (!it || statusOf(it) !== 'open') {
     lastDeskGroup = null;
     surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
-    renderTray(null); return;
+    renderTray(null); renderStow(); return;
   }
   const s = st(it.id); const papers = []; const claims = sentences(it.summary); const m = mateFor(it); const c = crewFor(it);
   const ch = lookAt(it, true); const fresh = new Set(ch?.claims || []);
@@ -501,15 +501,45 @@ function renderDesk() {
   const gk = group.map(m => m.id).join(' '); const calm = gk === lastDeskGroup; lastDeskGroup = gk;
   surf.classList.toggle('calm', calm);
   const pos = S.positions[it.id] || {};
-  papers.forEach((p, i) => { p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms'; makeDraggable(p, it.id); surf.append(p); });
-  layoutPapers(papers, surf, pos);
+  const away = stowedOf(it.id); stowLabels = {}; papers.forEach(p => { stowLabels[p.dataset.pid] = p.querySelector('.grip > span')?.textContent || 'Paper'; });
+  const shown = papers.filter(p => !away[p.dataset.pid]);
+  if (!shown.some(p => p.classList.contains('reading'))) shown.find(p => p.dataset.pid !== 'm' && p.dataset.pid !== 'ask')?.classList.add('reading');
+  shown.forEach((p, i) => { p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms'; makeDraggable(p, it.id); addStowBtn(p, it.id); surf.append(p); });
+  layoutPapers(shown, surf, pos);
   const sh = surf.querySelector('.paper.qsheet');
   if (sh) { if (calm && sheetScroll != null) sh.scrollTop = sheetScroll; sh.querySelector('.b-row.cur')?.scrollIntoView({ block: 'nearest' }); sheetCount(); }
-  renderTray(it);
+  renderTray(it); renderStow();
 }
 let lastDeskGroup = null, sheetScroll = null;
 const isNewMsg = (x, ch) => ch?.since != null && !x.me && x.from !== 'captain' && x.at > ch.since;
 const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.after(h('span', { class: 'upd' }, 'new')); };
+// Storage box: stowed papers leave the desk (per item, persisted) and wait in the box at the foot of the stamp tray.
+// A stowed paper keeps its dragged position, so it comes back where it was (clamped by layoutPapers).
+let stowLabels = {};
+const stowedOf = id => S.stowed[id] || {};
+const overStow = e => { const r = $('#stow-box').getBoundingClientRect(); return r.width > 0 && e.clientX >= r.left - 10 && e.clientX <= r.right + 10 && e.clientY >= r.top - 10 && e.clientY <= r.bottom + 10; };
+function addStowBtn(p, id) { p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
+function stow(id, pid) {
+  const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || id !== S.current || stowedOf(id)[pid]) return;
+  (S.stowed[id] ||= {})[pid] = stowLabels[pid] || 'Paper'; save(); snd('flip');
+  const b = $('#stow-box').getBoundingClientRect(), r = p.getBoundingClientRect(); p.style.pointerEvents = 'none';
+  if (b.width) { p.style.animation = 'none'; p.style.transformOrigin = '0 0'; p.style.transition = 'transform .35s ease-in, opacity .35s'; void p.offsetWidth; p.style.transform = `translate(${b.left + b.width / 2 - r.left}px, ${b.top + b.height / 2 - r.top}px) scale(.05)`; p.style.opacity = '0'; }
+  setTimeout(() => { if (S.current === id) renderDesk(); }, b.width ? 360 : 0); renderStow();
+}
+function unstow(id, pid) { const m = S.stowed[id]; if (!m?.[pid]) return; delete m[pid]; if (!Object.keys(m).length) delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
+function unstowAll(id) { if (!S.stowed[id]) return; delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
+function stowKey() { // X: the paper last raised, else the reading paper, else any but the ask
+  const ps = [...document.querySelectorAll('#desk-surface .paper')]; if (!ps.length) { toast('No papers on the desk.'); return; }
+  const p = ps.find(q => q.style.zIndex === '89') || ps.find(q => q.classList.contains('reading')) || ps.filter(q => q.dataset.pid !== 'ask').pop() || ps[0];
+  stow(S.current, p.dataset.pid);
+}
+function renderStow() {
+  const m = S.current ? stowedOf(S.current) : {}, keys = Object.keys(m), n = keys.length, list = $('#stow-list');
+  $('#stow').dataset.n = n; $('#stow-n').textContent = n || ''; const bx = $('#stow-box'); bx.setAttribute('aria-label', `Storage box: ${n} stowed`);
+  if (!n) { list.hidden = true; bx.setAttribute('aria-expanded', 'false'); }
+  list.replaceChildren(...keys.map(pid => h('button', { class: 'stowed', title: 'Bring back to the desk', onclick: () => unstow(S.current, pid) }, m[pid])), ...(n > 1 ? [h('button', { class: 'all', onclick: () => unstowAll(S.current) }, 'Bring all back')] : []));
+}
+$('#stow-box').addEventListener('click', () => { const l = $('#stow-list'); if (!l.children.length) { toast('Nothing stowed. Drag a paper here, or press X.'); return; } l.hidden = !l.hidden; $('#stow-box').setAttribute('aria-expanded', String(!l.hidden)); });
 // Papers never overlap: the manifest and the ask (slip or sheet) stack on the left, the main artifact fills the
 // reading column, and the rest stack in a side column (or under the reading paper when the desk is narrow).
 // A paper the captain dragged keeps its spot. Below 860 px the CSS flows papers instead.
@@ -521,9 +551,9 @@ function layoutPapers(papers, surf, pos) {
   const reading = papers.find(p => p.classList.contains('reading'));
   const rest = papers.filter(p => p !== man && p !== ask && p !== reading);
   const leftW = ask?.classList.contains('qsheet') ? Math.min(440, Math.max(340, W * .36)) : 320;
-  man.style.width = leftW + 'px'; man.style.maxHeight = (H * .42) + 'px';
-  const manH = Math.min(man.offsetHeight, H * .42);
-  at(man, X0, Y0, leftW); at(ask, X0, Y0 + manH + G, leftW, H - Y0 * 2 - manH - G);
+  let manH = 0;
+  if (man) { man.style.width = leftW + 'px'; man.style.maxHeight = (H * .42) + 'px'; manH = Math.min(man.offsetHeight, H * .42); at(man, X0, Y0, leftW); }
+  if (ask) at(ask, X0, man ? Y0 + manH + G : Y0, leftW, H - Y0 * 2 - (man ? manH + G : 0));
   const rx = X0 + leftW + G * 1.5, sideW = 290;
   const roomForSide = rest.length && W - rx - X0 >= 420 + G + sideW;
   const readW = Math.max(260, Math.min(820, W - rx - X0 - (roomForSide ? sideW + G : 0)));
@@ -640,8 +670,8 @@ function askSlip(it, ch) {
 function makeDraggable(p, itemId) {
   const grip = p.querySelector('.grip'); let sx, sy, ox, oy, dragging = false;
   grip.addEventListener('pointerdown', e => { if (window.innerWidth <= 860 || e.target.closest('button,a')) return; dragging = true; grip.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = p.offsetLeft; oy = p.offsetTop; p.style.zIndex = 90; p.style.animation = 'none'; });
-  grip.addEventListener('pointermove', e => { if (!dragging) return; p.style.left = (ox + e.clientX - sx) + 'px'; p.style.top = (oy + e.clientY - sy) + 'px'; });
-  grip.addEventListener('pointerup', () => { if (!dragging) return; dragging = false; ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
+  grip.addEventListener('pointermove', e => { if (!dragging) return; p.style.left = (ox + e.clientX - sx) + 'px'; p.style.top = (oy + e.clientY - sy) + 'px'; $('#stow-box').classList.toggle('drop', overStow(e)); });
+  grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
   p.addEventListener('pointerdown', () => { document.querySelectorAll('.paper').forEach(q => { if (q.style.zIndex === '90') q.style.zIndex = 40; }); if (!dragging) p.style.zIndex = 89; });
 }
 
@@ -1322,6 +1352,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); stamp('approve'); }
   else if (e.shiftKey && k === 'a') { e.preventDefault(); quick.openSweep(queueItems().filter(i => !st(i.id).awaiting), sweep); }
   else if (!e.shiftKey && 'abcde'.includes(k) && k) { e.preventDefault(); pickLetter('abcde'.indexOf(k)); }
+  else if (k === 'x') { e.preventDefault(); if (e.shiftKey) unstowAll(S.current); else stowKey(); }
   else if (k === 'j') moveRow(1); else if (k === 'k') moveRow(-1);
   else if (k === 's') { e.preventDefault(); stamp('later', e.shiftKey); }
 });
