@@ -1,13 +1,13 @@
 // In-desk browser pane: a localhost page (the demo's static site) renders and stays interactive inside the desk,
 // links off the machine open in the system browser, and the page gets no bridge, node or main-window session.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 const { startStaticSite } = require('../../app/demo/static-site');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp, ROOT } = require('./launch');
 let app, page, home, site;
 test.describe.configure({ mode: 'serial' });
 
@@ -19,7 +19,7 @@ test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-web-'));
   site = await startStaticSite(path.join(ROOT, 'app', 'demo', 'assets', 'web'));
   home = seedDemo(path.join(tmp, 'home'), undefined, { webUrl: site.url });
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow, shell }) => {
     BrowserWindow.getAllWindows()[0].setContentSize(1280, 800);

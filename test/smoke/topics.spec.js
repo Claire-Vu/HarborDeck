@@ -1,12 +1,12 @@
 // Topics: items sharing a topic or a rel link arrive as one bundle and are stamped together, the topic page shows
 // the timeline, and notes an agent appends to notes.jsonl show up live on the page and on the item.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp } = require('./launch');
 const SHOTS = process.env.HARBORDECK_SHOTS || os.tmpdir();
 let app, page, home;
 test.describe.configure({ mode: 'serial' });
@@ -17,7 +17,7 @@ const addNote = n => fs.appendFileSync(path.join(home, 'notes.jsonl'), JSON.stri
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-topics-'));
   home = seedDemo(path.join(tmp, 'home'));
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
   await page.getByRole('button', { name: 'Open the office' }).click();

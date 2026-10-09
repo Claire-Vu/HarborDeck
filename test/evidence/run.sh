@@ -48,7 +48,7 @@ esac
 
 HD_BRIDGE_MODE=echo "$root/adapters/firstmate/hd-bridge.sh" --follow > "$HD_EV_BRIDGE_LOG" 2>&1 &
 pids+=($!)
-HARBORDECK_HEADLESS=${HARBORDECK_HEADLESS-1} HARBORDECK_USER_DATA="$tmp/profile" "$root/node_modules/.bin/electron" "$root" --remote-debugging-port="$port" > "$tmp/electron.log" 2>&1 &
+HARBORDECK_HEADLESS=${HARBORDECK_HEADLESS:-1} HARBORDECK_USER_DATA="$tmp/profile" "$root/node_modules/.bin/electron" "$root" --remote-debugging-port="$port" > "$tmp/electron.log" 2>&1 &
 pids+=($!)
 node "$root/test/evidence/cdp-shim.js" "http://127.0.0.1:$port" "$shim_port" > "$tmp/shim.log" 2>&1 &
 pids+=($!)

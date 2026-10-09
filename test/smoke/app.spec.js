@@ -1,12 +1,12 @@
 // Launches the app against a temp data dir, checks the desk renders, a stamp lands in answers.jsonl after the
 // undo hold, and a file written by an "agent" shows up live.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp, ROOT } = require('./launch');
 let app, page, home, profile, caffeinate;
 test.describe.configure({ mode: 'serial' }); // one app instance walks through the day
 
@@ -15,7 +15,7 @@ test.beforeAll(async () => {
   home = seedDemo(path.join(tmp, 'home')); profile = path.join(tmp, 'profile');
   // keep-awake runs a stub, never the real caffeinate
   caffeinate = path.join(tmp, 'caffeinate-stub'); fs.writeFileSync(caffeinate, '#!/bin/sh\nsleep 120\n'); fs.chmodSync(caffeinate, 0o755);
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile, HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
+  app = await launchApp({ home, profile, env: { HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 760));
 });

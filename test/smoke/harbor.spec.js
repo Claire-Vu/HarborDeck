@@ -1,12 +1,12 @@
 // The living harbor: boats per open task, sky from the clock, tide line, regulars, the ship cat, tidy runs (undo
 // breaks one), the stamp book and chandlery, and the ships-out recap. None of it adds a key to clearing.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp } = require('./launch');
 const SHOTS = process.env.HARBORDECK_SHOTS || os.tmpdir();
 let app, page, home;
 test.describe.configure({ mode: 'serial' });
@@ -14,7 +14,7 @@ test.describe.configure({ mode: 'serial' });
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-harbor-'));
   home = seedDemo(path.join(tmp, 'home'));
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
   await page.getByRole('button', { name: 'Open the office' }).click();

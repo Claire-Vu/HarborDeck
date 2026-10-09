@@ -1,13 +1,13 @@
 // Ship phone: the shortcut opens it centered with the pad focused, dialing picks the first mate, Enter sends the
 // same `request` line the Requests tab writes, Esc/the shortcut hangs up keeping the draft, and the main-process
 // hotkey (fired through its test seam, never registered system-wide in headless runs) opens it without showing the window.
-const { test, expect, _electron: electron } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seedDemo } = require('../../app/demo/seed');
 
-const ROOT = path.join(__dirname, '..', '..');
+const { launchApp } = require('./launch');
 const KEY = process.platform === 'darwin' ? 'Meta+Shift+Space' : 'Control+Shift+Space';
 let app, page, home;
 test.describe.configure({ mode: 'serial' });
@@ -17,7 +17,7 @@ const answers = () => fs.readFileSync(path.join(home, 'answers.jsonl'), 'utf8').
 test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-phone-'));
   home = seedDemo(path.join(tmp, 'home'));
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await launchApp({ home, profile: path.join(tmp, 'profile') });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 800));
   await page.getByRole('button', { name: 'Open the office' }).click();
