@@ -1,0 +1,37 @@
+/* ---------- phone: desk becomes a vertical stack ---------- */
+@media (max-width: 860px) {
+  #desk-mode { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+  .window-col { flex: none; border-right: 0; border-bottom: 1px solid var(--ui-edge); }
+  .window-frame { height: 150px; aspect-ratio: auto; margin: 8px 12px; }
+  .yard { height: 50px; margin-top: -2px; } .yc { width: 24px; height: 34px; } .at-window .speech { font-size: 11px; padding: 4px 6px; top: 28px; } .at-window .speech .say { -webkit-line-clamp: 1; } .sc-clear > span:not(.sc-zero) { display: none; }
+  .queue { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
+  .queue li { flex: 0 0 220px; align-items: flex-start; }
+  .queue-actions { display: none; }
+  .desk { flex: 1 0 auto; height: 75vh; min-height: 0; overflow: auto; } /* the window column above can fill the screen: the desk keeps its own height and the column scrolls */
+  .desk-surface { position: relative; min-height: 100%; padding: 12px; display: grid; gap: 10px; align-content: start; }
+  .desk-surface::before { display: none; }
+  .desk-hint { position: static; transform: none; padding: 24px 8px; }
+  .paper { position: static !important; width: 100% !important; max-height: none; transform: none !important; animation: fade .3s ease-out; }
+  .paper .grip { cursor: default; } .paper .grip .drag-only { display: none; }
+  .paper.manifest { order: 0; } .paper.ask { order: 2; } .paper.monitor, .paper.photo, .paper.prcard, .paper.report { order: 1; } .paper.thread { order: 3; }
+  .stamp-tray { flex: none; width: auto; height: 100px; border-left: 0; border-top: 1px solid var(--ui-edge); transition: height .25s; }
+  .stamp-tray[data-open="false"] { height: 0; width: auto; border-top: 0; }
+  .tray-handle { right: auto; left: 50%; top: auto; bottom: 100%; transform: translateX(-50%); writing-mode: horizontal-tb; border-radius: 6px 6px 0 0; padding: 4px 12px; }
+  .tray-handle .kbd { margin: 0 0 0 6px; }
+  .tray-body { width: auto; flex-direction: row; align-items: flex-end; gap: 6px; padding: 8px 10px; }
+  .stamp-tray[data-open="false"] .tray-body { transform: translateY(100%); }
+  .tray-body::before { display: none; }
+  .stamp { flex: 1; min-width: 64px; padding-bottom: 18px; } .stamp .base { width: 100%; } .stamp .base .lbl { left: 0; right: 0; font-size: 9.5px; }
+  .tray-body .keys { display: none; }
+  .inspect-banner { top: auto; bottom: 130px; width: calc(100% - 32px); text-align: center; }
+  .stamina-cluster { gap: 4px; padding: 2px 6px; max-width: 100%; overflow: hidden; }
+  .stamina-cluster:not(.expanded) .ms-bar, .stamina-cluster:not(.expanded) .ms-time { display: none; }
+  .stamina-cluster.expanded { flex-wrap: wrap; height: auto; width: 100%; order: 9; }
+  .status { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+  .rail { position: sticky; top: 0; height: 70px; padding: 8px 8px 0; } .desk-surface { top: 0; }
+  .ticket { flex-basis: 170px; }
+  .at-window .speech { font-size: 10px; padding: 3px 5px; }
+  .topbar { padding: 6px 10px; gap: 6px; } .tools { margin-left: 0; } .brand .shift { display: none; }
+  .sheet { padding: 20px 18px; margin: 8px; }
+}
+@keyframes fade { from { opacity: 0; } }

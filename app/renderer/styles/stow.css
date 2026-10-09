@@ -1,0 +1,37 @@
+/* ---------- storage box: stowed papers leave the desk and wait here (bottom of the stamp tray) ---------- */
+.stow { margin-top: auto; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* a wooden document tray: dark and empty with nothing in it; stowed papers stand in it as a pile of sheets (6 at most) */
+.stow-box { position: relative; width: 72px; height: 48px; padding: 0; border: 1px dashed transparent; border-radius: 4px; background: none; transition: border-color .15s, transform .15s; }
+.stow-box svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.stow-box .tray-back, .stow-box .tray-front { opacity: .55; transition: opacity .15s; }
+.stow[data-n]:not([data-n="0"]) .stow-box svg, .stow-box:hover svg, .stow-box:focus-visible svg, .stow-box.drop svg { opacity: 1; }
+.stow-box.drop { border-color: var(--ui-accent); transform: scale(1.12); }
+.stow-stack { position: absolute; inset: 0; pointer-events: none; }
+.stow-stack .leaf { position: absolute; left: calc(14px + var(--x)); width: 44px; height: 30px; top: calc(19px - var(--i) * 3.5px); border-radius: 1px; background: var(--paper) repeating-linear-gradient(transparent 0 4px, var(--paper-line) 4px 5px) 5px 6px / 34px 20px no-repeat; box-shadow: 0 -1px 2px rgba(0,0,0,.3); transform: rotate(var(--r)); }
+.stow-stack .leaf.manifest { border-top: 3px solid #b89968; }
+.stow-stack .leaf.photo { background: #fff linear-gradient(#9fb6c8, #6d8a6a) 5px 4px / 34px 14px no-repeat; }
+.stow-stack .leaf.monitor { background: #3a3f47 linear-gradient(#111, #222) 5px 4px / 34px 14px no-repeat; }
+.stow-stack .leaf.prcard { background-color: #fffdf5; border-left: 3px solid var(--approve); }
+.stow-stack .leaf.thread { background-color: #fff8e8; }
+.stow-n { position: absolute; top: -5px; right: -7px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; background: var(--ui-accent); color: #1b1b1b; font: 700 10px/15px var(--font-paper); text-align: center; }
+.stow-n:empty { display: none; }
+/* the open box: a mini copy of every stowed paper; click one to bring it back */
+.stow-view { position: fixed; z-index: 240; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--wood-2); border: 2px solid var(--wood-edge); border-radius: 8px; box-shadow: var(--shadow); color: #f1e4c0; font-family: var(--font-paper); }
+.stow-view[hidden] { display: none; }
+.stow-view header { display: flex; align-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+.stow-view header .spacer { flex: 1; }
+.stow-view .ibtn { color: inherit; border-color: rgba(241,228,192,.4); }
+.stow-view .ibtn:hover { background: rgba(255,255,255,.1); }
+.stow-view .close { font-size: 14px; line-height: 16px; }
+.stow-cards { display: grid; grid-template-columns: repeat(auto-fill, 120px); justify-content: center; gap: 10px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.stow-card { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 0; background: none; border: 0; color: inherit; text-align: left; cursor: pointer; }
+.stow-card .thumb { position: relative; display: block; width: 120px; height: 96px; overflow: hidden; border-radius: 2px; background: var(--paper); box-shadow: 0 3px 8px rgba(0,0,0,.35); transition: transform .15s; }
+.stow-card:hover .thumb, .stow-card:focus-visible .thumb { transform: translateY(-3px) rotate(-1deg); outline: 2px solid var(--ui-accent); }
+.stow-card .cap { font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paper.mini { position: absolute; left: 0; top: 0; width: 300px; max-height: none; overflow: hidden; animation: none; box-shadow: none; transform: scale(.4); transform-origin: 0 0; pointer-events: none; }
+.paper.mini .excerpt { max-height: 200px; }
+.paper.mini .mini-media { height: 150px; background: #111; border-radius: 4px; }
+.paper.mini .mini-media.iframe { background: #fff repeating-linear-gradient(transparent 0 10px, #ddd 10px 12px); }
+.paper.mini .mini-media.audio { height: 30px; background: #222; }
+.paper .ibtn.stow-btn { padding: 0 6px; line-height: 14px; }
+.paper .ibtn.back-btn { flex: none; white-space: nowrap; padding: 0 6px; line-height: 14px; font-size: 10px; text-transform: none; letter-spacing: 0; cursor: pointer; }

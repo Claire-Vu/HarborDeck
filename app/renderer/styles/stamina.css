@@ -1,0 +1,56 @@
+/* stamina cluster (top bar) */
+.sched-chip { background: transparent; color: var(--ui-fg); border: 1px dashed var(--ui-edge); border-radius: var(--radius); padding: 2px 8px; height: 30px; font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sched-chip.off { border-color: var(--warn); color: var(--warn); }
+.stamina-cluster { display: flex; gap: 10px; align-items: center; background: transparent; color: var(--ui-fg); border: 1px solid var(--ui-edge); border-radius: var(--radius); padding: 2px 8px; height: 30px; }
+.stamina-cluster.low { border-color: var(--warn); } .stamina-cluster.empty { border-color: #ff6b6b; animation: blink 1.2s steps(2) infinite; }
+.ms-group { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+.ms-group + .ms-group { border-left: 1px solid var(--ui-edge); padding-left: 10px; }
+.ms-prov { font-size: 11px; font-weight: 700; }
+.mini-sub { display: flex; gap: 5px; align-items: center; font-size: 11px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mini-sub .ms-name { color: var(--ui-muted); }
+.mini-sub .ms-bar { display: block; width: 30px; height: 6px; border-radius: 3px; background: rgba(127,127,127,.28); overflow: hidden; }
+.mini-sub .ms-bar i { display: block; height: 100%; background: currentColor; }
+.mini-sub .ms-pct { font-weight: 700; min-width: 3ch; }
+.mini-sub .ms-time { color: var(--ui-muted); }
+.mini-sub.ok .ms-bar { color: #5bc0de; } .mini-sub.mid .ms-bar { color: var(--needs); } .mini-sub.low .ms-bar, .mini-sub.low .ms-pct { color: var(--warn); } .mini-sub.empty .ms-bar, .mini-sub.empty .ms-pct { color: #ff6b6b; }
+.mini-sub .ms-warn { color: var(--warn); font-weight: 700; }
+.mini-sub .ms-stale { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; border: 1px dashed var(--ui-edge); border-radius: 3px; padding: 1px 3px; color: var(--ui-muted); }
+.mini-sub.stale .ms-bar, .mini-sub.stale .ms-pct { opacity: .55; }
+/* per-model windows (e.g. one model's weekly cap) sit apart from the account windows */
+.mini-sub.model { border-left: 1px dashed var(--ui-edge); padding-left: 7px; }
+.mini-sub.model .ms-name { font-style: italic; }
+.clock, .stat { white-space: nowrap; }
+/* The top bar never wraps on a desktop window: the stamina cluster gives way first (bars and day-plus countdowns drop, then all countdowns;
+   names and % left always stay, the rest is in the hover) and, as a last resort, clips rather than pushing the tools down. */
+@media (min-width: 861px) {
+  .topbar { flex-wrap: nowrap; }
+  .brand, .tools { flex: none; } .tools { flex-wrap: nowrap; }
+  .status { flex: 1 1 auto; min-width: 0; }
+  .stamina-cluster { min-width: 0; overflow: hidden; }
+  .sched-chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (min-width: 861px) and (max-width: 1360px) {
+  .stamina-cluster .ms-bar, .stamina-cluster .long .ms-time { display: none; }
+}
+@media (min-width: 861px) and (max-width: 1120px) {
+  .stamina-cluster .ms-time { display: none; } .brand .shift { display: none; }
+}
+
+/* ---------- crew, stamina ---------- */
+.order-plain textarea { width: 100%; border: 1px dashed rgba(0,0,0,.3); background: rgba(255,255,255,.5); color: inherit; font: inherit; font-size: 12.5px; padding: 6px; border-radius: 3px; resize: vertical; }
+.si-meta { font-size: 11px; color: var(--ui-muted); margin-top: 2px; }
+.cook { height: 6px; background: var(--ui-edge); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+.cook span { display: block; height: 100%; width: 40%; background: var(--needs); animation: cook 1.6s ease-in-out infinite alternate; }
+body.tired .cook span { animation-duration: 4s; opacity: .6; }
+@keyframes cook { from { transform: translateX(-20%); } to { transform: translateX(170%); } }
+.stamina .sub { padding: 6px 0; }
+.sub-head { display: flex; justify-content: space-between; font-size: 12.5px; } .sub-head .win { font-size: 10.5px; color: var(--ui-muted); border: 1px solid var(--ui-edge); border-radius: 3px; padding: 0 4px; }
+.sub-head .left { font-variant-numeric: tabular-nums; font-weight: 700; }
+.sub-foot { font-size: 11px; color: var(--ui-muted); margin-top: 2px; }
+.sub.low .left, .sub.low .sub-foot { color: var(--warn); } .sub.empty .left, .sub.empty .sub-foot { color: #ff6b6b; }
+.sub-foot .warn { color: var(--warn); } .stamina .sub.model { border-left: 2px dashed var(--ui-edge); padding-left: 8px; } .stamina .sub.stale .meter { opacity: .5; }
+.meter { height: 8px; background: rgba(127,127,127,.2); border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--reject), var(--needs) 40%, var(--approve) 75%); }
+.sub.ok .meter span { background: var(--approve); } .sub.mid .meter span { background: var(--needs); } .sub.low .meter span { background: var(--warn); } .sub.empty .meter span { background: #ff6b6b; }
+.regulars { display: grid; gap: 8px; }
+.rg-name { font-size: 12.5px; display: flex; justify-content: space-between; margin-bottom: 1px; } .rg-delta { color: var(--approve); font-size: 11px; }

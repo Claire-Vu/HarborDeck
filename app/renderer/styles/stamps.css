@@ -1,0 +1,31 @@
+/* ---------- stamp tray (slides from the desk edge; compact stamps from iteration 1) ---------- */
+.stamp-tray { position: relative; width: 150px; transition: width .25s ease; background: var(--ui-bg); border-left: 1px solid var(--ui-edge); }
+.stamp-tray[data-open="false"] { width: 0; border-left: 0; }
+.tray-handle { position: absolute; right: 100%; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; background: var(--wood-edge); color: #f1e4c0; border: 0; border-radius: 0 6px 6px 0; padding: 10px 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; z-index: 5; box-shadow: var(--shadow); }
+.tray-handle .kbd { margin-top: 6px; }
+.tray-body { width: 150px; height: 100%; display: flex; flex-direction: column; gap: 8px; padding: 12px 10px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; transition: transform .25s ease, opacity .2s; }
+.tray-body::before { content: "Stamps"; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--ui-muted); }
+.stamp-tray[data-open="false"] .tray-body { transform: translateX(100%); opacity: 0; pointer-events: none; }
+.stamp { position: relative; flex: none; border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--ui-fg); }
+/* pixel-block stamp: flat colour in 2px steps, dark outline, the whole stamp steps down on press */
+.stamp { font-family: var(--font-paper); cursor: pointer; }
+.stamp .handle, .stamp .base { display: block; position: relative; }
+.stamp .handle { width: 10px; height: 16px; margin-top: 14px; background: linear-gradient(90deg, #a8703f 0 3px, #74482a 3px 7px, #4d2e18 7px); box-shadow: -2px 0 0 #140c06, 2px 0 0 #140c06; transition: transform .12s steps(2); }
+.stamp .handle::before, .stamp .handle::after { content: ""; position: absolute; left: 50%; transform: translateX(-50%); clip-path: var(--px-clip); }
+.stamp .handle::before { top: -16px; width: 30px; height: 16px; background: #140c06; }
+.stamp .handle::after { top: -14px; width: 26px; height: 12px; background: linear-gradient(#f2c48c, #f2c48c) 5px 2px / 6px 2px no-repeat, linear-gradient(#c68b56 0 4px, #8a5a33 4px 8px, #5e3b21 8px); }
+.stamp .base { width: 62px; height: 18px; background: linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35)) 2px 10px / 10px 2px no-repeat, linear-gradient(#545c66 0 2px, #9aa3ad 2px 4px, #737c87 4px 9px, #454c55 9px 10px, var(--ink) 10px); box-shadow: 0 0 0 2px #140c06, 4px 6px 0 0 rgba(0,0,0,.4); transition: transform .12s steps(2), box-shadow .12s steps(2); }
+.stamp .lbl { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ui-fg); margin-top: 3px; }
+/* the label hangs under its own base and the stamp's box reserves room for it, so stamps never overlap */
+.stamp .base .lbl { position: absolute; left: -24px; right: -24px; top: 100%; margin-top: 7px; line-height: 13px; white-space: nowrap; text-align: center; font-size: 10px; letter-spacing: .04em; }
+.stamp { padding-bottom: 22px; }
+.stamp:hover :is(.handle, .base) { transform: translateY(2px); }
+.stamp:active :is(.handle, .base) { transform: translateY(4px); }
+.stamp:active .base { box-shadow: 0 0 0 2px #140c06, 2px 2px 0 0 rgba(0,0,0,.4); }
+.stamp:disabled { opacity: .35; cursor: not-allowed; }
+.stamp.later { --ink: #6b7785; }
+.stamp.approve { --ink: var(--approve); } .stamp.reject { --ink: var(--reject); } .stamp.needswork { --ink: var(--needs); } .stamp.ask { --ink: var(--ask); } .stamp.file { --ink: var(--file); }
+.tray-body .keys { flex: none; font-size: 10px; color: var(--ui-muted); line-height: 1.5; }
+@media (min-width: 861px) and (max-height: 700px) { .stamp .handle { height: 20px; } .tray-body { gap: 6px; } }
+.flying-stamp { position: fixed; z-index: 200; width: 60px; height: 46px; pointer-events: none; padding: 0; gap: 0; filter: drop-shadow(0 10px 8px rgba(0,0,0,.35)); }
+.flying-stamp .handle { margin: 0 auto; }
