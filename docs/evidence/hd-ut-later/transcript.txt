@@ -7,7 +7,7 @@ exit 0
 $ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.laterslip
 exit 0
 Tomorrow morning Oct 10 09:00 AM S
-After the next usage reset Oct 9 03:04 PM ⇧S
+After the next usage reset Oct 9 03:34 PM ⇧S
 $ .agents/skills/verify-harbordeck/scripts/ui.mjs fill --css .modal.laterslip .ls-at --value 2026-10-12T14:30
 exit 0
 $ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .modal.laterslip .ls-pick .pbtn --text Park
@@ -53,10 +53,10 @@ $ .agents/skills/verify-harbordeck/scripts/ui.mjs press p
 exit 0
 $ .agents/skills/verify-harbordeck/scripts/ui.mjs press p
 exit 0
-$ env FM_HOME=/tmp/hdv-fm-ZBgd HD=/tmp/hd-later/HarborDeck/cli/bin/harbordeck.js adapters/firstmate/hd-bridge.sh
-2026-10-09T19:54:23Z hd-bridge: routed ask newsletter-6
-2026-10-09T19:54:23Z hd-bridge: routed request req-1791557620-7
-2026-10-09T19:54:23Z hd-bridge: routed defer todo-domain
-2026-10-09T19:54:23Z hd-bridge: routed defer todo-receipts
-2026-10-09T19:54:23Z hd-bridge: routed defer rename-repo
+$ env FM_HOME=/tmp/hdv-fm-bAsb HD=/tmp/hd-later/HarborDeck/cli/bin/harbordeck.js adapters/firstmate/hd-bridge.sh
+2026-10-09T20:23:52Z hd-bridge: routed ask newsletter-6
+2026-10-09T20:23:52Z hd-bridge: routed request req-1791559391-7
+2026-10-09T20:23:53Z hd-bridge: routed defer todo-domain
+2026-10-09T20:23:53Z hd-bridge: routed defer todo-receipts
+2026-10-09T20:23:53Z hd-bridge: routed defer rename-repo
 exit 0
