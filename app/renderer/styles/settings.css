@@ -1,0 +1,75 @@
+/* ---------- settings (settings-view.js): a paper sheet on a wood frame, pixel keycaps and buttons ---------- */
+.settings-modal .box { width: min(720px, 100%); background: var(--paper); color: var(--paper-ink); border: 3px solid var(--wood-edge); border-radius: 8px; overflow: hidden; }
+.settings-modal .box header { background: var(--wood-1); color: #f6e7c4; border-bottom: 3px solid var(--wood-edge); box-shadow: inset 0 2px 0 rgba(255,255,255,.12); }
+.settings-modal .box header h2 { font: 700 13px/1 var(--font-paper); letter-spacing: .14em; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.settings-modal .box header h2::before { content: ""; width: 10px; height: 10px; background: #f2c56b; box-shadow: 2px 2px 0 #6b4513; }
+.settings-modal .box header .ibtn-top { color: inherit; }
+.settings-modal .box .content { padding: 4px 22px 16px; }
+.settings-modal .box footer { background: var(--paper-2); border-top: 2px dashed var(--paper-line); }
+.settings-modal .pbtn { border-radius: 0; background: var(--wood-1); color: #fff6e0; border: 2px solid var(--wood-edge); box-shadow: 0 3px 0 var(--wood-edge); padding: 7px 18px; margin-bottom: 3px; }
+.settings-modal .pbtn:active, .set-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-faint); }
+.settings-modal .pbtn:hover { background: var(--wood-2); }
+.settings-modal .pbtn.ghost { background: transparent; color: var(--paper-ink); border-color: var(--paper-faint); box-shadow: 0 3px 0 var(--paper-line); }
+.settings-modal .pbtn.ghost:hover { background: rgba(0,0,0,.05); }
+.settings-modal :focus-visible { outline-color: var(--wood-1); }
+
+.settings { display: grid; min-width: min(560px, 80vw); }
+.settings .flag-note { margin: 12px 0 0; font-family: var(--font-paper); }
+.set-sec { padding: 14px 0 8px; border-top: 2px dashed var(--paper-line); }
+.set-sec:first-child, .settings .flag-note + .set-sec { border-top: 0; }
+.set-h { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font: 700 11px/1.2 var(--font-paper); letter-spacing: .14em; text-transform: uppercase; color: var(--paper-faint); }
+.set-h::before { content: ""; width: 8px; height: 8px; flex: none; background: var(--wood-1); box-shadow: 2px 2px 0 var(--wood-edge); }
+.set-sub { margin-left: auto; font-weight: 600; letter-spacing: .06em; text-transform: none; color: var(--approve); }
+summary.set-h { cursor: pointer; list-style: none; padding: 2px 0; } summary.set-h::-webkit-details-marker { display: none; }
+summary.set-h::after { content: "▸"; font-size: 12px; letter-spacing: 0; } .set-adv[open] summary.set-h::after { content: "▾"; }
+summary.set-h .set-sub:empty { display: none; } summary.set-h:has(.set-sub:empty)::after { margin-left: auto; }
+summary.set-h:hover { color: var(--paper-ink); }
+
+.set-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: 7px 0; }
+.set-l { display: grid; gap: 2px; min-width: 0; }
+.set-name { font-weight: 700; font-size: 13.5px; }
+.set-hint { font-size: 11.5px; line-height: 1.35; color: var(--paper-faint); }
+.set-in { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
+
+/* fields: one inset paper well for folders, chips, the command and the key recorder */
+.fp, .chips, .set-cmd, .kc { min-height: 38px; background: rgba(255,255,255,.55); border: 2px solid var(--paper-line); border-radius: 4px; color: var(--paper-ink); }
+.fp:hover, .chips:focus-within, .set-cmd:focus, .kc:hover, .kc:focus-visible { border-color: var(--wood-1); outline: none; }
+.set-btn { font: 600 12px/1 var(--font-paper); color: var(--paper-ink); background: var(--paper-2); border: 2px solid var(--paper-faint); border-radius: 0; padding: 8px 12px; margin-bottom: 3px; box-shadow: 0 3px 0 var(--paper-faint); }
+.set-btn:hover { border-color: var(--wood-1); }
+.set-btn.ghost { background: transparent; border-color: var(--paper-line); box-shadow: 0 3px 0 var(--paper-line); color: var(--paper-faint); }
+.set-btn.ghost:hover { color: var(--paper-ink); border-color: var(--paper-faint); }
+
+.fp-wrap { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0; }
+.fp { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 0; padding: 3px 10px; }
+.fp-ic { width: 18px; height: 14px; flex: none; background: #c9973c; box-shadow: inset 0 -3px 0 #9a6a22; clip-path: polygon(0 0, 42% 0, 52% 22%, 100% 22%, 100% 100%, 0 100%); }
+.fp-text { display: grid; min-width: 0; line-height: 1.25; }
+.fp-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-where { font: 11px var(--font-paper); color: var(--paper-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; min-width: 0; padding: 4px 6px; cursor: text; }
+.chip-host { display: inline-flex; align-items: center; gap: 2px; padding: 3px 2px 3px 8px; font: 12px var(--font-paper); background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--paper-faint); border-radius: 3px; }
+.chip-x { border: 0; background: transparent; color: var(--paper-faint); font-size: 15px; line-height: 1; padding: 0 5px; }
+.chip-x:hover { color: var(--reject); }
+.chip-in { flex: 1; min-width: 150px; border: 0; background: transparent; color: inherit; font: 12px var(--font-paper); padding: 4px; outline: none; }
+.chip-in::placeholder, .set-cmd::placeholder { color: var(--paper-faint); opacity: .8; }
+
+.kc-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.kc { display: inline-flex; align-items: center; gap: 5px; min-width: 180px; padding: 4px 10px; cursor: pointer; }
+.kc kbd { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 7px; font: 700 13px/1 var(--font-paper); color: var(--paper-ink); background: #fffaf0; border: 2px solid var(--paper-faint); border-bottom-width: 4px; }
+.kc-wait { font: 12px var(--font-paper); color: var(--paper-faint); }
+.kc.rec { border-color: var(--needs); animation: kc-rec 1s steps(2) infinite; } .kc.rec .kc-wait { color: var(--needs); font-weight: 700; }
+@keyframes kc-rec { 50% { background: rgba(183,121,31,.12); } }
+.kc-msg { flex-basis: 100%; font-size: 11.5px; color: var(--reject); } .kc-msg:empty { display: none; }
+
+.set-reading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 12.5px; }
+.set-reading code { font: 12px var(--font-paper); background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 3px; word-break: break-all; }
+.set-dot { width: 8px; height: 8px; background: var(--approve); box-shadow: 1px 1px 0 rgba(0,0,0,.25); }
+.set-warn { flex-basis: 100%; color: var(--needs); font-size: 11.5px; }
+
+.set-check { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; }
+.set-switch { appearance: none; margin: 0; width: 36px; height: 20px; cursor: pointer; clip-path: var(--px-clip); background: var(--paper-faint) linear-gradient(#fffaf0, #fffaf0) no-repeat 3px center / 14px 14px; transition: background-position .12s steps(3); }
+.set-switch:checked { background-color: var(--approve); background-position: 19px center; }
+.set-cmd { flex: 1; min-width: 180px; padding: 7px 10px; font: 12.5px var(--font-paper); }
+
+@media (max-width: 640px) { .set-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } .settings { min-width: 0; } }
+@media (prefers-reduced-motion: reduce) { .kc.rec { animation: none; } }

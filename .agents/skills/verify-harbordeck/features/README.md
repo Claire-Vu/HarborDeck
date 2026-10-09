@@ -45,6 +45,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Scenes](./scenes.md) covers one scene per kind with a figure per open item, arrow and chip navigation, figures leaving on a stamp, the per-scene quirks and progress to zero.
 - [Storage box](./storage-box.md) covers stowing desk papers (control, `X`, drag onto the box), the count, restoring one or all, and persistence across reloads.
 - [Living harbor](./harbor.md) covers boats per task, sky/weather/tide, regulars, the ship cat, tidy runs, stamp book + chandlery, beat the tide, the ships-out recap, the town and music layers.
+- [Settings](./settings.md) covers the Settings dialog: sections, folder pickers, web-host chips, recording the phone shortcut, the on-answer hook under Advanced, demo data.
 - [Desk walk](./desk-walk.md) covers one user pass through every desk area (boot, queue, stamps, undo, ask + rail, stow, inspect, drawers, search, scenes, Later, plain mode, chandlery, ships out, settings, phone, reload) with a script; run it after renderer-wide changes.
 - [Queue for after reset](./scheduler.md) covers queuing from the app and the CLI, the countdown ticket and chip, keep-awake, withdraw, and delivery by `tick` with the stub wake.
 

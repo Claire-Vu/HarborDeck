@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('harbor', {
   getSettings: () => ipcRenderer.invoke('harbor:get-settings'),
   setSettings: s => ipcRenderer.invoke('harbor:set-settings', s),
   chooseDir: title => ipcRenderer.invoke('harbor:choose-dir', title),
+  holdPhoneKey: on => ipcRenderer.send('harbor:phone-key-hold', !!on),
   demo: on => ipcRenderer.invoke('harbor:demo', on),
   diagnostics: () => ipcRenderer.invoke('harbor:diagnostics'),
   // In-desk browser pane (app/lib/web-pane.js): the page itself runs in a separate view without this bridge.

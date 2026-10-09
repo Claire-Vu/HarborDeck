@@ -12,7 +12,7 @@ A person brings up the ship phone with the phone shortcut (default `⇧⌘Space`
 - `phone-reply` `hd reply <request-id> "<text>"` creates an `answer` item with that id; the order ticket turns replied.
 - `phone-remember` `#phone-rule` ("Remember this", off by default, reset after each send) adds `"rule":true` to the request (standing order); ticking it hands focus back to the pad so `Enter` sends. The same box is on the needs-work/ask/mismatch note slips (`#note-rule`). The order ticket shows a `.tk-pin`; once `rules.json` has an entry with `answer` = the request id, `R` (Standing orders) lists it with a pin and `sent by you`.
 - `phone-modal` while the phone is up, desk keys (`1`-`4` stamps, `n`, `t`…) never reach the desk.
-- `phone-setting` Settings → Phone shortcut changes the key in the app and system-wide; the note under it says `Taken by another app` when the system-wide registration failed.
+- `phone-setting` Settings → Phone → Shortcut: click the keycaps and press the new keys (see [settings.md](./settings.md)); Save changes the key in the app and system-wide; the hint says `Taken by another app` when the system-wide registration failed.
 - `phone-global` the system-wide hotkey brings the window forward with the phone open (the only thing that raises the window).
 
 ## How to get to it (user POV)
