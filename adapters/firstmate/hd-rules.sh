@@ -8,7 +8,9 @@
 # explicit trailing "{#key}" when present, else a slug of its first six words
 # (deduplicated with -2, -3, ...). Items reference these keys in --rule, --ok
 # and --flag, so add {#key} to bullets you check often to keep keys stable when
-# wording changes. source is "<file name>:<line>".
+# wording changes. A trailing "{@id}" (after any {#key}) records the HarborDeck
+# "Remember this" message the order came from (answers.jsonl line id); the desk pins it.
+# source is "<file name>:<line>".
 # Env: HD (default: harbordeck).
 set -euo pipefail
 
@@ -18,7 +20,11 @@ file=${1:?usage: hd-rules.sh <preferences.md> [--print]}
 
 rules=$(awk -v src="$(basename "$file")" '
   /^[-*] / {
-    text = substr($0, 3); key = ""
+    text = substr($0, 3); key = ""; ans = ""
+    if (match(text, /[ \t]*\{@[A-Za-z0-9][A-Za-z0-9._-]*\}[ \t]*$/)) {
+      ans = substr(text, RSTART, RLENGTH); text = substr(text, 1, RSTART - 1)
+      gsub(/[ \t{}@]/, "", ans)
+    }
     if (match(text, /[ \t]*\{#[A-Za-z0-9][A-Za-z0-9._-]*\}[ \t]*$/)) {
       key = substr(text, RSTART, RLENGTH); text = substr(text, 1, RSTART - 1)
       gsub(/[ \t{}#]/, "", key)
@@ -28,10 +34,10 @@ rules=$(awk -v src="$(basename "$file")" '
       if (key == "") key = "rule"
     }
     if (seen[key]++) key = key "-" seen[key]
-    printf "%s\t%s\t%s:%d\n", key, text, src, NR
+    printf "%s\t%s\t%s:%d\t%s\n", key, text, src, NR, ans
   }' "$file" | jq -R -s '
   split("\n") | map(select(length > 0) | split("\t")
-    | {key: .[0], value: {text: (.[1][0:1000]), source: .[2]}}) | from_entries')
+    | {key: .[0], value: ({text: (.[1][0:1000]), source: .[2]} + (if (.[3] // "") != "" then {answer: .[3]} else {} end))}) | from_entries')
 
 if [ "${2:-}" = --print ]; then
   printf '%s\n' "$rules"

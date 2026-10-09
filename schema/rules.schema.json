@@ -10,7 +10,8 @@
     "required": ["text"],
     "properties": {
       "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
-      "source": { "type": "string", "maxLength": 300 }
+      "source": { "type": "string", "maxLength": 300 },
+      "answer": { "type": "string", "maxLength": 128, "description": "Optional: the id of the answers.jsonl line (a \"Remember this\" message) this rule was recorded from. The desk marks the rule with a pin." }
     }
   }
 }

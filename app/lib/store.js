@@ -87,6 +87,7 @@ function readJsonl(file) {
 const readAnswers = home => readJsonl(path.join(home, 'answers.jsonl'));
 
 const ACTIONS = new Set(['decide', 'approve', 'reject', 'needs-work', 'comment', 'ask', 'file', 'request', 'defer']);
+const RULE_ACTIONS = new Set(['request', 'comment', 'needs-work', 'ask']); // may carry rule: true ("Remember this")
 // Validates and appends one answer line; returns the exact line written (without newline).
 function appendAnswer(home, line) {
   if (!line || typeof line !== 'object' || !line.id || !ACTIONS.has(line.action)) throw new Error('invalid answer line');
@@ -96,6 +97,7 @@ function appendAnswer(home, line) {
   out.note = line.note == null ? '' : String(line.note);
   if (line.anchor && typeof line.anchor === 'object') out.anchor = line.anchor;
   if (line.to != null) out.to = String(line.to);
+  if (line.rule === true && RULE_ACTIONS.has(line.action)) out.rule = true;
   if (line.action === 'defer') out.until = Math.floor(+line.until);
   out.at = Number.isFinite(+line.at) && +line.at > 0 ? Math.floor(+line.at) : Math.floor(Date.now() / 1000);
   const text = JSON.stringify(out);

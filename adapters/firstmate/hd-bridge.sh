@@ -8,7 +8,8 @@
 # failure retries from that line on the next run) and routes each:
 #   decide, approve, reject  -> bin/fm-captain-hold.sh answers (keyed answer, closes the hold)
 #   needs-work               -> keyed answer with mode release (held work resumes) + inbox note
-#   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent)
+#   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent); a line with
+#                               rule: true ("Remember this") adds "Standing order:" so it gets filed as a preference
 #   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <local date of until>
 #                               (a <task>.qN question defers its held task), else an inbox note
 #   file on a todo           -> inbox note ("done"); file on an answer -> nothing to route
@@ -89,13 +90,15 @@ note() {  # <request-id> <text>
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
-  local a=$1 id action key note at to anchor title='' kind='' label text rid reply until day task
+  local a=$1 id action key note at to anchor title='' kind='' label text rid reply until day task so=''
   id=$(jq -r '.id' <<<"$a"); action=$(jq -r '.action' <<<"$a")
   key=$(jq -r '.key // ""' <<<"$a"); note=$(jq -r '.note // ""' <<<"$a"); at=$(jq -r '.at // 0' <<<"$a")
   to=$(jq -r '.to // "any mate"' <<<"$a"); anchor=$(jq -c '.anchor // empty' <<<"$a")
   if [ -f "$HD_HOME/items/$id.json" ]; then
     title=$(jq -r '.title // ""' "$HD_HOME/items/$id.json"); kind=$(jq -r '.kind // ""' "$HD_HOME/items/$id.json")
   fi
+  # "Remember this" (rule: true): a standing order, so firstmate files it with the captain's preferences
+  [ "$(jq -r '.rule // false' <<<"$a")" != true ] || so=" Standing order: file it in your captain preferences, then record it with hd-rules (answer id $id)."
   rid="hd-$id-$action-$at"
   rid=${rid:0:128}
   text="HarborDeck $action on $id${title:+ \"$title\"}"
@@ -113,11 +116,11 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       keyed "$id" "$action${note:+: $note}" "" done || note "$rid" "$text${note:+: $note}" || return 1 ;;
     needs-work)
       keyed "$id" "needs-work: $note" "" release || true
-      note "$rid" "$text: $note. $reply" || return 1 ;;
+      note "$rid" "$text: $note.$so $reply" || return 1 ;;
     ask|comment)
-      note "$rid" "$text: $note${anchor:+ (anchor $anchor)}. $reply" || return 1 ;;
+      note "$rid" "$text: $note${anchor:+ (anchor $anchor)}.$so $reply" || return 1 ;;
     request)
-      note "$id" "HarborDeck request for $to: $note. $reply" || return 1 ;;
+      note "$id" "HarborDeck request for $to: $note.$so $reply" || return 1 ;;
     file)
       [ "$kind" != todo ] || note "$rid" "$text: done${note:+ - $note}" || return 1 ;;
     defer)
