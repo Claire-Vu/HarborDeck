@@ -131,13 +131,15 @@ else window.HarborPhone = deps => {
     back = null;
   }
   function toggle() { if (el) close(); else open(); }
-  function send() {
+  async function send() {
+    await tray.settled(); if (!el) return; // an image pasted just before Enter goes with it
     const v = pad.value.trim(); if ((!v && !tray.has()) || (!dialed && !target)) { pad.focus(); return; }
     const note = tray.note(v), atts = tray.payload();
     if (!deps.send(note, dialed, atts, target?.id, rule.checked)) return; // write failed: the pad keeps it all (target: a comment on it)
     sent();
   }
   async function queue(when) {
+    await tray.settled(); if (!el) return;
     const v = pad.value.trim(); if ((!v && !tray.has()) || !dialed || target) { pad.focus(); return; }
     if (!(await deps.queue(tray.note(v), dialed, when, tray.payload(), rule.checked))) return; // refused: the pad keeps it all
     sent();
