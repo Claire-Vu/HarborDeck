@@ -45,3 +45,10 @@ test('progress toward zero and who left', () => {
   assert.strictEqual(SC.progress(0, 0).zero, true);
   assert.deepStrictEqual(SC.leavers(['a', 'b', 'c'], ['a', 'c', 'd']), ['b']);
 });
+
+test('line: P1 first, then oldest; sent to the back stand behind in the order sent; away last', () => {
+  const info = { a: { prio: 2, created: 1 }, b: { prio: 1, created: 5 }, c: { prio: 1, created: 3 }, d: { prio: 1, created: 0, back: 20 }, e: { prio: 4, created: 9, back: 10 }, f: { prio: 1, created: 0, away: true } };
+  const list = Object.keys(info).map(id => ({ id }));
+  assert.deepStrictEqual(SC.line(list, x => info[x.id]).map(x => x.id), ['c', 'b', 'a', 'e', 'd', 'f']);
+  assert.deepStrictEqual(SC.line([], () => ({})), []);
+});

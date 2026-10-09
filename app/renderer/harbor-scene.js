@@ -77,10 +77,12 @@ window.HarborScene = deps => {
 
   // ---------------------------------------------------------- tide line (F3) and the daily goal (F7)
   function drawTide(t, goal, open) {
-    const g = $('#sc-tide'); g.replaceChildren(); if (!t) return;
+    // the line is art in the water; its words sit on the plated tide bar above the sill, never over the boats
+    const g = $('#sc-tide'); g.replaceChildren(); const l = $('#sc-tide-l'); l.textContent = ''; l.removeAttribute('title'); if (!t) return;
     const y = Math.round(172 - t.level * 54);
-    const label = goal?.beat ? '⚑ beat the tide' : `high tide ${dur(t.in)}${open ? ` · ${open} to clear` : ''}`;
-    g.append(svg('title', null, `Tide: ${Math.round(t.level * 100)}% toward the next refill (${t.name} ${t.window}, ${deps.fmtTime(t.resets)})`), px(0, y, 320, 1, '#e6f4fa', { opacity: .75 }), px(0, y + 2, 320, 1, '#e6f4fa', { opacity: .3 }), svg('text', { x: 4, y: y - 2, 'font-size': 7, fill: '#eef7fb', 'font-family': 'monospace', class: 'tide-l' }, label));
+    l.textContent = goal?.beat ? '⚑ beat the tide' : `high tide ${dur(t.in)}${open ? ` · ${open} to clear` : ''}`;
+    l.title = `Tide: ${Math.round(t.level * 100)}% toward the next refill (${t.name} ${t.window}, ${deps.fmtTime(t.resets)})`;
+    g.append(px(0, y, 320, 1, '#e6f4fa', { opacity: .75 }), px(0, y + 2, 320, 1, '#e6f4fa', { opacity: .3 }));
   }
   const dur = s => { s = Math.max(0, s); const hh = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return hh ? `${hh}h ${m}m` : `${m}m`; };
 
@@ -94,6 +96,7 @@ window.HarborScene = deps => {
   function render(v) {
     const d = new Date(v.t * 1000); const phase = drawSky(d.getHours(), d.getMinutes(), v.stamina); const night = phase === 'night' || phase === 'dusk';
     drawShore(v.days, v.owned, night); drawBoats(v.open, { pennants: v.owned.includes('pennants'), night }); drawTide(v.tide, v.goal, v.open.length); drawLamp(v.owned, night);
+    $('#sc-tidebar').hidden = !$('#sc-tide-l').textContent && !$('#sc-more').textContent;
   }
 
   // ---------------------------------------------------------- ship cat (F8): sits on the most urgent visitor

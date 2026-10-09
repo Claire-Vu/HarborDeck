@@ -29,7 +29,7 @@ test('the window shows the harbor: boats per task, real-clock sky, tide line, re
   const boats = +(await frame.getAttribute('data-boats'));
   expect(boats).toBeGreaterThan(1);
   await expect(page.locator('#sc-boats .hb:not(.sailing)')).toHaveCount(Math.min(8, boats));
-  await expect(page.locator('#sc-tide text')).toContainText('high tide');
+  await expect(page.locator('#sc-tide-l')).toContainText('high tide');
   // the top bar reads on its own: plain window names, % left, countdown, a run-out warning; per-model windows set apart
   const first = page.locator('#stamina-cluster .mini-sub').first();
   await expect(page.locator('#stamina-cluster .ms-prov')).toHaveText(['Primary', 'Backup']);

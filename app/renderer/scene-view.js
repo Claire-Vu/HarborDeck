@@ -1,16 +1,17 @@
 /* Scenes: one place per item kind, flipped with the arrow keys or the on-screen arrows. Every open item of the kind
-   is one figure in the scene (the count is literal); a settled one leaves. Each scene has one quirk:
+   is one figure in the scene (the count is literal), standing single file toward the desk with the one at the desk in
+   front (line); a settled one leaves. Each scene has one quirk:
    Signpost Square (decisions) callers hold up their option letters, the Customs Shed (reviews) flies a red pennant
-   over papers that break a standing order, Bottle Cove (dispatches) bottles sink lower the longer they wait, and the
+   over papers that break a standing order, Bottle Cove (research) bottles sink lower the longer they wait, and the
    Notice Board (to-dos) flutters notices due within a day and pins overdue ones red. The goal is zero everywhere.
-   The pure part (SCENES, group, tally, step, nextBusy, progress, leavers) is unit-tested in node; the factory draws
+   The pure part (SCENES, group, tally, step, nextBusy, progress, leavers, line) is unit-tested in node; the factory draws
    into #scenes, the top window over the harbor sky, with helpers app.js passes in. Every name here is original. Loaded before app.js. */
 'use strict';
 const HarborScenes = (() => {
   const SCENES = [
     { kind: 'decision', name: 'Signpost Square', one: 'decision', many: 'decisions', quirk: 'Each caller holds up the letters of their choices; ★ marks the mate\'s pick.', clear: 'The square is empty: every road chosen.' },
     { kind: 'review', name: 'Customs Shed', one: 'review', many: 'reviews', quirk: 'Papers that break a standing order fly a red pennant.', clear: 'Nothing left on the inspection bench.' },
-    { kind: 'answer', name: 'Bottle Cove', one: 'dispatch', many: 'dispatches', quirk: 'Each dispatch is a bottle; the longer it waits, the lower it sinks.', clear: 'The cove is calm: no bottles bobbing.' },
+    { kind: 'answer', name: 'Bottle Cove', one: 'research note', many: 'research notes', quirk: 'Each research note is a bottle; the longer it waits, the lower it sinks.', clear: 'No research waiting: the cove is calm.' },
     { kind: 'todo', name: 'Notice Board', one: 'notice', many: 'notices', quirk: 'Notices due within a day flutter; overdue ones are pinned red.', clear: 'The board is bare.' }
   ];
   const KINDS = SCENES.map(s => s.kind);
@@ -28,6 +29,12 @@ const HarborScenes = (() => {
   function nextBusy(kind, counts) { for (let d = 1; d <= KINDS.length; d++) { const k = step(kind, d); if (counts[k]) return k; } return null; }
   const progress = (left, cleared) => ({ left, cleared, pct: left + cleared ? Math.round(cleared * 100 / (left + cleared)) : 100, zero: left === 0 });
   const leavers = (before, after) => before.filter(id => !after.includes(id));
+  // The line at a scene, single file: priority first (P1 before P2), then oldest; anyone sent to the back of the line
+  // stands behind them in the order they were sent; anyone away on an ask stands last. info(it) -> { prio, created, back, away }
+  function line(list, info) {
+    const key = it => { const i = info(it); return [i.away ? 2 : i.back ? 1 : 0, i.back || 0, i.prio, i.created]; };
+    return list.map(it => [it, key(it)]).sort(([a, x], [b, y]) => x[0] - y[0] || x[1] - y[1] || x[2] - y[2] || x[3] - y[3] || String(a.id).localeCompare(String(b.id))).map(([it]) => it);
+  }
 
   function view(deps) {
     const { h } = deps;
@@ -62,7 +69,7 @@ const HarborScenes = (() => {
 
     function render(root, v) {
       if (!root) return;
-      const sc = byKind[v.kind], list = v.groups[v.kind], n = list.length, figs = list.map(it => figure(it, v.kind, v.urgent));
+      const sc = byKind[v.kind], list = [...v.groups[v.kind]].sort((a, b) => (b.id === deps.current()) - (a.id === deps.current())), n = list.length, figs = list.map(it => figure(it, v.kind, v.urgent));
       const prog = progress(v.counts.total, v.cleared);
       const sig = JSON.stringify([v.kind, figs.map(f => [f.id, f.cls, f.label]), v.counts, v.cleared, v.paused, v.catBell]);
       if (sig === last.sig) return;
@@ -81,10 +88,10 @@ const HarborScenes = (() => {
       const stage = h('div', { class: 'sc-stage', 'data-kind': v.kind, title: sc.quirk }, h('div', { class: 'sc-set', 'aria-hidden': 'true' }), crowd,
         n ? null : h('div', { class: 'sc-clear' }, deps.cat(v.catBell, true), h('b', null, 'All clear'), h('span', null, sc.clear),
           busy ? h('button', { class: 'sc-go', onclick: () => deps.jump(busy) }, `${byKind[busy].name}: ${v.counts[busy]} waiting ›`) : h('span', { class: 'sc-zero' }, '⚑ Zero waiting anywhere')));
-      const pips = h('div', { class: 'sc-pips', role: 'group', 'aria-label': 'Scenes' }, SCENES.map(s => h('button', { class: `sc-pip${v.counts[s.kind] ? '' : ' clear'}`, 'aria-current': String(s.kind === v.kind), title: `${s.name}: ${v.counts[s.kind]} waiting`, 'aria-label': `${s.name}: ${v.counts[s.kind]} waiting`, onclick: () => deps.jump(s.kind) }, v.counts[s.kind] ? String(v.counts[s.kind]) : '✓')));
+      const pips = h('div', { class: 'sc-pips', role: 'group', 'aria-label': 'Scenes' }, SCENES.map(s => h('button', { class: `sc-pip${v.counts[s.kind] ? '' : ' clear'}`, 'aria-current': String(s.kind === v.kind), title: `${s.name} (${s.many}): ${v.counts[s.kind]} waiting`, 'aria-label': `${s.name} (${s.many}): ${v.counts[s.kind]} waiting`, onclick: () => deps.jump(s.kind) }, v.counts[s.kind] ? String(v.counts[s.kind]) : '✓')));
       root.replaceChildren(
         stage,
-        h('header', { class: 'sc-head' }, arrow(-1), h('div', { class: 'sc-title', title: sc.quirk }, h('b', { class: 'sc-name' }, sc.name), h('span', { class: 'sc-count', title: `${n} ${n === 1 ? sc.one : sc.many} waiting` }, String(n))), arrow(1)),
+        h('header', { class: 'sc-head' }, arrow(-1), h('div', { class: 'sc-title', title: `${sc.name}: ${sc.many}. ${sc.quirk}` }, h('b', { class: 'sc-name' }, sc.name), h('span', { class: 'sc-count', title: `${n} ${n === 1 ? sc.one : sc.many} waiting` }, String(n))), arrow(1)),
         h('div', { class: `sc-progress${prog.zero ? ' zero' : ''}`, title: `${prog.cleared} cleared today, ${prog.left} still open` },
           h('div', { class: 'meter' }, h('span', { style: `width:${prog.pct}%` })),
           h('span', { class: 'sc-left' }, prog.zero ? 'Zero waiting' : `${prog.left} to zero`, v.paused ? ` · ${v.paused} crew paused` : ''), pips));
@@ -93,6 +100,6 @@ const HarborScenes = (() => {
     return { render, reset: () => { last = { kind: null, sig: '' }; } };
   }
 
-  return { SCENES, KINDS, byKind, group, tally, step, nextBusy, progress, leavers, view };
+  return { SCENES, KINDS, byKind, group, tally, step, nextBusy, progress, leavers, line, view };
 })();
 if (typeof module === 'object') module.exports = HarborScenes;
