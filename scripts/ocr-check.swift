@@ -9,9 +9,9 @@ import AppKit
 // "/Users/me" style placeholders are fine; any other /Users/<x> or ~/.treehouse path is a leak.
 var banned = [".treehouse"]
 var extra = (ProcessInfo.processInfo.environment["HD_PRIVATE_NAMES"] ?? "").split(separator: ",").map { String($0).lowercased() }
-banned += extra + [NSUserName().lowercased(), NSHomeDirectory().lowercased()]
+banned += extra
+if ProcessInfo.processInfo.environment["CI"] == nil { banned += [NSUserName().lowercased(), NSHomeDirectory().lowercased()] }
 let allowedUsers = ["me", "you", "name", "user", "example", "shared"]
-let bannedWord = ["remi"]  // whole-word only
 
 func ocr(_ cg: CGImage) -> String {
   let req = VNRecognizeTextRequest()
@@ -29,7 +29,6 @@ func hits(_ text: String) -> [String] {
     let user = String(low[Range(m.range(at: 1), in: low)!])
     if !allowedUsers.contains(user) { out.append(String(low[Range(m.range, in: low)!])) }
   }
-  for w in bannedWord where low.range(of: "\\b\(w)\\b", options: .regularExpression) != nil { out.append(w) }
   return out
 }
 

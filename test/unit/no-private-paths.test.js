@@ -8,10 +8,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..', '..');
+// The guards name the patterns they look for.
+const SELF = new Set(['test/unit/no-private-paths.test.js', 'scripts/ocr-check.swift']);
 const PLACEHOLDER_USERS = new Set(['me', 'you', 'name', 'user', 'example', 'shared']);
 
 function privateNames(env = process.env) {
-  const own = [os.userInfo().username, path.basename(os.homedir())];
+  // CI runner accounts ("runner") are not private and collide with ordinary words; paths are still caught by leaks().
+  const own = env.CI ? [] : [os.userInfo().username, path.basename(os.homedir())];
   const extra = (env.HD_PRIVATE_NAMES || '').split(',');
   return [...own, ...extra].map((n) => n.trim().toLowerCase()).filter((n) => n.length >= 4);
 }
@@ -28,7 +31,7 @@ function leaks(text, names) {
 }
 
 function committedText() {
-  const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' }).split('\0').filter(Boolean);
+  const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' }).split('\0').filter((f) => f && !SELF.has(f));
   return files.flatMap((f) => {
     const full = path.join(ROOT, f);
     if (!fs.existsSync(full) || !fs.statSync(full).isFile()) return [];
