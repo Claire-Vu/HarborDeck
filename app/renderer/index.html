@@ -35,7 +35,7 @@
   <div class="brand">&#9875; <span class="brand-name">Harbor Deck</span> <span class="shift" id="shift-label"></span></div>
   <div class="status">
     <span class="clock" id="clock" title="Local time">--:--</span>
-    <button class="stat" id="cash" title="Cash earned by clearing the desk" aria-label="Cash"><svg class="ic"><use href="#i-cash"/></svg><span id="cash-n">$0</span></button>
+    <button class="stat" id="cash" title="Cash earned by clearing the desk: spend it at the chandlery (B)" aria-label="Cash: chandlery and stamp book"><svg class="ic"><use href="#i-cash"/></svg><span id="cash-n">$0</span></button>
     <button class="sched-chip" id="sched-chip" hidden aria-label="Scheduler: queued work and next usage reset"></button>
     <button class="stamina-cluster" id="stamina-cluster" title="Subscription stamina: left and time to refill" aria-label="Stamina per subscription window"></button>
   </div>
@@ -43,7 +43,7 @@
     <button class="ibtn-top" id="btn-inspect" aria-pressed="false" aria-label="Inspect mode (I)" title="Inspect: pair a claim with evidence (I)"><svg class="ic"><use href="#i-inspect"/></svg></button>
     <button class="ibtn-top" id="btn-orders" aria-label="Standing orders (R)" title="Standing orders: your saved preferences (R)"><svg class="ic"><use href="#i-orders"/></svg><span class="badge warn" id="orders-flag" hidden>0</span></button>
     <button class="ibtn-top" id="btn-vault" aria-label="Archive" title="Archive: stamped and filed items"><svg class="ic"><use href="#i-archive"/></svg><span class="badge" id="vault-count">0</span></button>
-    <button class="ibtn-top" id="btn-ledger" aria-label="Shift report (L)" title="Shift report (L)"><svg class="ic"><use href="#i-ledger"/></svg></button>
+    <button class="ibtn-top" id="btn-ledger" aria-label="Ships out (L)" title="Ships out: today's recap, close the day (L)"><svg class="ic"><use href="#i-ledger"/></svg></button>
     <button class="ibtn-top" id="btn-log" aria-label="Agent log" title="Agent log: the JSONL lines sent to firstmate"><svg class="ic"><use href="#i-log"/></svg><span class="badge" id="log-count">0</span></button>
     <button class="ibtn-top" id="btn-plain" aria-pressed="false" aria-label="Plain mode (P)" title="Plain mode: flat list (P)"><svg class="ic"><use href="#i-plain"/></svg></button>
     <span class="sep"></span>
@@ -58,19 +58,27 @@
 <main id="desk-mode">
   <aside class="window-col">
     <div class="window-frame" aria-hidden="true">
-      <svg class="scene" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+      <svg class="scene" id="harbor" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
         <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky-1)"/><stop offset="1" stop-color="var(--sky-2)"/></linearGradient></defs>
         <rect width="320" height="240" fill="url(#sky)"/>
-        <circle cx="262" cy="46" r="16" fill="#ffe08a" opacity=".9"/>
-        <g fill="#7fa6bd" opacity=".55"><rect x="0" y="96" width="60" height="14"/><rect x="40" y="90" width="80" height="20"/><rect x="110" y="98" width="70" height="12"/><rect x="200" y="94" width="120" height="16"/></g>
+        <g id="sc-stars"></g>
+        <circle id="sc-sun" cx="262" cy="46" r="16" fill="#ffe08a" opacity=".9"/>
+        <g id="sc-clouds"></g>
+        <g class="hills" fill="#7fa6bd" opacity=".55"><rect x="0" y="96" width="60" height="14"/><rect x="40" y="90" width="80" height="20"/><rect x="110" y="98" width="70" height="12"/><rect x="200" y="94" width="120" height="16"/></g>
+        <g id="sc-town"></g>
+        <g id="sc-light"></g>
         <rect x="0" y="110" width="320" height="130" fill="var(--sea-1)"/>
         <g class="waves" fill="var(--sea-foam)" opacity=".5"><rect x="-16" y="118" width="12" height="2"/><rect x="24" y="118" width="12" height="2"/><rect x="64" y="118" width="12" height="2"/><rect x="104" y="118" width="12" height="2"/><rect x="144" y="118" width="12" height="2"/><rect x="184" y="118" width="12" height="2"/><rect x="224" y="118" width="12" height="2"/><rect x="264" y="118" width="12" height="2"/><rect x="304" y="118" width="12" height="2"/><rect x="4" y="134" width="10" height="2"/><rect x="52" y="134" width="10" height="2"/><rect x="100" y="134" width="10" height="2"/><rect x="148" y="134" width="10" height="2"/><rect x="196" y="134" width="10" height="2"/><rect x="244" y="134" width="10" height="2"/><rect x="292" y="134" width="10" height="2"/></g>
         <g class="waves slow" fill="var(--sea-2)" opacity=".8"><rect x="-8" y="150" width="20" height="3"/><rect x="40" y="150" width="20" height="3"/><rect x="88" y="150" width="20" height="3"/><rect x="136" y="150" width="20" height="3"/><rect x="184" y="150" width="20" height="3"/><rect x="232" y="150" width="20" height="3"/><rect x="280" y="150" width="20" height="3"/></g>
-        <g class="boat" fill="#3a2a1a"><rect x="40" y="128" width="30" height="8"/><rect x="52" y="104" width="2" height="24"/><rect x="54" y="106" width="12" height="14" fill="#f1e4c0"/></g>
-        <g class="boat" style="animation-delay:-1.4s" fill="#2a3a4a"><rect x="230" y="136" width="42" height="10"/><rect x="244" y="118" width="14" height="18" fill="#9aa"/><rect x="246" y="112" width="4" height="6"/></g>
+        <g id="sc-tide"></g>
+        <g id="sc-boats"></g>
         <g fill="var(--wood-edge)"><rect x="0" y="176" width="320" height="64"/></g>
         <g fill="var(--wood-1)"><rect x="0" y="176" width="320" height="4"/><rect x="0" y="190" width="320" height="2" opacity=".5"/><rect x="0" y="206" width="320" height="2" opacity=".5"/><rect x="0" y="222" width="320" height="2" opacity=".5"/></g>
+        <g id="sc-lamp"></g>
+        <g id="sc-rain"></g>
       </svg>
+      <div class="sc-more" id="sc-more"></div>
+      <div class="run" id="run"></div>
       <div class="pier-queue" id="pier-queue" role="list" aria-label="Waiting outside the window"></div>
       <div class="at-window" id="at-window"></div>
     </div>
@@ -105,7 +113,7 @@
       <button class="stamp reject" data-verdict="reject" aria-label="Reject"><span class="handle"></span><span class="base"><span class="lbl">Reject</span></span></button>
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
-      <div class="keys">1-4 stamp · U undo · T tickets · N next · O topic · I inspect · R orders · Esc</div>
+      <div class="keys">1-4 stamp · U undo · B book · T tickets · N next · O topic · I inspect · R orders · Esc</div>
     </div>
   </aside>
 </main>
@@ -135,6 +143,8 @@
 <script src="schedule-view.js"></script>
 <script src="web-pane.js"></script>
 <script src="topic-view.js"></script>
+<script src="harbor-game.js"></script>
+<script src="harbor-scene.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
