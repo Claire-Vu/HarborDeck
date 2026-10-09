@@ -10,10 +10,10 @@ The window scene carries desk status with no extra keys: one boat per open task 
 - `harbor-regulars` with no crew on the item, the visitor is the project's regular; `#at-window .speech small.memory` reads `<Trade Name>: <memory>`.
 - `harbor-cat` `#pier-queue .pq.urgent .ship-cat` on the most urgent waiting visitor; `.ship-cat.on-pier.nap` when nobody waits.
 - `harbor-run` `#run` shows `×N tidy run` for resolving stamps within 8 s; `u` hides it; bundle stamps never count.
-- `harbor-book-shop` cash chip or `b` opens `.modal.chandlery-modal`: `.sb-stamp` (`.got` when earned), `.shop-row` buy buttons; toasts `New stamp in your book: …`.
-- `harbor-tide-goal` clearing every present item before the shortest window's refill toasts `⚑ Beat the tide` (+$50) once per tide.
+- `harbor-book-shop` cash chip or `b` opens `.modal.chandlery-modal`: `.sb-stamp` (`.got` when earned), `.shop-row` buy buttons; badge toast `New stamp in your book: …` (small corner chip).
+- `harbor-tide-goal` clearing every present item before the shortest window's refill pays a `.cash-pop` (+$50) once per tide, no toast.
 - `harbor-recap` `l` opens the `Ships out` modal: `.recap-boat` per task cleared today, `.recap-tally`, `details.logbook` with the full report; `Close the day` as before.
-- `harbor-town` `#sc-town .bldg` count = floor(days the office opened / 2); toast `The harbor town grew: …`.
+- `harbor-town` `#sc-town .bldg` count = floor(days the office opened / 2).
 - `harbor-music` with music on, layers follow items cleared today; a rising chime when the harbor clears (listen; no DOM handle).
 
 ## How to get to it (user POV)

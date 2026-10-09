@@ -52,6 +52,11 @@ test('quick stamps build a tidy run; the settled task sails out; undo breaks the
   await expect(page.locator('#run')).not.toHaveClass(/show/);
   await page.keyboard.press('1'); // after an undo the run starts over
   await expect(page.locator('.toast.undo')).toBeVisible();
+  const ub = await page.locator('.toast.undo').boundingBox(), vp = { width: await page.evaluate(() => innerWidth) }; // a small corner chip, never a full-width bar
+  expect(ub.width).toBeLessThan(vp.width / 3); expect(ub.x + ub.width).toBeGreaterThan(vp.width * 0.6);
+  await expect(page.locator('.cash-pop').first()).toBeVisible(); // earnings pop near the cash chip, not a toast
+  expect(await page.locator('.cash-pop').first().evaluate(e => getComputedStyle(e).pointerEvents)).toBe('none');
+  await expect(page.locator('.toast.cash')).toHaveCount(0);
   await page.waitForTimeout(1000);
   await expect(page.locator('#run')).not.toHaveClass(/show/);
 });

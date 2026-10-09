@@ -91,7 +91,22 @@ const sentences = text => (text || '').split(/(?<=[.!?])\s+(?=[A-Z"'(@$0-9])/).m
 const base = p => (p || '').split('/').pop();
 const prio = it => it.priority || 3;
 const money = n => '$' + Math.round(n).toLocaleString();
-function toast(msg, cls) { const t = h('div', { class: `toast ${cls || ''}` }, msg); $('#toasts').append(t); setTimeout(() => t.remove(), 2800); }
+// Corner toasts: small, bottom-right, info fades; warn stays until dismissed. Only for facts the scene doesn't show.
+function toast(msg, cls) {
+  const t = h('div', { class: `toast ${cls || ''}`, role: cls === 'warn' ? 'alert' : null }, h('span', null, msg));
+  if (cls === 'warn') t.append(h('button', { class: 'toast-x', type: 'button', 'aria-label': 'Dismiss', onclick: () => t.remove() }, '×'));
+  else setTimeout(() => t.remove(), 2800);
+  $('#toasts').append(t);
+}
+// Cash pop: a small "+50" floating off the cash chip; pops inside a short window merge into one running total.
+let cashPop = null;
+function popCash(n) {
+  const chip = $('#cash'); if (!chip || !n) return;
+  if (cashPop && now() * 1000 - cashPop.at < 900) { cashPop.sum += n; cashPop.at = now() * 1000; cashPop.el.textContent = `+${money(cashPop.sum)}`; cashPop.el.style.animation = 'none'; void cashPop.el.offsetWidth; cashPop.el.style.animation = ''; clearTimeout(cashPop.t); cashPop.t = setTimeout(() => { cashPop?.el.remove(); cashPop = null; }, 1300); return; }
+  const rc = chip.getBoundingClientRect(); const el = h('div', { class: 'cash-pop', 'aria-hidden': 'true', style: `left:${Math.round(rc.left + rc.width / 2)}px;top:${Math.round(rc.bottom + 2)}px` }, `+${money(n)}`);
+  document.body.append(el);
+  cashPop = { el, sum: n, at: now() * 1000, t: setTimeout(() => { el.remove(); cashPop = null; }, 1300) };
+}
 
 function mdToHtml(md) {
   const lines = esc(md).split('\n'); let out = '', list = null, table = null, code = null;
@@ -256,7 +271,7 @@ function writeLine(line) {
 }
 const jsonl = () => S.answers.map(a => JSON.stringify(a)).join('\n') + (S.answers.length ? '\n' : '');
 const UNDO_MS = 4000;
-function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return; S.cash += n; save(); $('#cash-n').textContent = money(S.cash); snd('coin', pitch); toast(`+${money(n)}`, 'cash'); }
+function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return; S.cash += n; save(); $('#cash-n').textContent = money(S.cash); snd('coin', pitch); popCash(n); }
 
 // ------------------------------------------------------------ queue + visitors
 function queueItems() {
@@ -659,11 +674,11 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
     if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
     for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
     save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
-    pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line) + (extra.length ? ` (+${extra.length} more)` : '')) };
+    pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoChip() };
     if ($('#agentlog').classList.contains('open')) renderLog();
     setTimeout(() => {
       if (!pending || pending.line !== line) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
-      const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); toast(`×${runN} tidy run +${money(bonus)}`, 'cash'); }
+      const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); popCash(bonus); }
     }, 300);
     setTimeout(() => { if (!pending || pending.line !== line) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!pending || pending.line !== line) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
   });
@@ -672,7 +687,7 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
 let run = { n: 0, at: 0 };
 function afterClear(p) {
   const t = now(); const clear = harborClear(); const goal = S.fun.tide = G.tideGoal(S.fun.tide, t, tideNow());
-  if (clear && goal && !goal.beat && t <= goal.deadline) { goal.beat = true; S.cash += 50; $('#cash-n').textContent = money(S.cash); snd('ding'); toast(`⚑ Beat the tide: the pier is clear before high tide. +${money(50)}`, 'cash'); }
+  if (clear && goal && !goal.beat && t <= goal.deadline) { goal.beat = true; S.cash += 50; $('#cash-n').textContent = money(S.cash); snd('ding'); popCash(50); }
   const it = byId[p.itemId]; const task = it ? ITEMS.filter(i => G.taskKey(i) === G.taskKey(it)) : [];
   awardBadges({ run: p.run, hour: new Date(p.line.at * 1000).getHours(), stamped: true, harborClear: clear, beatTide: !!goal?.beat, fullSheet: task.length >= 4 && task.every(i => statusOf(i) === 'resolved') });
   save(); renderHarbor();
@@ -686,21 +701,21 @@ function awardBadges(extra) {
 function markDay() {
   const k = G.dayKey(new Date()); if (S.fun.lastDay === k) return;
   const before = G.town(S.fun.dayCount).length; S.fun.dayCount++; S.fun.lastDay = k; const after = G.town(S.fun.dayCount);
-  if (after.length > before) toast(`The harbor town grew: a ${after[after.length - 1].toLowerCase()} went up on the shore.`);
+  if (after.length > before)
   awardBadges({}); save();
 }
 // F5: the chandlery sells cosmetics for the till; ink and tune can be switched once owned
 function buy(key) {
   const r = G.buy(S.fun, key, S.cash); if (!r.ok) { toast(r.error, 'warn'); return; }
-  const item = G.SHOP.find(x => x.key === key); S.fun = r.fun; S.cash = r.cash; save(); snd('coin'); toast(`Bought: ${item.label}`);
+  const item = G.SHOP.find(x => x.key === key); S.fun = r.fun; S.cash = r.cash; save(); snd('coin');
   awardBadges({}); applyPrefs(); if (!S.prefs.plain) renderWindowScene(); if (item.track && music.on) { musicStop(); musicStart(); }
 }
 function equip(change) {
   Object.assign(S.fun, change); save(); applyPrefs(); snd('tick');
   if (change.track && music.on) { musicStop(); musicStart(); }
 }
-function undoToast(msg) {
-  const t = h('div', { class: 'toast undo' }, h('span', null, msg), h('button', { class: 'undo-btn', onclick: undoPending }, 'Undo ', h('span', { class: 'kbd' }, 'U')), h('span', { class: 'undo-bar' }));
+function undoChip() {
+  const t = h('div', { class: 'toast undo' }, h('button', { class: 'undo-btn', onclick: undoPending }, 'Undo ', h('span', { class: 'kbd' }, 'U')), h('span', { class: 'undo-bar' }));
   $('#toasts').append(t); return t;
 }
 function commitPending() {
@@ -714,7 +729,7 @@ function undoPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
   S.items[p.itemId] = p.snap.item; for (const [id, x] of p.snap.extra || []) S.items[id] = x; S.cash = p.snap.cash; S.current = p.itemId; save();
   run = { n: 0, at: 0 }; harbor.showRun(0); // undo breaks the tidy run
-  snd('flip'); toast('Undone. Nothing was sent.'); renderAll();
+  snd('flip'); renderAll();
 }
 function flyStamp(src, zone, ink, done) {
   if (!src || !zone) return done();
@@ -772,7 +787,7 @@ function openTicket(t, el) {
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note),
     t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)
       : t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
-    t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); toast(r.ok ? 'Queued order withdrawn' : 'Already sent', r.ok ? '' : 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
+    t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); if (!r.ok) toast('Already sent', 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
     h('div', { class: 'row' }, t.item && statusOf(t.item) === 'open' ? h('button', { class: 'pbtn', onclick: () => { pop.remove(); if (S.prefs.plain) { S.prefs.plain = false; save(); } stepUp(t.item.id); } }, 'Open item') : null, h('button', { class: 'pbtn ghost', onclick: () => { S.tickets.done[t.key] = true; save(); pop.remove(); snd('flip'); renderRail(); } }, 'Done'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')));
   document.body.append(pop);
   pop.style.left = Math.max(8, Math.min(window.innerWidth - 328, r.left)) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
@@ -871,7 +886,7 @@ function openNote(opts, onSubmit) {
 function sendOrder(note, to) {
   const n = S.answers.length;
   emit({ id: `req-${now()}-${hash(note) % 1000}`, action: 'request', note, to }); if (S.answers.length === n) return false;
-  S.prefs.lastMate = to; save(); snd('ding'); toast(`Order handed to ${mateLabel(to)}`);
+  S.prefs.lastMate = to; save(); snd('ding');
   if (S.prefs.plain) renderPlain(); else { renderRail(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); }
   return true;
 }
@@ -890,7 +905,6 @@ function renderRequests() {
     const r = await bridge.schedule({ when, request: { id, note: v, to } });
     if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return; }
     S.prefs.lastMate = to; save(); ta.value = ''; snd('slide');
-    toast(when === 'reset' ? `Queued for ${mateLabel(to)} after the usage limit resets` : `Queued for ${mateLabel(to)} at ${fmtTime(when)}`);
     applySnapshot(r.snapshot);
   };
   const at = h('input', { type: 'time', class: 'order-time', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
@@ -1024,7 +1038,7 @@ function plainCard(it, openByDefault) {
       it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', null, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'), o.why && h('span', { class: 'why' }, o.why))))) : null,
       resolved ? h('div', { class: 'verdict' }, s.verdict ? consequence(s.verdict) : 'Resolved by the agent.') : h('div', { class: 'actions' }, actionsFor(it)),
       thread.length ? h('div', { class: 'thread' }, thread.map(x => h('div', { class: `msg ${x.me || x.from === 'captain' ? 'me' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.text))) : null,
-      !resolved && !s.awaiting ? (() => { const inp = h('input', { placeholder: 'Ask a follow-up…', onkeydown: e => { if (e.key === 'Enter') send(); } }); const send = () => { const v = inp.value.trim(); if (!v) return; const line = emit({ id: it.id, action: 'ask', note: v }); s.awaiting = true; save(); earn(it, 'ask'); toast(consequence(line)); renderPlain(); }; return h('div', { class: 'follow' }, inp, h('button', { class: 'abtn ask', onclick: send }, 'Ask')); })() : null));
+      !resolved && !s.awaiting ? (() => { const inp = h('input', { placeholder: 'Ask a follow-up…', onkeydown: e => { if (e.key === 'Enter') send(); } }); const send = () => { const v = inp.value.trim(); if (!v) return; const line = emit({ id: it.id, action: 'ask', note: v }); s.awaiting = true; save(); earn(it, 'ask'); renderPlain(); }; return h('div', { class: 'follow' }, inp, h('button', { class: 'abtn ask', onclick: send }, 'Ask')); })() : null));
   return d;
 }
 function renderPlain() {
@@ -1040,7 +1054,7 @@ function renderPlain() {
   if (f === 'all') {
     const ta = h('textarea', { rows: 2, placeholder: 'New order to the first mate…' }); let to = S.prefs.lastMate || FLEET.firstmates[0]?.id;
     const sel = h('select', { onchange: e => { to = e.target.value; } }, FLEET.firstmates.map(m => h('option', { value: m.id, selected: m.id === to }, m.label)));
-    const send = () => { const v = ta.value.trim(); if (!v) return; const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); toast(`Order handed to ${mateLabel(to)}`); renderPlain(); };
+    const send = () => { const v = ta.value.trim(); if (!v) return; const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); renderPlain(); };
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'New order'), h('div', { class: 'pcard order-plain' }, ta, h('div', { class: 'row' }, sel, h('button', { class: 'abtn file', onclick: send }, 'Hand it over')))));
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), h('div', null, `${G.boats(open).length} boats moored in the harbor; ${G.town(S.fun.dayCount).length} buildings in town.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Topics'), h('div', { class: 'pcard topics-plain' }, topicView.list())));
@@ -1103,8 +1117,8 @@ function applySnapshot(snap) {
   renderAll(deskSig() === curBefore); phone.refresh();
   if ($('#agentlog').classList.contains('open')) renderLog();
   topicView.update(prevNotes);
-  if (replies) { snd('ding'); if (!S.prefs.plain) renderRail(true); toast(replies > 1 ? `${replies} replies landed on the rail` : 'A reply landed on the rail'); }
-  if (fresh.length) { snd('slide'); toast(fresh.length > 1 ? `${fresh.length} new at the window` : `New at the window: ${fresh[0].title}`); }
+  if (replies) { snd('ding'); if (!S.prefs.plain) renderRail(true); }
+  if (fresh.length) { snd('slide'); }
   if (snap.errors?.length) console.warn('harbor: unreadable items', snap.errors);
 }
 // Never re-render under the captain's typing: hold the snapshot until focus leaves the field.
@@ -1132,13 +1146,13 @@ async function openSettings() {
     dir.row, root.row, hosts.row, phoneKey.row, phoneNote ? h('p', { class: 'legend set-hint' }, phoneNote) : null,
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'On answer'), h('span', { class: 'set-in col' }, h('label', { class: 'set-check' }, hookOn, ' Run a command after every line written to answers.jsonl'), hookCmd)),
     h('div', { class: 'set-row' }, h('span', { class: 'set-l' }, 'Demo'), h('span', { class: 'set-in' },
-      h('button', { class: 'tbtn', type: 'button', onclick: async () => { commitPending(); closeModal(); applySnapshot(await bridge.demo(true)); toast('Demo data loaded (fresh day)'); } }, cur.demo ? 'Restart demo' : 'Load demo data'),
+      h('button', { class: 'tbtn', type: 'button', onclick: async () => { commitPending(); closeModal(); applySnapshot(await bridge.demo(true)); } }, cur.demo ? 'Restart demo' : 'Load demo data'),
       cur.demo ? h('button', { class: 'tbtn', type: 'button', onclick: async () => { commitPending(); closeModal(); applySnapshot(await bridge.demo(false)); } }, 'Back to my data') : null)),
     SNAP.errors?.length ? h('div', { class: 'flag-note' }, h('div', null, `${SNAP.errors.length} item file(s) skipped:`), SNAP.errors.slice(0, 8).map(e => h('div', null, `${e.file}: ${e.error}`))) : null);
   modal('settings-modal', 'Settings', content, [h('button', { class: 'pbtn ghost', onclick: closeModal }, 'Cancel'), h('button', { class: 'pbtn', onclick: async () => {
     commitPending();
     const snap = await bridge.setSettings({ dataDir: dir.inp.value.trim(), artifactRoot: root.inp.value.trim(), webHosts: hosts.inp.value, phoneShortcut: phoneKey.inp.value.trim(), onAnswer: { enabled: hookOn.checked, command: hookCmd.value.trim() } });
-    closeModal(); applySnapshot(snap); toast('Settings saved');
+    closeModal(); applySnapshot(snap);
   } }, 'Save')]);
 }
 // ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
@@ -1246,6 +1260,5 @@ window.addEventListener('resize', () => { if (!S.prefs.plain) { renderDesk(); ra
 
 renderAll();
 if (!S.dayOpen) morning(); else { markDay(); if (!S.current) next(); }
-const low = QUOTA.map(quotaView).filter(q => q.left < 10); if (low.length) setTimeout(() => toast(`Stamina nearly empty: ${low.map(q => `${q.name} ${q.window}`).join(', ')}. Refill in ${age(low[0].in)}.`, 'warn'), 1500);
 if (S.prefs.music) { const once = () => { try { musicStart(); } catch (e) {} document.removeEventListener('pointerdown', once); }; document.addEventListener('pointerdown', once); }
 })();

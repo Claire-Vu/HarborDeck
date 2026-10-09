@@ -76,7 +76,8 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `.tab[data-tab="window"\|"requests"\|"crew"]` | left tabs |
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
-| `.toast.undo` | the 4 s undo hold after a stamp; `u` drops it |
+| `.toast.undo` | small bottom-right chip: the 4 s undo hold after a stamp; `u` drops it |
+| `.cash-pop` | floating `+$n` under the cash chip (merges quick earnings, no clicks); cash is no longer a `.toast`. Info `.toast`s are small corner chips; `.toast.warn` stays until its `×` |
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |
 | `#requests-pane textarea`, buttons `Send now`, `Queue for after reset`, `Queue at time`, input `Send at time` | Requests tab |
