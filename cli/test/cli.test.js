@@ -278,12 +278,12 @@ test('decision options carry an optional why line; --why needs a known key', () 
 
 test('question ids <task>.qN default their topic to the task; an explicit or kept topic wins', () => {
   const { hd, item } = setup();
-  assert.equal(hd(['decision', 'tracker-build.q1', 'Direction?', '--opt', 'a+', '--opt', 'b']).code, 0);
-  assert.equal(hd(['decision', 'tracker-build.q2', 'Hosting?', '--opt', 'a+', '--opt', 'b', '-t', 'hosting']).code, 0);
-  assert.equal(item('tracker-build.q1').topic, 'tracker-build');
-  assert.equal(item('tracker-build.q2').topic, 'hosting');
-  assert.equal(hd(['decision', 'tracker-build.q2', 'Hosting, again?', '--opt', 'a+']).code, 0);
-  assert.equal(item('tracker-build.q2').topic, 'hosting');
+  assert.equal(hd(['decision', 'plant-shop.q1', 'Direction?', '--opt', 'a+', '--opt', 'b']).code, 0);
+  assert.equal(hd(['decision', 'plant-shop.q2', 'Hosting?', '--opt', 'a+', '--opt', 'b', '-t', 'hosting']).code, 0);
+  assert.equal(item('plant-shop.q1').topic, 'plant-shop');
+  assert.equal(item('plant-shop.q2').topic, 'hosting');
+  assert.equal(hd(['decision', 'plant-shop.q2', 'Hosting, again?', '--opt', 'a+']).code, 0);
+  assert.equal(item('plant-shop.q2').topic, 'hosting');
   assert.equal(hd(['todo', 'plain-task', 'T']).code, 0);
   assert.equal(item('plain-task').topic, undefined);
 });
