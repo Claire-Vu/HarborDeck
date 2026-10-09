@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { validate } from '../src/schema.js';
 
 const BIN = fileURLToPath(new URL('../bin/harbordeck.js', import.meta.url));
@@ -284,6 +284,15 @@ test('web and lavish artifacts: URLs kept, lavish html path resolved to its sess
   r = run(['review', 'plan3', 'Plan', '-a', 'web:plan.html']);
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /web needs a URL/);
+});
+
+test('web:file:// artifacts are stored as local path artifacts', () => {
+  const { cwd, hd, item } = setup();
+  const file = path.join(fs.realpathSync(cwd), 'my mockup.html');
+  fs.writeFileSync(file, '<h1>m</h1>');
+  const r = hd(['review', 'fu', 'Mockup', '-a', `web:${pathToFileURL(file).href}`, '-a', pathToFileURL(file).href]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(item('fu').artifacts, [{ type: 'report', path: file }, { type: 'report', path: file }]);
 });
 
 test('decision options carry an optional why line; --why needs a known key', () => {

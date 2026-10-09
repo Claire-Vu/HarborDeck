@@ -690,6 +690,8 @@ pre.diff .add { color: #1f7a3a; background: rgba(46,160,67,.12); display: block;
 .modal.web.loading .web-bar::before { content: '⟳'; animation: spin 1s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .web-mount { height: 76vh; background: #fff; border-radius: 0 0 6px 6px; }
+.web-refused .tbtn { background: #1b2633; color: #fff; border-color: #1b2633; font-weight: 600; padding: 7px 14px; justify-self: center; }
+.web-refused .tbtn:hover { background: #2b3d52; border-color: #b86a0a; }
 .web-refused { height: 100%; display: grid; place-content: center; gap: 10px; text-align: center; color: #1b2633; padding: 20px; }
 .modal.web.full { padding: 0; }
 .modal.web.full .box { width: 100%; height: 100vh; max-height: 100vh; }

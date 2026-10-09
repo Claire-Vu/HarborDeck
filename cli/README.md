@@ -82,6 +82,7 @@ Behaviour worth knowing:
 - `hd topic <slug>` prints one line per event (`MM-DD HH:MM`, local time): `+ <kind> <id> "<title>"`, `reply`, `you <action>`, `note`, `resolved`, after the open items. Long text is clipped; `--json` has it all.
 - Relative paths are made absolute against the current directory. A missing file is a warning on stderr, not an error.
 - Artifact type is inferred: `/pull/N` and `/merge_requests/N` URLs are `pr`, other URLs `link`; by extension `video`, `image`, `audio`, `report` (md, txt, pdf, html), `diff`, else `file`. Prefix to override: `-a image:https://...`.
+- `-a web:file:///abs/page.html` (or any `file://` URL) is stored as a path artifact, so a local .html opens in the pane like `-a page.html`.
 - `-a web:<url>` shows a local page (dev server, local report) in the desk's browser pane. `-a lavish:<url>` does the same for a Lavish review page; `-a lavish:<file.html>` runs `lavish-axi <file> --no-open` to start or resume its session and stores the session URL (the path, with a warning, when `lavish-axi` is missing or `HARBORDECK_LAVISH=0`).
 - `--opt key*` also marks a recommendation, but `+` is safe from shell globbing.
 - An id shaped `<task>.q<N>` gets topic `<task>` when no `-t` is given (and none is kept from a rewrite), so a task's questions bundle into one question sheet on the desk.

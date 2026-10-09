@@ -1,6 +1,7 @@
 // "[type:]<path|url>" artifact references, shared by item verbs (-a) and notes.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { lavishUrl } from './lavish.js';
 
 const EXT_TYPES = [
@@ -21,7 +22,10 @@ export function parseArt(v, ctx) {
   let ref = v;
   const m = /^([a-z][a-z0-9-]{0,31}):(.+)$/s.exec(v);
   if (m && !m[2].startsWith('//')) { type = m[1]; ref = m[2]; }
-  if (isUrl(ref)) {
+  if (/^file:\/\//i.test(ref)) { // a file:// URL is a local path: store it as a path artifact (web:file://x.html opens like x.html)
+    try { ref = fileURLToPath(ref); } catch (e) { throw new Error(`bad --art "${v}" (not a local file URL)`); }
+    if (type === 'web' || type === 'link' || type === 'file') type = null;
+  } else if (isUrl(ref)) {
     return { type: type || (/\/pull\/\d+|\/merge_requests\/\d+/.test(ref) ? 'pr' : 'link'), url: ref };
   }
   if (type === 'web') throw new Error(`bad --art "${v}" (web needs a URL, e.g. web:http://localhost:3000/)`);
