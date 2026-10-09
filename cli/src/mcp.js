@@ -8,7 +8,7 @@ const TOOLS = [
   {
     name: 'harbordeck_batch',
     description: 'Write HarborDeck items. One command per line, same syntax as the hd CLI without "hd": '
-      + 'decision|answer|review|todo <id> "<title>" [-s "<one line>"] [-b <path>] [--opt key+] [-a type:<path|url>] [-p 1-4] [-d +2d] [-t <topic>] [--rel <id>,<id>]; '
+      + 'decision|answer|review|todo <id> "<title>" [-s "<one line>"] [-b <path>] [--opt key+] [--why key="<line>"] [-a type:<path|url>] [-p 1-4] [-d +2d] [-t <topic>] [--rel <id>,<id>]; '
       + 'reply <id> "<text>"; resolve <id>; note <id|topic:slug> "<text>" [-a <path|url>]; gap "<what did not fit>". Nothing is written if any line is invalid.',
     inputSchema: {
       type: 'object',

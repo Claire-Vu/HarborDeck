@@ -7,7 +7,7 @@
   "required": ["id", "action", "at"],
   "properties": {
     "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", "description": "Item id; for action=request a new id minted by the app." },
-    "action": { "enum": ["decide", "approve", "reject", "needs-work", "comment", "ask", "file", "request"] },
+    "action": { "enum": ["decide", "approve", "reject", "needs-work", "comment", "ask", "file", "request", "defer"] },
     "key": { "type": "string", "description": "decide only: the chosen option key." },
     "note": { "type": "string", "maxLength": 4000 },
     "anchor": {
@@ -24,10 +24,12 @@
       }
     },
     "to": { "type": "string", "description": "request only: the agent id (fleet firstmates[].id) the order is handed to." },
+    "until": { "type": "integer", "minimum": 0, "description": "defer only: epoch seconds the user wants the item back. The item stays open; the app hides it until then." },
     "at": { "type": "integer", "minimum": 0 }
   },
   "allOf": [
     { "if": { "properties": { "action": { "const": "decide" } } }, "then": { "required": ["key"] } },
-    { "if": { "properties": { "action": { "const": "request" } } }, "then": { "required": ["note"] } }
+    { "if": { "properties": { "action": { "const": "request" } } }, "then": { "required": ["note"] } },
+    { "if": { "properties": { "action": { "const": "defer" } } }, "then": { "required": ["until"] } }
   ]
 }

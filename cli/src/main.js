@@ -18,6 +18,7 @@ Data dir: $HARBORDECK_HOME or ~/.harbordeck
 
 Items (re-running with the same id rewrites it; created and thread are kept):
   hd decision <id> "<title>" --opt key+ --opt key=Label [flags]   + = recommended
+             --why key="<one line>" (repeat)   what an option means or costs, shown under it
   hd answer   <id> "<title>" [flags]       research/report to read and file
   hd review   <id> "<title>" [flags]       work to approve/reject/send back
   hd todo     <id> "<title>" [flags]       something only the user can do
@@ -26,6 +27,7 @@ Items (re-running with the same id rewrites it; created and thread are kept):
          -p/--pri 1-4  -d/--due <epoch|ISO|+2d|+12h>  -f/--from <agent>  --project <p>  --stream <s>
          -r/--rule <key> (repeat)  --ok <rule>[:note]  --flag <rule>:<note>  (standing-order checks)
          -t/--topic <slug>  --rel <id>[,<id>]   what it is about; related items (kept on rewrite)
+                             an id <task>.q<N> defaults the topic to <task>, so a hold's questions arrive as one sheet
   hd reply <id> "<text>"     append to the item's thread (answers an ask, or a request id)
   hd resolve <id>...         mark resolved
   hd batch                   read commands from stdin, one per line (same syntax, no "hd")
@@ -115,8 +117,11 @@ const ITEM_FLAGS = {
   sum: { alias: 's' }, body: { alias: 'b' }, opt: { alias: 'o', multi: true }, art: { alias: 'a', multi: true },
   pri: { alias: 'p' }, due: { alias: 'd' }, from: { alias: 'f' }, project: {}, stream: {},
   rule: { alias: 'r', multi: true }, ok: { multi: true }, flag: { multi: true },
-  topic: { alias: 't' }, rel: { multi: true },
+  topic: { alias: 't' }, rel: { multi: true }, why: { multi: true },
 };
+
+// "<task>.q<N>": one of several questions on one hold; they share the task as their topic.
+const QUESTION_ID = /^(.+)\.q\d+$/;
 
 function buildItem(kind, argv, ctx) {
   const { pos, flags } = parseFlags(argv, ITEM_FLAGS);
@@ -142,7 +147,15 @@ function buildItem(kind, argv, ctx) {
     item.options = flags.opt.map(parseOpt);
     const keys = item.options.map((o) => o.key);
     if (new Set(keys).size !== keys.length) fail(`decision ${id}: duplicate option key`);
+    for (const v of flags.why || []) {
+      const i = v.indexOf('=');
+      const o = i > 0 && item.options.find((x) => x.key === v.slice(0, i).trim());
+      if (!o) fail(`decision ${id}: --why "${v}" needs <option key>=<text> for one of ${keys.join(', ')}`);
+      const why = v.slice(i + 1).trim();
+      if (why) o.why = why;
+    }
   } else if (kind === 'decision') fail(`decision ${id}: needs at least one --opt`);
+  if (flags.why && kind !== 'decision') fail(`${kind} ${id}: --why is for decision options only`);
   if (flags.art) item.artifacts = flags.art.map((a) => parseArt(a, ctx));
   const checks = [...(flags.ok || []).map((v) => parseCheck(v, true)), ...(flags.flag || []).map((v) => parseCheck(v, false))];
   const rules = [...(flags.rule || []).map((r) => checkId(r, 'rule key')), ...checks.map((c) => c.rule)];
@@ -164,6 +177,7 @@ function saveItem(item, ctx) {
   item.created = prev?.created ?? t;
   if (prev?.thread) item.thread = prev.thread;
   for (const k of ['topic', 'rel']) if (item[k] === undefined && prev?.[k] !== undefined) item[k] = prev[k];
+  if (item.topic === undefined && QUESTION_ID.test(item.id)) item.topic = QUESTION_ID.exec(item.id)[1];
   if (prev) item.updated = t;
   item.status = 'open';
   const errs = validate('item', item);

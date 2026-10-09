@@ -1,0 +1,54 @@
+# Quick calls
+
+Clearing the desk takes one keystroke per answer: letter keys pick a decision's option (each with an optional grey "why" line), Space stamps, a task's `<task>.qN` questions arrive as one question sheet settled with one stamp, Later (`S`) parks an item and writes a `defer` line, and Shift+A takes every low-stakes recommendation at once. The queue groups lanes by project with weight icons, papers never overlap or print absolute paths, a local `.html` report opens in the browser pane, the morning manifest shows only what has something in it, the ticket rail scrolls with the wheel, and the stamp tray never overlaps at short heights.
+
+## Sub-features
+
+- `qc-letters` `a`-`e` pick option A-E on the decision at the desk; `.paper.ask label.opt.on` follows; option `.why` lines show under labels.
+- `qc-space` Space stamps approve/file (the same line as `1`); Enter never stamps.
+- `qc-sheet` items sharing a topic (an id `<task>.qN` gets topic `<task>` from the CLI) show one `.paper.qsheet`: a `.b-row` per item, the focused row `.b-row.cur` is the item at the desk; a letter picks on it and moves to the next row; `j`/`k` move; Space or `Stamp the sheet` writes one line per ticked row.
+- `qc-why` `hd decision ... --why <key>="<line>"` stores `options[].why`; the slip, sheet, plain mode and Shift+A list show it.
+- `qc-later` `s` writes `{"action":"defer","until":<tomorrow 09:00>}`; Shift+S until just after the next usage reset; the item moves to the queue's `Later` lane (`#queue li.q-later`); a click brings it back now; a sheet parks every ticked row.
+- `qc-sweep` Shift+A opens `.modal.sweep` listing P3-P4 decisions with a recommendation; untick rows; Shift+A again or `Stamp N recommended` writes one `decide` per ticked row; undoable as one; never counts toward a tidy run.
+- `qc-lanes` `#queue li.q-lane` headers per project; `.wt[data-weight]` on each row (`video`, `pr`, `report`, `quick`); filter chips with a zero count are hidden.
+- `qc-speech` `#at-window .speech` says the ask: the item's title, or `N quick calls on <Topic>` for a sheet.
+- `qc-layout` desk papers never overlap; the main artifact (report, image, video, PDF) fills a reading column; file names only, the full path on hover.
+- `qc-html` a local `.html` artifact shows as a `.paper.web` card; `Open in the desk browser` opens it in `.modal.web` with its own CSS/JS from the same folder; nothing outside that folder and no hidden files are served.
+- `qc-manifest` empty manifest sections are hidden; Space opens the office; at launch the manifest is skipped when nothing changed since `Close the day`.
+- `qc-rail` an overflowing ticket rail scrolls with the mouse wheel; `#rail-right` / `#rail-left` show `N more ›` / `‹ N` and page the rail on click.
+- `qc-tray` the five tray stamps (Approve, Reject, Needs work, Ask, Later) never overlap at any window height; the tray scrolls when short.
+- `qc-bridge` firstmate's bridge maps a `defer` on a held task (or a `<task>.qN` of one) to `fm-captain-hold.sh hold <task> --until <date>`, else an inbox note.
+
+## How to get to it (user POV)
+
+- Open the office with Space on the manifest.
+- Select a decision, press a letter, press Space. Seed sheet: `Beta invites: how many in the first wave?` (`beta-invites.q1`-`q3`, `+2` on its queue row).
+- Press `s` on any item; find it under `Later` at the bottom of the queue.
+- Press Shift+A anywhere on the desk.
+- Agent side: `hd decision <task>.q1 "<question?>" --opt a+ --opt b --why a="<line>"` (no `-t` needed); `hd answer <id> "<title>" -a report:<file.html>`.
+
+## Driving it with hdv + ui.mjs
+
+Preconditions:
+
+- Baseline instance, doctor `ok`, the `Morning manifest` showing.
+
+- **Before.** Run `$H capture quick-call before`.
+- **Manifest.** Run `$U press ' '`. The manifest closes; `$U text --css '#desk-surface .paper.manifest h3'` prints a title.
+- **Letters + Space.** Run `$U click --css '#queue li' --text 'Quarantine the flaky'`, `$U press b`, `$U text --css '#desk-surface .paper.ask label.opt.on'` prints `Keep it blocking`; `$U press ' '`; after 5 s the last `answers.jsonl` line is `{"id":"flaky-e2e","action":"decide","key":"keep",...}`.
+- **Sheet.** Run `$U click --css '#queue li' --text 'Beta invites'`; `$U text --css '#at-window .speech'` starts `3 quick calls on Beta invites`; `$U press b`, `$U press a`, `$U press c` (each moves `.b-row.cur` down); `$U press ' '`; after 5 s three `decide` lines for `beta-invites.q1`-`q3` with keys `two-hundred`, `waitlist`, `both`.
+- **Why.** `$H hd decision hdv-host.q1 "Host?" --opt edge+ --opt mac --why edge="free tier"`; `jq .options "$HDV_HOME/items/hdv-host.q1.json"` shows `why`, and `.topic` is `hdv-host`.
+- **Later.** Select `Renew the domain`, `$U press s`, `$U wait --css '#queue li.q-later' --text 'Renew the domain'`; after 5 s the last line is `{"id":"todo-domain","action":"defer","until":<tomorrow 09:00 local epoch>,...}`.
+- **Sweep.** `$U press Shift+A`, `$U wait --css '.modal.sweep .sw-row'`, `$U press Shift+A`; after 5 s one `decide` line per listed row with the recommended key.
+- **Local HTML.** `$H hd answer hdv-html "Invite waves" -p 1 -a report:"$HDV_HOME/assets/beta/waves.html"`, select it, `$U click --role button --name 'Open in the desk browser'`, `$U text --pane --css '#state'` prints `script loaded from the same folder`; `$U click --css '.modal.web [aria-label=Close]'`.
+- **Layout + paths.** `$U eval` a pairwise rectangle check over `#desk-surface .paper` returns no overlaps; `$U text --css '#desk-surface'` contains no `$HDV_HOME` path.
+- **Rail + tray.** Append 9 `request` lines with `$H hd`-free JSON to `answers.jsonl` (ids `hdv-req-N`); `$U wait --css '#rail-right'`; `$U shot` at a 960x600 window shows five separate stamps.
+- **Proof.** Run `$H capture quick-call after`; save the `answers.jsonl` diff in `proof.md`.
+
+## Gotchas
+
+- Letters, Space, `s`, `j`/`k` and Shift+A do nothing while a modal, the ship phone, a textarea or a text input has focus; Space on the manifest and Shift+A in the sweep list are the two exceptions.
+- `B` is option B; the chandlery and stamp book moved to Shift+B.
+- A row's option click also moves focus like a letter; assert `.b-row.cur` before the next key.
+- Later lines are held for undo like any stamp; the `Later` lane appears at once, the file line after 5 s.
+- `test/smoke/quick-call.spec.js` covers every sub-feature headless; `adapters/firstmate/test/run.sh` covers `qc-bridge`.

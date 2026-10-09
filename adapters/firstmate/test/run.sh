@@ -15,7 +15,8 @@ check() {  # <description> <command...>
 mkdir -p "$FM_HOME/bin" "$FM_HOME/state"
 cat > "$FM_HOME/bin/fm-captain-hold.sh" <<'EOF'
 #!/usr/bin/env bash
-if [ "$1" = open ]; then case $2 in held-1|held-2) exit 0 ;; *) exit 1 ;; esac; fi
+if [ "$1" = open ]; then case $2 in held-1|held-2|held-3) exit 0 ;; *) exit 1 ;; esac; fi
+if [ "$1" = hold ]; then printf 'hold %s\n' "$*" >> "$FM_HOME/calls.log"; exit 0; fi
 in=$(cat); printf 'hold %s | %s\n' "$*" "$in" >> "$FM_HOME/calls.log"
 id=${in%%$'\t'*}
 if [ "$id" = held-1 ] || [ "$id" = held-2 ]; then echo "closed: $id"; else echo "skipped: $id (not held)"; exit 1; fi
@@ -80,6 +81,8 @@ decision free-1 "Palette?" --opt warm --opt cool
 review held-2 "Video"
 answer res-1 "Research"
 todo td-1 "Sign form"
+decision held-3.q2 "Hosting?" --opt edge+ --opt mac
+decision free-2 "Later maybe?" --opt yes+ --opt no
 EOF
 cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"held-1","action":"decide","key":"ship","note":"","at":1}
@@ -89,7 +92,10 @@ cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"res-1","action":"file","note":"","at":5}
 {"id":"td-1","action":"file","note":"","at":6}
 {"id":"req-9","action":"request","note":"Add dark theme","to":"sm","at":7}
+{"id":"held-3.q2","action":"defer","until":1791540000,"note":"","at":10}
+{"id":"free-2","action":"defer","until":1791540000,"note":"","at":11}
 EOF
+day=$(date -r 1791540000 +%Y-%m-%d 2>/dev/null || date -d @1791540000 +%Y-%m-%d)
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
 check "bridge: dry run touches nothing" test ! -e "$FM_HOME/calls.log"
 check "bridge: dry run lists routes" grep -q "fm-inbox.sh note --request-id req-9" "$tmp/dry.txt"
@@ -114,6 +120,9 @@ check "bridge: filing an answer sends nothing" test "$(grep -c 'res-1-file' "$lo
 check "bridge: filing a todo reports done" grep -qF "HarborDeck file on td-1 \"Sign form\": done" "$log"
 check "bridge: request keeps its id" grep -qF "request-id req-9 -- HarborDeck request for sm: Add dark theme" "$log"
 check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/items/held-1.json")" = resolved
+check "bridge: Later on a question defers its held task" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until $day --until $day" "$log"
+check "bridge: Later on an unheld item is a note" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk $day" "$log"
+check "bridge: deferred item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-3.q2.json")" = open
 check "bridge: asked item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-2.json")" = open
 before=$(wc -l < "$log")
 "$here/hd-bridge.sh" >/dev/null 2>&1

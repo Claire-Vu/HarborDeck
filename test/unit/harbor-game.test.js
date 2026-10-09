@@ -17,6 +17,8 @@ test('boats: one per task; q-series share a boat, a topic wins, sail grows with 
 test('regulars: stable per project, mood and memory follow recent calls', () => {
   assert.deepStrictEqual(G.regular('harbordeck'), G.regular('harbordeck'));
   assert.notStrictEqual(G.regular('harbordeck').name, G.regular('content-tools').name);
+  // every project gets a whole name and look (high hash bits used to index past the lists)
+  for (const p of ['board-app', 'brand', 'captain', 'general', 'desk', 'content-creation-tools']) { const r = G.regular(p); assert.doesNotMatch(r.name, /undefined/); assert.ok(r.coat && r.cap && r.skin); }
   const t = 1e9, day = 86400;
   assert.strictEqual(G.mood([], t), 'new'); assert.strictEqual(G.memory([], t), 'First time at your window.');
   const good = [1, 2, 3].map(k => ({ action: 'approve', at: t - k * 3600 }));

@@ -3,7 +3,7 @@
 // Stable handles only: ARIA role + name, or the app's own ids/classes. One action per call; exit 1 on failure.
 //
 //   ui.mjs click (--role <role> --name <name> [--exact] | --css <selector> [--text <substring>])
-//   ui.mjs press <key>                         keyboard on the focused page (1-4 stamp, u undo, n next, Escape...)
+//   ui.mjs press <key>                         keyboard on the focused page (1-4 or ' ' stamp, a-e pick, s later, u undo, n next, Escape...)
 //   ui.mjs fill (--role .. --name .. | --css ..) --value <text>
 //   ui.mjs wait (--role .. --name .. | --css .. [--text ..]) [--gone] [--timeout ms]
 //   ui.mjs text (--css <selector> [--text ..])  print the text of every match

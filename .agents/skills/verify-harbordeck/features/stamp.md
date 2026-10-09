@@ -8,13 +8,13 @@ A person picks an item at the window and stamps it; after a 4 second undo hold t
 - `stamp-approve-file` key `1` on a review writes `approve`; on an answer or todo writes `file`.
 - `stamp-reject` key `2` writes `reject`.
 - `stamp-needswork` key `3` opens a note slip; `Send` writes `needs-work` with the note.
-- `stamp-tray` the `#stamps` tray buttons do the same as the keys.
+- `stamp-tray` the `#stamps` tray buttons do the same as the keys; the fifth, `Later`, writes `defer` (see quick-call.md).
 - `stamp-undo` `u` (or the toast's `Undo`) during the hold drops the line.
 - `stamp-log` the Agent log drawer shows the written lines and a held line.
 
 ## How to get to it (user POV)
 
-- Click an item in the window queue, then press `1`-`4`.
+- Click an item in the window queue, then press `1`-`4` (or Space for `1`).
 - Click a stamp in the stamp tray (`Tab` toggles the tray).
 - Open `Agent log` in the top bar to see what was sent.
 

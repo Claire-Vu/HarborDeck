@@ -140,3 +140,24 @@ test('snapshot carries notes.jsonl (complete, placeable lines) and serves note a
   assert.strictEqual(snap.files['shot.png'].exists, true);
   assert.strictEqual(snap.items[0].topic, 'x');
 });
+
+test('appendAnswer: a defer (Later stamp) keeps its until and is refused without one', () => {
+  const home = tmp();
+  const line = JSON.parse(store.appendAnswer(home, { id: 'a', action: 'defer', until: 1791540000, at: 1791500000 }));
+  assert.deepStrictEqual(line, { id: 'a', action: 'defer', note: '', until: 1791540000, at: 1791500000 });
+  assert.throws(() => store.appendAnswer(home, { id: 'a', action: 'defer' }), /defer needs until/);
+});
+
+test('local .html artifacts get a harbor://page URL whose folder (minus hidden files) is servable', () => {
+  const home = tmp();
+  write(path.join(home, 'r/report.html'), '<h1>r</h1>');
+  write(path.join(home, 'items/a.json'), { id: 'a', kind: 'answer', title: 'A', created: 1, artifacts: [{ type: 'report', path: 'r/report.html' }] });
+  const snap = store.snapshot(home);
+  const f = snap.files['r/report.html'];
+  assert.strictEqual(f.page, 'harbor://page' + path.join(home, 'r/report.html').split(path.sep).map(encodeURIComponent).join('/'));
+  assert.strictEqual(store.pathFromPageUrl(f.page), path.join(home, 'r/report.html'));
+  assert.deepStrictEqual(store.pageDirs(snap.files), [path.join(home, 'r')]);
+  // dot segments never climb out of the folder
+  assert.strictEqual(store.pathFromPageUrl(f.page.replace('report.html', '../../etc/passwd')), path.resolve(home, '../etc/passwd'));
+  assert.strictEqual(store.pathFromPageUrl('harbor://file/x'), null);
+});

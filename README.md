@@ -120,13 +120,18 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 
 ## Demo
 
-`npm run demo` (or Settings → Load demo data, or File → Load Demo Data) seeds a separate demo directory inside the app's user-data folder with a synthetic day: 17 items across all four kinds, standing orders, a crew, stamina windows, a waiting order and an answered question, plus a synthetic plan page served from `127.0.0.1` for the browser pane. A pretend agent replies to your asks and orders and resolves stamped items through the same files, so the whole loop is visible. Your real data directory is never touched, and the demo is reseeded fresh on every launch.
+`npm run demo` (or Settings → Load demo data, or File → Load Demo Data) seeds a separate demo directory inside the app's user-data folder with a synthetic day: 20 items across all four kinds (one task's three questions arrive as a question sheet), standing orders, a crew, stamina windows, a waiting order and an answered question, plus a synthetic plan page served from `127.0.0.1` for the browser pane. A pretend agent replies to your asks and orders and resolves stamped items through the same files, so the whole loop is visible. Your real data directory is never touched, and the demo is reseeded fresh on every launch.
 
 ## Using the desk
 
 | Key | Does |
 |---|---|
 | `1`-`4` | stamp: Approve/File, Reject, Needs work, Ask (the last two open a note slip) |
+| `Space` | stamp Approve/File (a question sheet: every ticked row); no Enter-to-stamp anywhere; on the morning manifest it opens the office |
+| `A`-`E` | pick option A-E on a decision; on a question sheet, then move to the next row |
+| `J` / `K` | next / previous row of a question sheet |
+| `S` / `Shift+S` | Later: park the item (a sheet: every ticked row) until tomorrow 9:00 / just after the next usage reset; writes a `defer` line |
+| `Shift+A` | take all recommended: a checklist of every P3-P4 decision with a recommendation; untick, then one stamp (Shift+A again) |
 | `U` / `Z` | undo the last stamp (about 4 s) |
 | `Tab` | slide the stamp tray in and out |
 | `N` | next visitor at the window |
@@ -134,7 +139,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `I` | inspect: pair a claim with evidence, then Match or Mismatch (writes a `comment` with an anchor) |
 | `R` | standing orders |
 | `L` | ships out: today's recap (boats that sailed, the tide, new stamps; the full report as the logbook), close the day |
-| `B` | chandlery and stamp book (also: click the cash chip) |
+| `Shift+B` | chandlery and stamp book (also: click the cash chip) |
 | `O` | topic page of the item at the desk |
 | `P` | plain mode (a flat list with the same actions) |
 | `Esc` | close drawers and dialogs |
@@ -142,7 +147,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 
 Ship phone: the speaking tube in the top bar, or `⇧⌘Space` (Ctrl+Shift+Space elsewhere) from any app, brings a phone to the middle of the desk with the pad focused. Dial a first mate with `1`-`9` or the arrows (before you start typing; `⌘1`-`⌘9` any time), speak, `Enter` sends (`Shift+Enter` for a new line). It writes the same `request` line as the Requests tab, remembers who you dialed last, and hangs up with a check on the icon. `Esc` or the shortcut hangs up and keeps an unsent message. The system-wide shortcut is the only thing that ever brings the window forward.
 
-Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (Topics tab for the list). Items that share a topic or a `rel` link arrive as one visitor with a bundle of papers and can be settled with one stamp.
+Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (Topics tab for the list). Items that share a topic or a `rel` link arrive as one visitor with one question sheet (a row per item, letter keys per row) and are settled with one stamp; agents number a task's questions `<task>.q1`, `.q2`, ... and the CLI gives them that topic. Options can carry a grey `why` line. The queue groups visitors in lanes by project, each with weight icons (quick call, report, PR, video); the speech bubble says the ask. Desk papers never overlap: the main artifact fills a reading column, and paths show as file names (hover for the full path). A local `.html` report opens in the browser pane with its own CSS and scripts. Parked (`Later`) items wait in a lane at the bottom of the queue and come back by themselves; click one to bring it back now.
 
 The harbor in the window carries status, with no extra keys: one boat per open task (the sail grows with its question count; it sails out once settled), the project's own recurring regular at the window with a mood and a one-line memory of your recent calls, a ship cat sitting on the most urgent visitor, sky and weather from the real clock and the lowest stamina (rain when low), and a tide line rising toward the next refill (the top bar keeps the refill times). Quick clearing stamps (within 8 s) build a tidy run with rising stamp and coin pitch; undo breaks it and bundle stamps never count. Clear the pier before high tide to beat the tide. Cash buys cosmetics at the chandlery (dock lamp, pennants, lighthouse, stamp inks, a second tune); milestones land as round ink stamps in the stamp book; the town on the far shore gains a building every two days you open the office; the harbor music adds a layer per item cleared today and resolves when the harbor is clear. All of it runs after the stamp lands; nothing waits on an animation.
 

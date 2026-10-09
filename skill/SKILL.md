@@ -21,7 +21,7 @@ Split a reply into one item per thing the user acts on. Information with no acti
 ## Write items (one line each)
 
 ```sh
-hd decision <id> "<question?>" -s "<one line>" --opt <key>+ --opt <key>="<Label>" [-a <path|url>]... [-p 1-4] [-d +2d]
+hd decision <id> "<question?>" -s "<one line>" --opt <key>+ --opt <key>="<Label>" [--why <key>="<line>"]... [-a <path|url>]... [-p 1-4] [-d +2d]
 hd review   <id> "<title>" -s "<one line>" -a video:<path> -a pr:<url>
 hd answer   <id> "<title>" -s "<the finding in 1-3 sentences>" -b <report.md>
 hd todo     <id> "<what to do>" -s "<why, by when>" -d 2026-11-01
@@ -32,7 +32,9 @@ hd todo     <id> "<what to do>" -s "<why, by when>" -d 2026-11-01
 - `-s`: plain sentences, no markdown. `-b`/`-a`: **paths or URLs only**. Never paste report text into a flag. Artifact type comes from the extension or URL; prefix to force it (`pr:`, `video:`, `image:`, `report:`).
 - `-p` priority 1 critical … 4 low (default 3). `-d` due: epoch, ISO date, or `+12h`/`+2d`.
 - Standing orders: `-r <rule>` to tag, `--ok <rule>[:note]` when you checked it passes, `--flag <rule>:<why>` when it does not.
-- `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic or a link reach the user together.
+- `-t <topic>`: a short slug for what the item is about; reuse it for everything on the same subject. `--rel <id>,<id>` links related items. Items sharing a topic or a link reach the user together, as one question sheet.
+- Several questions on one task: ids `<task>.q1`, `<task>.q2`, ...; the CLI defaults their topic to `<task>`.
+- `--why <key>="<few words>"`: what an option means or costs, shown under it, so the recommendation explains itself.
 
 ## Keep later remarks with their item
 

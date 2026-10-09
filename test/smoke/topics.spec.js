@@ -24,7 +24,7 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => { await app?.close(); });
 
-test('a topic and its rel arrive as one bundle with several papers', async () => {
+test('a topic and its rel arrive as one bundle: one question sheet', async () => {
   // pricing-launch + onboarding-copy share #launch; competitor-scan links to pricing-launch
   const row = page.locator('#queue li', { hasText: 'Launch pricing' });
   await expect(row.locator('.bundle-n')).toHaveText('+2');
@@ -32,9 +32,10 @@ test('a topic and its rel arrive as one bundle with several papers', async () =>
   await expect(page.locator('#queue li', { hasText: 'Competitor scan' })).toHaveCount(0);
   await row.click();
   await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Launch pricing: one plan or free + pro?');
-  await expect(page.locator('#at-window .speech')).toContainText('+ 2 more');
-  const bundle = page.locator('#desk-surface .paper.bundle');
+  await expect(page.locator('#at-window .speech')).toContainText('3 papers on Launch');
+  const bundle = page.locator('#desk-surface .paper.qsheet');
   await expect(bundle.locator('.b-row')).toHaveCount(3);
+  await expect(bundle.locator('.b-row.cur .b-title')).toHaveText('Launch pricing: one plan or free + pro?');
   await expect(page.locator('#desk-surface .paper.manifest .topic-chip')).toHaveText('#launch');
   await page.screenshot({ path: path.join(SHOTS, 'harbordeck-bundle.png') });
 });
@@ -68,18 +69,18 @@ test('a note on the item joins its correspondence live', async () => {
 
 test('one stamp settles the whole bundle, one line per paper, undoable as one', async () => {
   const before = answers().length;
-  await page.locator('#desk-surface .paper.bundle').getByRole('button', { name: 'Stamp the bundle' }).click();
+  await page.locator('#desk-surface .paper.qsheet').getByRole('button', { name: 'Stamp the sheet' }).click();
   await expect(page.locator('.toast.undo')).toContainText('+2 more');
   await page.keyboard.press('u');
   await expect(page.locator('#queue li', { hasText: 'Launch pricing' }).locator('.bundle-n')).toHaveText('+2');
   await page.waitForTimeout(4500);
   expect(answers().length).toBe(before);
   await page.locator('#queue li', { hasText: 'Launch pricing' }).click();
-  await page.locator('#desk-surface .paper.bundle').getByRole('button', { name: 'Stamp the bundle' }).click();
+  await page.locator('#desk-surface .paper.qsheet').getByRole('button', { name: 'Stamp the sheet' }).click();
   await expect.poll(() => answers().length, { timeout: 8000 }).toBe(before + 3);
-  // the paper at the desk first, then the rest in queue order
+  // the paper at the desk first, then the rest in queue order (lanes by project: board-app before brand)
   expect(answers().slice(-3).map(a => [a.id, a.action, a.key])).toEqual([
-    ['pricing-launch', 'decide', 'free-pro'], ['competitor-scan', 'file', undefined], ['onboarding-copy', 'approve', undefined]]);
+    ['pricing-launch', 'decide', 'free-pro'], ['onboarding-copy', 'approve', undefined], ['competitor-scan', 'file', undefined]]);
   await expect(page.locator('#queue li', { hasText: 'Launch pricing' })).toHaveCount(0);
   await expect(page.locator('#queue li', { hasText: 'Review onboarding copy v2' })).toHaveCount(0);
 });

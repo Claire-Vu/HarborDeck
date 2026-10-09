@@ -29,7 +29,7 @@ Once per worktree: `npm install` (if Electron reports `failed to install correct
 
 ```bash
 H=.agents/skills/verify-harbordeck/scripts/hdv
-$H launch            # seeded synthetic data dir (17 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
+$H launch            # seeded synthetic data dir (20 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
 $H launch --visible  # show the window (default is headless)
 ```
@@ -58,7 +58,7 @@ U=.agents/skills/verify-harbordeck/scripts/ui.mjs
 ```bash
 $U click --role button --name 'Open the office'      # ARIA role + accessible name
 $U click --css '#queue li' --text 'Merge PR 142'     # app id/class + visible text
-$U press 1                                           # keyboard: 1-4 stamp, u undo, n next, t tickets, p plain, b book, l ships out, Escape
+$U press 1                                           # keyboard: 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, t tickets, p plain, Shift+B book, l ships out, Escape
 $U fill --css '.modal.noteslip textarea' --value 'why?'
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]
 $U text --css '#desk-surface .paper.manifest h3'     # print matching text
@@ -75,6 +75,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#desk-surface .paper.manifest h3` | title of the item on the desk |
 | `.tab[data-tab="window"\|"requests"\|"crew"]` | left tabs |
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
+| `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.toast.undo` | the 4 s undo hold after a stamp; `u` drops it |
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |

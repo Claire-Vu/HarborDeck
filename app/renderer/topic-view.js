@@ -1,6 +1,6 @@
 /* Topics on the desk: the topic chip on every item, the topic page (a ledger sheet: what is still open, then the
    timeline of items, stamps, replies and notes, oldest first), the Topics list, and bundles: open items that share
-   a topic or a rel link arrive together as one visitor and can be stamped in one go. Topics arrive derived in every
+   a topic or a rel link arrive together as one visitor (quick-call.js draws their question sheet) and are stamped in one go. Topics arrive derived in every
    snapshot (cli/src/topics.js, the same code as `harbordeck topic`). Loaded before app.js; holds no desk state:
    app.js passes its helpers and live accessors in. */
 'use strict';
@@ -34,39 +34,24 @@ window.HarborTopicView = deps => {
     return out;
   }
 
-  // The bundle paper on the desk: every member with what one stamp will do to it.
-  function bundlePaper(it, group) {
-    const VERB = { review: 'approve', answer: 'file', todo: 'file (done)' };
-    const rows = group.map(m => {
-      const s = deps.st(m.id); const cur = m.id === it.id;
-      const take = h('input', { type: 'checkbox', checked: cur || !s.skipBundle, disabled: cur, 'aria-label': `Include ${m.title}`, onchange: e => { s.skipBundle = !e.target.checked; deps.save(); } });
-      const pick = cur ? h('span', { class: 'b-verb' }, m.kind === 'decision' ? 'your call on the slip' : VERB[m.kind])
-        : m.kind === 'decision' && m.options ? h('select', { 'aria-label': `Option for ${m.title}`, onchange: e => { s.choice = e.target.value || null; deps.save(); } },
-          h('option', { value: '', selected: !choiceOf(m) }, 'pick…'), m.options.map(o => h('option', { value: o.key, selected: choiceOf(m) === o.key }, o.label + (o.recommended ? ' (rec.)' : ''))))
-          : h('span', { class: 'b-verb' }, VERB[m.kind]);
-      return h('div', { class: `b-row${cur ? ' cur' : ''}` }, take,
-        h('div', { class: 'b-what' }, h('button', { class: 'tp-link', onclick: () => deps.openItem(m.id) }, m.title), h('div', { class: 'meta' }, KIND[m.kind], m.topic ? ` · #${m.topic}` : '')), pick);
-    });
-    return deps.paper('bundle', `Bundle · ${group.length} papers`, [h('p', { class: 'meta' }, 'They came together: same topic or linked. One stamp settles every ticked paper.'), ...rows,
-      h('div', { class: 'b-foot' }, h('button', { class: 'pbtn', onclick: () => stampBundle(it, group) }, 'Stamp the bundle'))], 'b');
-  }
-
-  // One stamp for the bundle: every ticked paper gets its approve/file line, decisions their picked (or recommended) option.
-  // The papers are held, written and undone together with the one at the desk (app.js finishStamp).
+  // One stamp for the bundle (the question sheet): every ticked paper gets its approve/file line, decisions their
+  // picked (or recommended) option. The paper at the desk goes first, then the rest in queue order; all are held,
+  // written and undone together (app.js finishStamp).
   function stampBundle(it, group) {
-    const s = deps.st(it.id); if (s.awaiting || deps.statusOf(it) !== 'open') return;
-    deps.focus(it.id);
+    if (deps.st(it.id).awaiting || deps.statusOf(it) !== 'open') return;
+    const take = group.filter(m => !deps.st(m.id).skipBundle);
+    const ordered = take.includes(it) ? [it, ...take.filter(m => m !== it)] : take;
     const lines = []; let skipped = 0;
-    for (const m of group) {
-      if (m.id !== it.id && deps.st(m.id).skipBundle) continue;
+    for (const m of ordered) {
       const key = choiceOf(m);
       if (m.kind === 'decision' && !key) { skipped++; continue; }
       lines.push({ it: m, line: m.kind === 'decision' ? { id: m.id, action: 'decide', key } : { id: m.id, action: m.kind === 'review' ? 'approve' : 'file' } });
     }
-    if (lines[0]?.it !== it) { deps.toast('Pick an option on the slip first.'); return; }
+    if (!lines.length) { deps.toast(skipped ? 'Pick an option on the sheet first.' : 'Nothing ticked on the sheet.'); return; }
     if (skipped) deps.toast(`${skipped} decision${skipped > 1 ? 's' : ''} left out: no option picked`, 'warn');
+    deps.focus(lines[0].it.id);
     const filed = lines.every(l => l.line.action === 'file');
-    deps.finishStamp(it, `${filed ? 'FILED' : 'APPROVED'} ×${lines.length}`, filed ? 'file' : 'approve', lines[0].line, false, lines.slice(1));
+    deps.finishStamp(lines[0].it, `${filed ? 'FILED' : 'APPROVED'} ×${lines.length}`, filed ? 'file' : 'approve', lines[0].line, false, lines.slice(1), true); // bulk: never a tidy run
   }
 
   function row(e, byId) {
@@ -121,5 +106,5 @@ window.HarborTopicView = deps => {
   }
   const openCount = () => Object.values(deps.data().topics).filter(t => openItems(t).length).length;
 
-  return { chip, groups, bundlePaper, stampBundle, open: openTopic, update, list, openCount };
+  return { chip, groups, stampBundle, open: openTopic, update, list, openCount };
 };

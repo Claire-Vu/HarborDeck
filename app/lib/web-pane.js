@@ -8,19 +8,21 @@ const { isAllowedWebUrl } = require('./web-allow');
 const PARTITION = 'persist:harbor-web';
 let hardened = false;
 
-function hardenSession() {
+function hardenSession(servePage) {
   if (hardened) return;
   hardened = true;
   const ses = session.fromPartition(PARTITION);
+  if (servePage) ses.protocol.handle('harbor', servePage); // local .html artifacts (harbor://page/...), this session only
   ses.setPermissionRequestHandler((wc, permission, cb) => cb(false));
   ses.setPermissionCheckHandler(() => false);
   ses.on('will-download', (e, item) => item.cancel());
 }
 
-// getWin(): the host BrowserWindow; getHosts(): extra allowed hosts; openExternal(url); log(msg).
-function createWebPane({ getWin, getHosts, openExternal, log }) {
+// getWin(): the host BrowserWindow; getHosts(): extra allowed hosts; isLocalPage(url): a harbor://page/ URL of a
+// referenced local .html file or its folder; servePage(request): serves those; openExternal(url); log(msg).
+function createWebPane({ getWin, getHosts, isLocalPage = () => false, servePage, openExternal, log }) {
   let view = null;
-  const allowed = url => isAllowedWebUrl(url, getHosts());
+  const allowed = url => isAllowedWebUrl(url, getHosts()) || isLocalPage(url);
   const send = (extra = {}) => {
     const win = getWin();
     if (!view || !win || win.isDestroyed()) return;
@@ -31,7 +33,7 @@ function createWebPane({ getWin, getHosts, openExternal, log }) {
 
   function ensure() {
     if (view) return view;
-    hardenSession();
+    hardenSession(servePage);
     view = new WebContentsView({ webPreferences: { partition: PARTITION, nodeIntegration: false, contextIsolation: true, sandbox: true, webviewTag: false, navigateOnDragDrop: false, safeDialogs: true, spellcheck: false } });
     const wc = view.webContents;
     wc.setWindowOpenHandler(({ url }) => { if (allowed(url)) wc.loadURL(url); else leave(url); return { action: 'deny' }; });
@@ -55,7 +57,7 @@ function createWebPane({ getWin, getHosts, openExternal, log }) {
   return {
     open(url, rect) {
       url = String(url || '');
-      if (!allowed(url)) return { ok: false, error: 'This address is not on this machine. Add its host in Settings to view it here.' };
+      if (!allowed(url)) return { ok: false, error: /^harbor:/.test(url) ? 'This local page is no longer on the desk.' : 'This address is not on this machine. Add its host in Settings to view it here.' };
       const v = ensure();
       setBounds(rect);
       v.webContents.loadURL(url).catch(err => send({ error: err.message }));
