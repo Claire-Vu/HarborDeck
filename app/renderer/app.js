@@ -18,7 +18,7 @@ function setData(snap) {
 setData(SNAP);
 const KIND = { decision: 'Decision', review: 'Review', answer: 'Dispatch', todo: 'Notice' };
 const KINDS = { decision: 'Decisions', review: 'Reviews', answer: 'Dispatches', todo: 'Notices' };
-const ACTION_LABEL = { decide: 'decided', approve: 'approved', reject: 'rejected', 'needs-work': 'sent back', comment: 'noted', ask: 'asked', file: 'filed', request: 'ordered' };
+const ACTION_LABEL = { decide: 'decided', approve: 'approved', reject: 'rejected', 'needs-work': 'sent back', comment: 'noted', ask: 'asked', file: 'filed', request: 'ordered', defer: 'parked for later' };
 const NAMES = ['Bosun Ferris', 'Painter Mabs', 'Scout Quill', 'Deckhand Rook', 'Rigger Tansy', 'Lookout Pell', 'Purser Wren', 'Cooper Idris', 'Pilot Marlow', 'Chandler Vey'];
 const CAPS = ['#c8552d', '#e0b23a', '#4f8a5b', '#3b6f9e', '#8a3a7a', '#2d8a8a', '#a8632d', '#5a5fb0'];
 const VALUE = { decision: 40, review: 30, answer: 15, todo: 25 };
@@ -48,8 +48,22 @@ loadState();
 const save = () => { try { const { answers, prefs, ...desk } = S; localStorage.setItem(deskKey(), JSON.stringify(desk)); localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
 const now = () => Math.floor(Date.now() / 1000);
 const st = id => (S.items[id] ||= { status: null, read: false, awaiting: false, flags: {} });
-const statusOf = it => st(it.id).status || it.status;
 let pending = null; // one held stamp line, flushed after the undo window
+// Later (defer lines): an open item is parked until its latest defer's `until`, unless the agent rewrote it after
+// the defer or the captain pulled it back early. Held (pending) lines count, so a Later is visible at once.
+let deferMemo = { key: null, map: {} };
+function defers() {
+  const held = pending ? [pending.line, ...(pending.extra || []).map(e => e.line)] : [];
+  const key = `${S.answers.length}:${held.map(l => l.id + l.at).join()}`;
+  if (deferMemo.key !== key) { const map = {}; for (const a of [...S.answers, ...held]) if (a.action === 'defer') map[a.id] = a; deferMemo = { key, map }; }
+  return deferMemo.map;
+}
+function deferredUntil(it) {
+  const a = defers()[it.id]; if (!a || it.status !== 'open') return 0;
+  if ((it.updated || it.created) > a.at || (st(it.id).undeferAt || 0) >= a.at) return 0;
+  return a.until > now() ? a.until : 0;
+}
+const statusOf = it => st(it.id).status || (deferredUntil(it) ? 'later' : it.status);
 
 // ------------------------------------------------------------ helpers
 const $ = sel => document.querySelector(sel);
@@ -131,6 +145,7 @@ function consequence(a) {
   const it = byId[a.id]; if (!it) return `${a.id} → ${ACTION_LABEL[a.action] || a.action}`;
   const opt = it.options?.find(o => o.key === a.key);
   let tail = ACTION_LABEL[a.action] || a.action; if (opt) tail += `: ${opt.label}`;
+  if (a.action === 'defer') tail += ` until ${fmtDate(a.until)} ${fmtTime(a.until)}`;
   if (a.note && a.action !== 'decide') tail += ` ("${a.note.slice(0, 60)}${a.note.length > 60 ? '…' : ''}")`;
   return `${it.title} → ${tail}`;
 }
@@ -149,7 +164,7 @@ function payFor(it, action) {
   if (it.due) { const hrs = (it.due - now()) / 3600; if (hrs >= 0 && hrs < 48) mult = 1.5; else if (hrs >= 48) mult = 1.2; if (hrs >= 0) bonus = .25; }
   if (action === 'comment') return 5;
   if (action === 'ask' || action === 'needs-work') return Math.round(basePay * .25);
-  if (action === 'request') return 0;
+  if (action === 'request' || action === 'defer') return 0;
   return Math.round(basePay * mult * (1 + bonus));
 }
 // quota: roll a stale reset forward by its window so the mock stays plausible on any day
@@ -246,8 +261,8 @@ function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return;
 // ------------------------------------------------------------ queue + visitors
 function queueItems() {
   const f = S.prefs.filter;
-  return ITEMS.filter(i => statusOf(i) === 'open' && (f === 'all' || i.kind === f))
-    .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created);
+  return quick.laneSort(ITEMS.filter(i => statusOf(i) === 'open' && (f === 'all' || i.kind === f))
+    .sort((a, b) => (st(a.id).awaiting - st(b.id).awaiting) || prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created || a.id.localeCompare(b.id, undefined, { numeric: true })));
 }
 function spriteSVG(id, kind, opts = {}) {
   const { cap, coat } = opts.reg || crewColors(id); const mate = opts.mate; const zz = opts.tired || opts.nap; const skin = opts.reg?.skin || '#f0c9a0';
@@ -288,25 +303,40 @@ const topicView = window.HarborTopicView({ h, modal, toast, fmtDate, fmtTime, KI
 // the living harbor, the ship cat, the chandlery and the ships-out recap (harbor-scene.js)
 const harbor = window.HarborScene({ h, G, modal, fmtDate, fmtTime, money, fun: () => S.fun, cash: () => S.cash, buy, equip });
 const bundleOf = it => topicView.groups(queueItems().filter(i => !st(i.id).awaiting)).get(it.id) || [it];
+const choiceOf = it => st(it.id).choice || it.options?.find(o => o.recommended)?.key || null;
+// quick calls: letter keys, question sheet, lanes, weights, Later, take-all-recommended (quick-call.js)
+const quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, modal, closeModal, prioChip, choiceOf, artType: a => artType(a), bodyArtifact: b => bodyArtifact(b),
+  inspectOption: (e, it, o) => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } },
+  focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount() });
 function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else { stepUp(id); selectTab('window'); } }
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
-  $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].map(k =>
+  $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].filter(k => k === 'all' || counts[k] || S.prefs.filter === k).map(k =>
     h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
   $('#tab-window-count').textContent = counts.all; $('#tab-topics-count').textContent = topicView.openCount();
 }
 function renderQueue() {
   const list = queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
+  const heads = list.filter(it => (groups.get(it.id) || [it])[0] === it); const lanes = new Set(heads.map(it => it.project || 'general'));
+  let lane = null;
   for (const it of list) {
     const s = st(it.id); const m = mateFor(it); const c = crewFor(it); const flagged = flaggedCount(it); const g = groups.get(it.id) || [it];
     if (g[0] !== it) continue; // bundle members ride with the first
+    const p = it.project || 'general';
+    if (lanes.size > 1 && p !== lane) { lane = p; ul.append(h('li', { class: 'q-lane', 'aria-hidden': 'true' }, h('span', null, p), h('span', null, heads.filter(x => (x.project || 'general') === p).length))); }
     ul.append(h('li', { 'aria-current': String(g.some(x => x.id === S.current)), tabindex: 0, class: `${s.awaiting ? 'away' : ''} p${prio(it)}`, onclick: () => stepUp(it.id), onkeydown: e => { if (e.key === 'Enter') stepUp(it.id); } },
       h('div', { html: (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired() }))(whoBrings(it)) }),
       h('div', null,
-        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null),
+        h('div', { class: 'q-title' }, !s.read && h('span', { class: 'unread-dot', title: 'unread' }), h('span', null, it.title), g.length > 1 ? h('span', { class: 'bundle-n', title: `bundle: ${g.map(x => x.title).join(' · ')}` }, `+${g.length - 1}`) : null, quick.weightIcons(g)),
         h('div', { class: 'q-meta' }, prioChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
   }
   if (!list.length) ul.append(h('li', { class: 'q-empty' }, 'Nobody at the window.'));
+  const later = ITEMS.filter(i => statusOf(i) === 'later').sort((a, b) => deferredUntil(a) - deferredUntil(b));
+  if (later.length) {
+    ul.append(h('li', { class: 'q-lane later' }, h('span', null, 'Later'), h('span', null, later.length)));
+    for (const it of later) ul.append(h('li', { class: 'q-later', tabindex: 0, title: 'Parked with the Later stamp. Click to bring it back now.', onclick: () => unpark(it.id), onkeydown: e => { if (e.key === 'Enter') unpark(it.id); } },
+      h('span', { class: 'q-title' }, it.title), h('span', { class: 'q-meta' }, `back ${fmtDate(deferredUntil(it))} ${fmtTime(deferredUntil(it))}`)));
+  }
   $('#btn-next').disabled = !list.some(i => !st(i.id).awaiting);
 }
 function impatience(it) {
@@ -351,7 +381,7 @@ function renderWindowScene() {
   pq.setAttribute('aria-label', `${line.length} waiting outside the window`);
   if (!it || statusOf(it) !== 'open') { w.append(h('div', { class: 'empty' }, line.length ? 'N: next at the window' : 'The pier is quiet')); return; }
   const m = mateFor(it); const who = whoBrings(it);
-  w.append(h('div', { class: 'speech' }, `${m.label} · ${KIND[it.kind].toLowerCase()}${mine.length > 1 ? ` + ${mine.length - 1} more` : ''}`, who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : !who.mate ? h('small', null, `from ${who.name}`) : null),
+  w.append(h('div', { class: 'speech', title: `${m.label} · ${KIND[it.kind].toLowerCase()}` }, quick.ask(it, mine.length > 1 ? mine : [it]), who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : h('small', null, who.mate ? m.label : `from ${who.name}`)),
     h('div', { class: 'walk', title: `${who.name} at the window`, html: spriteSVG(who.id, it.kind, { mate: who.mate, reg: who.reg, ...face(who), tired: tz, sweat: impatience(it) === 2 }) }));
 }
 function renderYard() {
@@ -371,14 +401,32 @@ function stepUp(id) {
   if (st(id).awaiting) { toast(`${it.title}: away, waiting on ${mateFor(it).label}`); return; }
   S.current = id; st(id).read = true; save(); snd('slide'); renderAll();
 }
+// The sheet's row in focus is the item at the desk; moving rows keeps the papers still (renderDesk 'calm').
+function focusRow(id) { const it = byId[id]; if (!it || st(id).awaiting) return; S.current = id; st(id).read = true; save(); renderAll(); }
+function unpark(id) { const s = st(id); s.undeferAt = now(); save(); snd('slide'); stepUp(id); }
+// A letter (or click) picked an option on `id`: on a sheet move to the next row, else just mark it on the slip.
+function afterPick(id) {
+  const it = byId[id]; snd('tick'); const group = bundleOf(it);
+  if (group.length > 1) { const nx = group[group.indexOf(it) + 1]; if (nx && id === S.current) focusRow(nx.id); else if (id !== S.current) focusRow(id); else renderDesk(); }
+  else quick.mark($('#desk-surface .paper.ask'), st(id).choice);
+}
+function sheetCount() { const it = byId[S.current]; const n = it ? bundleOf(it).filter(m => !st(m.id).skipBundle).length : 0; const el = $('#desk-surface .sheet-n'); if (el) el.textContent = `${n} row${n === 1 ? '' : 's'}`; }
+function pickLetter(i) {
+  const it = byId[S.current]; if (!it || statusOf(it) !== 'open' || st(it.id).awaiting) return;
+  const o = it.kind === 'decision' && it.options?.[i];
+  if (!o) { toast(it.kind === 'decision' ? `No option ${quick.LETTERS[i]} here.` : 'Letters pick options on decisions; Space stamps this one.'); return; }
+  st(it.id).choice = o.key; save(); afterPick(it.id);
+}
+function moveRow(d) { const it = byId[S.current]; if (!it) return; const g = bundleOf(it); const nx = g[g.indexOf(it) + d]; if (nx) focusRow(nx.id); }
 function next() { const list = queueItems().filter(i => !st(i.id).awaiting && i.id !== S.current); if (list.length) stepUp(list[0].id); else { S.current = null; save(); renderAll(); } }
 
 // ------------------------------------------------------------ desk papers
 let inspectPick = null;
 function renderDesk() {
-  const surf = $('#desk-surface'); surf.replaceChildren();
+  const surf = $('#desk-surface'); sheetScroll = surf.querySelector('.paper.qsheet')?.scrollTop ?? null; surf.replaceChildren();
   const it = byId[S.current];
   if (!it || statusOf(it) !== 'open') {
+    lastDeskGroup = null;
     surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or write a new order under Requests.' : 'The office is closed. Open the day from the morning manifest.'));
     renderTray(null); return;
   }
@@ -394,38 +442,72 @@ function renderDesk() {
   const seen = new Set();
   const arts = [...(it.artifacts || [])]; if (it.body && !arts.some(a => (a.path || a.url) === it.body)) arts.unshift(bodyArtifact(it.body, true));
   arts.forEach((a, i) => { const key = a.path || a.url; if (seen.has(key)) return; seen.add(key); const p = artifactPaper(it, a, i); if (p) papers.push(p); });
+  // the main artifact fills the blotter; cards that only open something elsewhere (PR, link, web page) stay small
+  const reading = papers.find(p => p.dataset.pid !== 'm' && !p.classList.contains('prcard')); reading?.classList.add('reading');
   const thread = threadFor(it);
-  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: 'msg' }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, JSON.stringify(x.anchor)))), 't'));
-  papers.push(askSlip(it));
-  const group = bundleOf(it); if (group.length > 1) papers.push(topicView.bundlePaper(it, group));
-  const W = surf.clientWidth || 900, H = surf.clientHeight || 600; const pos = S.positions[it.id] || {};
-  papers.forEach((p, i) => {
-    const d = defaultPos(p.dataset.pid, i, W, H); const u = pos[p.dataset.pid] || d;
-    p.style.left = Math.max(0, Math.min(u.x, W - 120)) + 'px'; p.style.top = Math.max(0, Math.min(u.y, H - 60)) + 'px'; p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms';
-    makeDraggable(p, it.id); surf.append(p);
-  });
+  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: 'msg' }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, anchorText(x.anchor)))), 't'));
+  const group = bundleOf(it);
+  papers.push(group.length > 1 ? quick.sheet(it, group, { awaiting: s.awaiting }) : askSlip(it));
+  // Moving between rows of one sheet keeps the papers still: no deal-in animation, the sheet keeps its scroll.
+  const gk = group.map(m => m.id).join(' '); const calm = gk === lastDeskGroup; lastDeskGroup = gk;
+  surf.classList.toggle('calm', calm);
+  const pos = S.positions[it.id] || {};
+  papers.forEach((p, i) => { p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms'; makeDraggable(p, it.id); surf.append(p); });
+  layoutPapers(papers, surf, pos);
+  const sh = surf.querySelector('.paper.qsheet');
+  if (sh) { if (calm && sheetScroll != null) sh.scrollTop = sheetScroll; sh.querySelector('.b-row.cur')?.scrollIntoView({ block: 'nearest' }); sheetCount(); }
   renderTray(it);
 }
+let lastDeskGroup = null, sheetScroll = null;
+// Papers never overlap: the manifest and the ask (slip or sheet) stack on the left, the main artifact fills the
+// reading column, and the rest stack in a side column (or under the reading paper when the desk is narrow).
+// A paper the captain dragged keeps its spot. Below 860 px the CSS flows papers instead.
+function layoutPapers(papers, surf, pos) {
+  if (window.innerWidth <= 860) return;
+  const W = surf.clientWidth || 900, H = surf.clientHeight || 600, G = 14, X0 = 16, Y0 = 16;
+  const at = (p, x, y, w, hMax) => { if (w) p.style.width = w + 'px'; if (hMax) p.style.maxHeight = Math.max(120, hMax) + 'px'; const u = pos[p.dataset.pid]; p.style.left = (u ? Math.max(0, Math.min(u.x, W - 120)) : x) + 'px'; p.style.top = (u ? Math.max(0, Math.min(u.y, H - 60)) : y) + 'px'; };
+  const man = papers.find(p => p.dataset.pid === 'm'), ask = papers.find(p => p.dataset.pid === 'ask');
+  const reading = papers.find(p => p.classList.contains('reading'));
+  const rest = papers.filter(p => p !== man && p !== ask && p !== reading);
+  const leftW = ask?.classList.contains('qsheet') ? Math.min(440, Math.max(340, W * .36)) : 320;
+  man.style.width = leftW + 'px'; man.style.maxHeight = (H * .42) + 'px';
+  const manH = Math.min(man.offsetHeight, H * .42);
+  at(man, X0, Y0, leftW); at(ask, X0, Y0 + manH + G, leftW, H - Y0 * 2 - manH - G);
+  const rx = X0 + leftW + G * 1.5, sideW = 290;
+  const roomForSide = rest.length && W - rx - X0 >= 420 + G + sideW;
+  const readW = Math.max(260, Math.min(820, W - rx - X0 - (roomForSide ? sideW + G : 0)));
+  let y = Y0;
+  if (reading) {
+    const below = roomForSide ? [] : rest;
+    const belowH = below.reduce((n, p) => { p.style.width = readW + 'px'; return n + Math.min(p.offsetHeight, 220) + G; }, 0);
+    const hMax = Math.max(H * .45, H - Y0 * 2 - belowH);
+    at(reading, rx, y, readW, hMax); reading.style.height = hMax + 'px'; y += hMax + G;
+    for (const p of below) { const ph = Math.min(p.offsetHeight, 220); at(p, rx, y, readW, ph); y += ph + G; }
+  }
+  if (!reading || roomForSide) {
+    let x = reading ? rx + readW + G : rx; y = Y0;
+    for (const p of rest) { const w = reading ? sideW : Math.min(320, W - x - X0); p.style.width = w + 'px'; const ph = Math.min(p.offsetHeight, H - Y0 * 2); if (y > Y0 && y + ph > H - Y0) { x += w + G; y = Y0; } at(p, x, y, w, H - Y0 - y); y += Math.min(p.offsetHeight, H - Y0 - y) + G; }
+  }
+}
+// Comment anchors name files by their base name; the full path stays on hover elsewhere.
+const anchorText = a => Object.entries(a).map(([k, v]) => `${k}: ${k === 'artifact' && !/^[a-z]+:\/\//i.test(v) ? base(v) : v}`).join(' · ');
 function threadFor(it) {
   const s = st(it.id);
   return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...(SNAP.notes || []).filter(n => n.item === it.id).map(n => ({ from: `note · ${n.from ? mateLabel(n.from) : 'agent'}`, text: n.text, at: n.at })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
-}
-function defaultPos(pid, i, W, H) {
-  if (pid === 'm') return { x: 24, y: 24 };
-  if (pid === 'ask') return { x: W - 330, y: 30 };
-  if (pid === 't') return { x: W - 310, y: H * .55 };
-  if (pid === 'b') return { x: 24, y: H * .58 };
-  const k = i - 1; return { x: 340 + k * 44, y: 24 + k * 66 };
 }
 function paper(cls, label, kids, pid, extraGrip) {
   return h('div', { class: `paper ${cls}`, dataset: { pid } }, h('div', { class: 'grip' }, h('span', null, label), h('span', { class: 'spacer' }), extraGrip || null, h('span', { class: 'drag-only', title: 'drag' }, '⋮⋮')), ...kids);
 }
 const fileFor = path => { const f = FILES[path]; return f && f.exists ? f : null; };
+// Never print absolute paths on the desk: the file name, with the full path on hover.
+const pathMeta = p => h('div', { class: 'meta path', title: p }, base(p));
+const missing = p => h('p', { class: 'meta', title: p }, `not available locally: ${base(p)}`);
 const EXT_TYPE = { png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image', mp4: 'video', m4v: 'video', webm: 'video', mov: 'video', mp3: 'audio', wav: 'audio', m4a: 'audio', pdf: 'pdf', diff: 'diff', patch: 'diff', md: 'report', markdown: 'report', txt: 'report', log: 'report', json: 'report', csv: 'report', yaml: 'report', yml: 'report' };
 // The renderer understands pr | video | image | pdf | report | web | link; anything else is guessed from the path, or shown as a link/file card.
 function artType(a) {
   const t = String(a.type || '').toLowerCase();
   if (a.url && (t === 'web' || t === 'lavish')) return 'web';
+  if (a.path && /\.html?$/i.test(a.path) && !['pdf', 'image', 'video', 'audio'].includes(t)) return 'web'; // local HTML opens in the pane
   if (['pr', 'video', 'image', 'pdf', 'report', 'audio', 'diff'].includes(t)) return t;
   if (a.url && /^(link|file)$/.test(t)) return 'link';
   if (a.path) return EXT_TYPE[(a.path.split('.').pop() || '').toLowerCase()] || 'file';
@@ -446,15 +528,17 @@ function artifactPaper(it, a, i) {
     ], pid, h('button', { class: 'ibtn', onclick: () => openUrl(a.url) }, 'Open'));
   }
   if (type === 'web') {
-    let host = a.url; try { host = new URL(a.url).host; } catch (e) { /* keep raw */ }
-    return paper('prcard', a.label || (a.type === 'lavish' ? 'Lavish plan' : 'Web page'), [
-      h('div', { class: 'pr-num fact', onclick: e => pickFact({ type: 'point', label: host, anchor: { artifact: a.url } }, e.currentTarget) }, host),
-      h('dl', { class: 'pr-meta' }, h('dt', null, 'page'), h('dd', null, h('a', { href: a.url, onclick: e => { e.preventDefault(); openViewer(a); } }, a.url)))
+    let host = a.url || base(a.path); try { host = new URL(a.url).host; } catch (e) { /* keep raw */ }
+    const label = a.label || (a.type === 'lavish' ? 'Lavish plan' : a.path ? 'Report page' : 'Web page');
+    return paper('prcard web', label, [
+      h('div', { class: 'pr-num fact', onclick: e => pickFact({ type: 'point', label: host, anchor: { artifact: a.url || a.path } }, e.currentTarget) }, host),
+      a.path && !fileFor(a.path) ? missing(a.path) : h('dl', { class: 'pr-meta' }, h('dt', null, 'page'), h('dd', null, h('a', { href: '#', title: a.url || a.path, onclick: e => { e.preventDefault(); openViewer(a); } }, a.url || base(a.path)))),
+      h('button', { class: 'pbtn web-open', onclick: () => openViewer(a) }, 'Open in the desk browser')
     ], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'View'));
   }
   if (type === 'pdf' || type === 'file') {
-    return paper('report', type === 'pdf' ? 'Document' : 'File', [h('div', { class: 'meta' }, a.path),
-      f ? (type === 'pdf' ? h('iframe', { class: 'pdf-frame', src: f.url, title: base(a.path) }) : h('p', { class: 'meta' }, `${base(a.path)} · ${f.mime || 'file'}`)) : h('p', { class: 'meta' }, `not available locally: ${a.path}`)],
+    return paper('report', type === 'pdf' ? 'Document' : 'File', [pathMeta(a.path),
+      f ? (type === 'pdf' ? h('iframe', { class: 'pdf-frame', src: f.url, title: base(a.path) }) : h('p', { class: 'meta' }, f.mime || 'file')) : missing(a.path)],
       pid, f ? h('button', { class: 'ibtn', onclick: () => type === 'pdf' ? openViewer(a) : bridge.openPath(f.url) }, type === 'pdf' ? 'Read' : 'Open') : null);
   }
   if (type === 'pr') {
@@ -467,27 +551,27 @@ function artifactPaper(it, a, i) {
   if (type === 'audio') {
     const src = srcFor(a); const au = h('audio', { controls: true, preload: 'metadata', src: src || '' });
     const mark = h('button', { class: 'ibtn', onclick: e => pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${au.currentTime.toFixed(1)}s`, anchor: { artifact: a.path || a.url, t: Math.round(au.currentTime * 10) / 10 } }, e.currentTarget) }, 'Mark moment');
-    return paper('monitor', a.label || 'Recording', [src ? au : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid);
+    return paper('monitor', a.label || 'Recording', [src ? au : missing(a.path), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid);
   }
   if (type === 'video') {
     const v = h('video', { controls: true, preload: 'metadata', src: srcFor(a) || '' });
     const mark = h('button', { class: 'ibtn', onclick: e => pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${v.currentTime.toFixed(1)}s`, anchor: { artifact: a.path || a.url, t: Math.round(v.currentTime * 10) / 10 } }, e.currentTarget) }, 'Mark moment');
-    return paper('monitor', 'Monitor', [srcFor(a) ? v : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Full'));
+    return paper('monitor', 'Monitor', [srcFor(a) ? v : missing(a.path), h('div', { class: 'leds' }, h('span', { class: 'led' }), base(a.path || a.url), h('span', { class: 'spacer' }), h('span', { class: 'inspect-only' }, mark))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Full'));
   }
   if (type === 'image') {
     const img = h('img', { src: srcFor(a) || '', alt: base(a.path || a.url), loading: 'lazy', onclick: e => {
       if (document.body.classList.contains('inspect')) { const r = img.getBoundingClientRect(); pickFact({ type: 'point', label: `${base(a.path || a.url)} @ ${Math.round((e.clientX - r.left) / r.width * 100)}%,${Math.round((e.clientY - r.top) / r.height * 100)}%`, anchor: { artifact: a.path || a.url, x: +((e.clientX - r.left) / r.width).toFixed(2), y: +((e.clientY - r.top) / r.height).toFixed(2) } }, img); }
       else openViewer(a);
     } });
-    return paper('photo', 'Photo', [srcFor(a) ? img : h('p', { class: 'meta' }, `not available locally: ${a.path}`), h('p', { class: 'cap' }, a.label || base(a.path || a.url))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Zoom'));
+    return paper('photo', 'Photo', [srcFor(a) ? img : missing(a.path), h('p', { class: 'cap' }, a.label || base(a.path || a.url))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Zoom'));
   }
   const text = f?.text;
-  if (type === 'diff' && text != null) return paper('report', a.label || 'Diff', [h('div', { class: 'meta' }, a.path), diffView(text.split('\n').slice(0, 80).join('\n'))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
-  if (f && text == null) return paper('report', 'File', [h('div', { class: 'meta' }, a.path), h('p', { class: 'meta' }, f.mime || 'file')], pid, h('button', { class: 'ibtn', onclick: () => bridge.openPath(f.url) }, 'Open'));
-  const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 40).join('\n')) : `<p class="meta">not available locally: ${esc(a.path)}</p>` });
+  if (type === 'diff' && text != null) return paper('report', a.label || 'Diff', [pathMeta(a.path), diffView(text.split('\n').slice(0, 80).join('\n'))], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
+  if (f && text == null) return paper('report', 'File', [pathMeta(a.path), h('p', { class: 'meta' }, f.mime || 'file')], pid, h('button', { class: 'ibtn', onclick: () => bridge.openPath(f.url) }, 'Open'));
+  const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 400).join('\n')) : `<p class="meta" title="${esc(a.path)}">not available locally: ${esc(base(a.path))}</p>` });
   ex.querySelectorAll('.mdh').forEach(hd => hd.classList.add('fact'));
   ex.addEventListener('click', e => { const hd = e.target.closest('.mdh'); if (hd && document.body.classList.contains('inspect')) pickFact({ type: 'point', label: `${base(a.path)} § ${hd.dataset.heading}`, anchor: { artifact: a.path, heading: hd.dataset.heading } }, hd); });
-  return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Dispatch' : 'Report', [h('div', { class: 'meta' }, a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
+  return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Dispatch' : 'Report', [pathMeta(a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
 }
 function diffView(text) {
   return h('pre', { class: 'diff' }, text.split('\n').map(l => h('span', { class: /^\+(?!\+\+)/.test(l) ? 'add' : /^-(?!--)/.test(l) ? 'del' : /^@@/.test(l) ? 'hunk' : '' }, l + '\n')));
@@ -496,11 +580,9 @@ function askSlip(it) {
   const s = st(it.id); const kids = [];
   if (it.kind === 'decision' && it.options) {
     s.choice ??= it.options.find(o => o.recommended)?.key || null;
-    kids.push(h('fieldset', { class: 'q' }, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' },
-      h('input', { type: 'radio', name: `opt-${it.id}`, value: o.key, checked: s.choice === o.key, onchange: () => { s.choice = o.key; save(); snd('tick'); } }),
-      h('span', { class: 'fact', onclick: e => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } } }, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'))))));
+    kids.push(h('fieldset', { class: 'q' }, h('legend', null, 'Your call ', h('span', { class: 'hint' }, 'A–E pick · Space stamps')), it.options.map((o, i) => quick.option(it, o, i, s.choice === o.key, key => { s.choice = key; save(); afterPick(it.id); }, `opt-${it.id}`))));
   } else kids.push(h('p', { class: 'ql' }, { review: 'Your verdict on the work.', answer: 'Read, then file.', todo: 'Only you can do this. File it when done.' }[it.kind]));
-  kids.push(h('div', { class: 'stamp-zone', id: 'stamp-zone' }, s.awaiting ? 'sent back; awaiting reply' : 'stamp here'));
+  kids.push(h('div', { class: 'stamp-zone', id: 'stamp-zone' }, s.awaiting ? 'sent back; awaiting reply' : 'Space to stamp'));
   return paper('ask', 'The ask', kids, 'ask');
 }
 function makeDraggable(p, itemId) {
@@ -519,7 +601,8 @@ function trayConfig(it) {
     approve: { show: true, label: it.kind === 'decision' || it.kind === 'review' ? 'Approve' : 'File', cls: it.kind === 'answer' || it.kind === 'todo' ? 'file' : 'approve' },
     reject: { show: it.kind === 'decision' || it.kind === 'review', label: 'Reject', cls: 'reject' },
     needswork: { show: it.kind !== 'todo', label: 'Needs work', cls: 'needswork' },
-    ask: { show: true, label: 'Ask', cls: 'ask' }
+    ask: { show: true, label: 'Ask', cls: 'ask' },
+    later: { show: true, label: 'Later', cls: 'later' }
   };
 }
 function renderTray(it) {
@@ -531,11 +614,13 @@ function renderTray(it) {
   $('#stamps').dataset.open = String(S.prefs.tray);
 }
 function toggleTray(open) { S.prefs.tray = open ?? !S.prefs.tray; save(); $('#stamps').dataset.open = String(S.prefs.tray); snd('flip'); }
-function stamp(verdict) {
+function stamp(verdict, toReset) {
   const it = byId[S.current]; if (!it || statusOf(it) !== 'open') { toast('Nobody at the desk.'); return; }
   const s = st(it.id); if (s.awaiting) { toast('Already sent back; wait for the reply.'); return; }
   const cfg = trayConfig(it)[verdict]; if (!cfg?.show) return;
   if (!S.prefs.tray) toggleTray(true);
+  if (verdict === 'later') return later(it, toReset);
+  if (verdict === 'approve' && bundleOf(it).length > 1) return topicView.stampBundle(it, bundleOf(it));
   if (verdict === 'approve') {
     if (it.kind === 'decision') { if (!s.choice) { toast('Pick an option on the slip first.'); return; } return finishStamp(it, 'APPROVED', 'approve', { id: it.id, action: 'decide', key: s.choice }); }
     if (it.kind === 'review') return finishStamp(it, 'APPROVED', 'approve', { id: it.id, action: 'approve' });
@@ -545,22 +630,34 @@ function stamp(verdict) {
   const action = verdict === 'ask' ? 'ask' : 'needs-work';
   openNote({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…' }, note => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note }, true));
 }
+// Later (S): park the item (and the rest of its ticked sheet) until tomorrow 9:00, or with Shift+S until just
+// after the next usage reset. Writes a defer line; firstmate turns it into a hold --until.
+function later(it, toReset) {
+  const resets = [SCHED?.next_reset, SCHED?.reset_due, ...QUOTA.map(q => quotaView(q).resets)].filter(Boolean);
+  const until = quick.laterUntil(toReset, { now: now(), resets });
+  if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
+  const others = bundleOf(it).filter(m => m !== it && !st(m.id).skipBundle);
+  finishStamp(it, `LATER${others.length ? ' ×' + (others.length + 1) : ''}`, 'later', { id: it.id, action: 'defer', until }, false, others.map(m => ({ it: m, line: { id: m.id, action: 'defer', until } })));
+}
 // A stamp is applied at once, but its JSONL line is held for UNDO_MS. Undo restores the item and writes nothing.
 // extra: [{ it, line }] for the other papers of a bundle, held, written and undone with this one.
-function finishStamp(it, text, ink, line, stays, extra = []) {
+function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
   commitPending();
   const s = st(it.id); const src = document.querySelector(`#stamps .stamp.${ink}`) || document.querySelector('#stamps .stamp'); const zone = $('#stamp-zone');
   const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current, extra: extra.map(e => [e.it.id, JSON.parse(JSON.stringify(st(e.it.id)))]) };
   flyStamp(src, zone, ink, () => {
     if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(now())} ${fmtTime(now())}`))); }
     line.at = now();
-    // tidy run (F4): resolving stamps close together; a bundle (bulk) stamp never counts and ends the run
-    if (!stays) { run = G.comboNext(run, line.at, extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); harbor.showRun(run.n); }
-    const pitch = stays ? 1 : G.comboPitch(run.n), runN = stays ? 0 : run.n;
+    // tidy run (F4): resolving stamps close together; a bulk stamp (bundle, take all recommended) never counts and
+    // ends the run; Later parks rather than clears, so it neither counts nor breaks the run
+    const parks = line.action === 'defer';
+    if (!stays && !parks) { run = G.comboNext(run, line.at, bulk || extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); harbor.showRun(run.n); }
+    const pitch = stays || parks ? 1 : G.comboPitch(run.n), runN = stays || parks ? 0 : run.n;
     $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud', pitch);
     const walk = $('#at-window .walk'); if (walk) { const who = whoBrings(it); walk.innerHTML = spriteSVG(who.id, stays ? it.kind : '', { mate: who.mate, reg: who.reg, happy: ink === 'approve' || ink === 'file', sad: ink === 'reject' }); walk.className = `walk ${stays ? 'go-off' : ink === 'reject' ? 'go-sad' : 'go-happy'}`; }
-    if (stays) s.awaiting = true; else { s.status = 'resolved'; s.verdict = line; }
-    for (const e of extra) { e.line.at = line.at; Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
+    // a defer leaves the item open; the held line itself parks it (statusOf)
+    if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
+    for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
     save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
     pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoToast(consequence(line) + (extra.length ? ` (+${extra.length} more)` : '')) };
     if ($('#agentlog').classList.contains('open')) renderLog();
@@ -656,6 +753,16 @@ function renderRail(ring) {
   });
   rail.dataset.count = list.filter(t => t.reply && !t.seen).length;
   if (ring) { const first = rail.querySelector('.ticket.new'); if (first) { first.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } }
+  railCues();
+}
+// An overflowing rail shows how many tickets hide off each edge (click to scroll there); the wheel scrolls it sideways.
+function railCues() {
+  const rail = $('#rail'); if (!rail) return; const r = rail.getBoundingClientRect(); let left = 0, right = 0;
+  for (const t of rail.querySelectorAll('.ticket')) { const b = t.getBoundingClientRect(); if (b.right > r.right + 4) right++; else if (b.left < r.left + 20) left++; }
+  for (const [id, n, dir] of [['#rail-left', left, -1], ['#rail-right', right, 1]]) {
+    const c = $(id); c.hidden = !n; c.textContent = dir < 0 ? `‹ ${n}` : `${n} more ›`; c.title = `${n} ticket${n === 1 ? '' : 's'} ${dir < 0 ? 'before' : 'after'} these`;
+    c.onclick = () => rail.scrollBy({ left: dir * rail.clientWidth * .8, behavior: 'smooth' });
+  }
 }
 function openTicket(t, el) {
   document.querySelector('.tk-pop')?.remove();
@@ -740,12 +847,12 @@ function modal(cls, titleText, content, footer, headerExtra) {
 function closeModal() { $('#modal-root').replaceChildren(); }
 function openViewer(a) {
   const f = fileFor(a.path); let body, cls = 'dossier'; const type = artType(a);
-  if (type === 'web') return window.harborWebPane.open({ url: a.url, title: a.label || (a.type === 'lavish' ? 'Lavish plan' : 'Web page'), modal, h, toast });
-  if (type === 'pdf') body = h('div', { class: 'mount' }, f ? h('iframe', { class: 'pdf-full', src: f.url, title: base(a.path) }) : h('p', null, `not available locally: ${a.path}`));
-  else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : h('p', null, `not available locally: ${a.path}`));
+  if (type === 'web') { const url = a.url || f?.page; if (!url) { toast(`Not available locally: ${base(a.path)}`, 'warn'); return; } return window.harborWebPane.open({ url, title: a.label || (a.type === 'lavish' ? 'Lavish plan' : a.path ? base(a.path) : 'Web page'), modal, h, toast }); }
+  if (type === 'pdf') body = h('div', { class: 'mount' }, f ? h('iframe', { class: 'pdf-full', src: f.url, title: base(a.path) }) : missing(a.path));
+  else if (type === 'image') body = h('div', { class: 'mount' }, srcFor(a) ? h('img', { src: srcFor(a), alt: base(a.path || a.url) }) : missing(a.path));
   else if (type === 'diff' && f?.text != null) body = h('article', { class: 'sheet' }, diffView(f.text));
-  else if (type === 'video') body = h('div', { class: 'mount' }, srcFor(a) ? h('video', { src: srcFor(a), controls: true, autoplay: true }) : h('p', null, `not available locally: ${a.path}`));
-  else body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text) : `<p>not available locally: ${esc(a.path)}</p>` });
+  else if (type === 'video') body = h('div', { class: 'mount' }, srcFor(a) ? h('video', { src: srcFor(a), controls: true, autoplay: true }) : missing(a.path));
+  else body = h('article', { class: 'sheet md', html: f?.text ? mdToHtml(f.text) : `<p>not available locally: ${esc(base(a.path))}</p>` });
   let zoom = 1; const apply = () => { body.style.setProperty('--zoom', zoom); };
   const zoomer = h('div', { class: 'zoomer' }, h('button', { class: 'tbtn', 'aria-label': 'Smaller', onclick: () => { zoom = Math.max(.7, zoom - .1); apply(); } }, 'A−'), h('button', { class: 'tbtn', 'aria-label': 'Larger', onclick: () => { zoom = Math.min(1.8, zoom + .1); apply(); } }, 'A+'));
   const ext = f ? h('button', { class: 'tbtn', title: 'Open with the default app', onclick: () => bridge.openPath(f.url) }, 'Open') : null;
@@ -851,17 +958,28 @@ function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll
 function meter(score, max) { const pct = Math.max(0, Math.min(100, Math.round(((score + max) / (2 * max)) * 100))); return h('div', { class: 'meter' }, h('span', { style: `width:${pct}%` })); }
 function regularsBoard() { return h('div', { class: 'regulars' }, FLEET.regulars.map(r => { const sc = regularScore(r, false), d = regularScore(r, true); return h('div', { class: 'regular' }, h('div', { class: 'rg-name' }, r.label, h('span', { class: 'rg-delta' }, d ? (d > 0 ? `+${d}` : `${d}`) : '')), meter(sc, 12)); })); }
 function topItems(n) { return ITEMS.filter(i => statusOf(i) === 'open').sort((a, b) => prio(a) - prio(b) || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created).slice(0, n); }
+// The manifest shows only what has something in it; Space opens the office.
 function openManifest() {
   const open = ITEMS.filter(i => statusOf(i) === 'open'); const counts = {}; for (const i of open) counts[i.kind] = (counts[i.kind] || 0) + 1;
+  const cooking = FLEET.crew.filter(c => c.state !== 'idle'); const c7 = FLEET.counts;
+  const week = [[c7.shipped_7d, 'shipped'], [c7.merged_7d, 'merged'], [c7.rework_7d, 'reworked'], [c7.reports_7d, 'reports']].filter(([n]) => n);
   const content = h('div', { class: 'manifest-sheet' },
-    h('div', { class: 'ms-head' }, h('div', { class: 'ms-day' }, `Day ${S.day}`), h('div', null, new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }), S.streak ? ` · ${S.streak}-day streak` : '', ` · ${money(S.cash)} in the till`)),
+    h('div', { class: 'ms-head' }, h('div', { class: 'ms-day' }, `Day ${S.day}`), h('div', null, new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }), S.streak ? ` · ${S.streak}-day streak` : '', S.cash ? ` · ${money(S.cash)} in the till` : '')),
     h('div', { class: 'ms-grid' },
-      h('section', null, h('h3', null, 'At the window'), h('ul', null, Object.entries(KIND).map(([k, l]) => counts[k] ? h('li', null, `${counts[k]} ${(counts[k] > 1 ? KINDS[k] : l).toLowerCase()}`) : null), !open.length && h('li', null, 'nobody waiting')), h('h3', null, 'First up'), h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title)))),
-      h('section', null, h('h3', null, 'Galley'), h('ul', null, FLEET.crew.filter(c => c.state !== 'idle').map(c => h('li', null, `${crewName(c.id)}: ${c.task_title || c.task || ''} (${{ working: 'cooking', waiting: 'at the window', done: 'ready' }[c.state] || c.state})`)))),
-      h('section', null, staminaPanel()),
-      h('section', null, h('h3', null, 'Regulars'), regularsBoard())),
-    h('p', { class: 'ms-foot' }, `Last 7 days: ${FLEET.counts.shipped_7d || 0} shipped, ${FLEET.counts.merged_7d || 0} merged, ${FLEET.counts.rework_7d || 0} reworked, ${FLEET.counts.reports_7d || 0} reports.`));
-  modal('ledger manifest', 'Morning manifest', content, [h('button', { class: 'pbtn', onclick: () => { S.dayOpen = true; S.dayStart = S.dayStart || now(); markDay(); save(); closeModal(); snd('ding'); if (!S.current) next(); else renderAll(); } }, 'Open the office')]);
+      h('section', null, h('h3', null, 'At the window'), h('ul', null, Object.entries(KIND).map(([k, l]) => counts[k] ? h('li', null, `${counts[k]} ${(counts[k] > 1 ? KINDS[k] : l).toLowerCase()}`) : null), !open.length && h('li', null, 'nobody waiting')), open.length ? [h('h3', null, 'First up'), h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title)))] : null),
+      cooking.length ? h('section', null, h('h3', null, 'Galley'), h('ul', null, cooking.map(c => h('li', null, `${crewName(c.id)}: ${c.task_title || c.task || ''} (${{ working: 'cooking', waiting: 'at the window', done: 'ready' }[c.state] || c.state})`)))) : null,
+      QUOTA.length ? h('section', null, staminaPanel()) : null,
+      FLEET.regulars.length ? h('section', null, h('h3', null, 'Regulars'), regularsBoard()) : null),
+    week.length ? h('p', { class: 'ms-foot' }, `Last 7 days: ${week.map(([n, w]) => `${n} ${w}`).join(', ')}.`) : null);
+  modal('ledger manifest', 'Morning manifest', content, [h('span', { class: 'legend' }, 'Space'), h('button', { class: 'pbtn', onclick: () => openOffice() }, 'Open the office')]);
+}
+function openOffice(quiet) { S.dayOpen = true; S.dayStart = S.dayStart || now(); S.closedSig = null; markDay(); save(); closeModal(); if (!quiet) snd('ding'); if (!S.current) next(); else renderAll(); }
+// What is waiting, for "did anything change overnight": open items and their last rewrite.
+const openSig = () => ITEMS.filter(i => statusOf(i) === 'open').map(i => `${i.id}@${i.updated || i.created}`).sort().join(' ');
+// A closed office: the manifest, unless nothing changed since the day was closed; then straight to work.
+function morning() {
+  if (S.closedSig != null && S.closedSig === openSig()) { openOffice(true); toast('Nothing new since you closed the day; the office is open.'); }
+  else openManifest();
 }
 function openLedger() {
   const A = answersToday(); const t0 = now();
@@ -883,13 +1001,13 @@ function openLedger() {
   modal('ledger', 'Ships out', recap, [
     h('button', { class: 'pbtn ghost', title: 'Clears cash, day count, read marks and paper positions. answers.jsonl is never touched.', onclick: () => { if (confirm('Reset the desk? Clears cash, day count and paper positions. answers.jsonl is kept.')) { commitPending(); try { localStorage.removeItem(deskKey()); } catch (e) {} loadState(); closeModal(); renderAll(); openManifest(); } } }, 'Reset desk'),
     h('button', { class: 'pbtn ghost', onclick: () => navigator.clipboard?.writeText(content.textContent).then(() => toast('Report copied')) }, 'Copy'),
-    h('button', { class: 'pbtn', onclick: () => { S.day++; S.streak = A.length ? S.streak + 1 : 0; S.dayOpen = false; S.dayStart = now(); S.fun.bestRun = 0; run = { n: 0, at: 0 }; save(); closeModal(); snd('ding'); renderAll(); openManifest(); } }, 'Close the day')]);
+    h('button', { class: 'pbtn', onclick: () => { S.day++; S.streak = A.length ? S.streak + 1 : 0; S.dayOpen = false; S.dayStart = now(); S.fun.bestRun = 0; run = { n: 0, at: 0 }; S.closedSig = openSig(); save(); closeModal(); snd('ding'); renderAll(); openManifest(); } }, 'Close the day')]);
 }
 
 // ------------------------------------------------------------ plain mode
 function actionsFor(it) {
   const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = v => { S.current = it.id; s.read = true; save(); stamp(v); };
-  for (const v of VERDICTS) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, onclick: () => run(v) }, cfg[v].label));
+  for (const v of [...VERDICTS, 'later']) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, title: v === 'later' ? 'Park it until tomorrow 9:00' : null, onclick: () => run(v) }, cfg[v].label));
   const group = bundleOf(it); if (group.length > 1) out.push(h('button', { class: 'abtn approve', disabled: s.awaiting, title: group.map(m => m.title).join(' · '), onclick: () => topicView.stampBundle(it, group) }, `Approve bundle (${group.length})`));
   return out;
 }
@@ -903,7 +1021,7 @@ function plainCard(it, openByDefault) {
       h('p', { class: 'summary-text' }, it.summary),
       flagged.length ? h('div', { class: 'flag-note' }, flagged.map(x => h('div', null, `⚠ ${x.rule}: ${x.note}`))) : null,
       arts.length ? h('div', { class: 'ev-row' }, arts.map(a => { const f = fileFor(a.path); return h('button', { class: 'ev-thumb', onclick: () => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }, artType(a) === 'image' && srcFor(a) ? h('img', { src: srcFor(a), alt: '' }) : artType(a) === 'video' && srcFor(a) ? h('video', { src: srcFor(a), muted: true, preload: 'metadata' }) : h('div', { class: 'ph' }, artType(a) === 'pr' ? 'PR' : a.url ? '↗' : '¶'), h('span', null, a.url ? (a.url.match(/pull\/\d+/) || [a.url.replace(/^https?:\/\//, '')])[0] : base(a.path))); })) : null,
-      it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', null, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'))))) : null,
+      it.kind === 'decision' && it.options && !resolved ? h('fieldset', null, h('legend', null, 'Your call'), it.options.map(o => h('label', { class: 'opt' }, h('input', { type: 'radio', name: `p-${it.id}`, value: o.key, checked: (s.choice ??= it.options.find(x => x.recommended)?.key) === o.key, onchange: () => { s.choice = o.key; save(); } }), h('span', null, o.label, o.recommended && h('span', { class: 'rec' }, 'rec.'), o.why && h('span', { class: 'why' }, o.why))))) : null,
       resolved ? h('div', { class: 'verdict' }, s.verdict ? consequence(s.verdict) : 'Resolved by the agent.') : h('div', { class: 'actions' }, actionsFor(it)),
       thread.length ? h('div', { class: 'thread' }, thread.map(x => h('div', { class: `msg ${x.me || x.from === 'captain' ? 'me' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.text))) : null,
       !resolved && !s.awaiting ? (() => { const inp = h('input', { placeholder: 'Ask a follow-up…', onkeydown: e => { if (e.key === 'Enter') send(); } }); const send = () => { const v = inp.value.trim(); if (!v) return; const line = emit({ id: it.id, action: 'ask', note: v }); s.awaiting = true; save(); earn(it, 'ask'); toast(consequence(line)); renderPlain(); }; return h('div', { class: 'follow' }, inp, h('button', { class: 'abtn ask', onclick: send }, 'Ask')); })() : null));
@@ -977,7 +1095,7 @@ const deskSig = () => { const it = byId[S.current]; return JSON.stringify(it ? [
 function applySnapshot(snap) {
   const prevHome = SNAP.home, prevById = byId, prevNotes = SNAP.notes || [], curBefore = deskSig();
   setData(snap);
-  if (snap.home !== prevHome || (snap.demoSeed || 0) !== (S.demoSeed || 0)) { loadState(); syncItems(null); closeModal(); renderAll(); if (!S.dayOpen) openManifest(); else if (!S.current) next(); return; }
+  if (snap.home !== prevHome || (snap.demoSeed || 0) !== (S.demoSeed || 0)) { loadState(); syncItems(null); closeModal(); renderAll(); if (!S.dayOpen) morning(); else if (!S.current) next(); return; }
   S.answers = (snap.answers || []).slice();
   const { replies, fresh } = syncItems(prevById);
   save();
@@ -1042,7 +1160,8 @@ bridge.onMenu(async what => {
 });
 
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
-tickClock(); setInterval(tickClock, 1000); setInterval(() => { renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
+tickClock(); setInterval(tickClock, 1000); let parkedSig = ITEMS.filter(i => statusOf(i) === 'later').length;
+setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); if (S.prefs.tab === 'requests' && !typing()) renderRequests(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-shop').onclick = () => harbor.openChandlery();
@@ -1078,15 +1197,26 @@ $('#btn-theme').onclick = () => { S.prefs.theme = { auto: 'light', light: 'dark'
 $('#btn-log-copy').onclick = () => navigator.clipboard?.writeText(jsonl()).then(() => toast('answers.jsonl copied'));
 $('#btn-log-export').onclick = () => { const a = h('a', { href: URL.createObjectURL(new Blob([jsonl()], { type: 'application/x-ndjson' })), download: 'answers.jsonl' }); a.click(); };
 $('#tray-handle').onclick = () => toggleTray();
+$('#rail').addEventListener('wheel', e => { const rail = e.currentTarget; if (rail.scrollWidth <= rail.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; e.preventDefault(); rail.scrollLeft += e.deltaY; }, { passive: false });
+$('#rail').addEventListener('scroll', railCues);
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers);
-document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = () => stamp(b.dataset.verdict));
+document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey));
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => selectTab(t.dataset.tab));
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && menuOpen()) { setMenu(false); return; }
   if (e.key === 'Escape') { closeModal(); closeDrawers(); clearPick(); document.querySelector('.tk-pop')?.remove(); return; }
   const tgt = e.target instanceof Element ? e.target : document.body;
-  if (tgt.matches('input,textarea,select') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (tgt.matches('textarea,select,input:not([type=radio]):not([type=checkbox])') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
+  if (phone.isOpen()) return; // the ship phone is modal: no desk keys (letters, Space, S, Shift+A) while it is up
+  const box = document.querySelector('#modal-root .modal');
+  if (box && (e.key === ' ' || (e.shiftKey && k === 'a'))) {
+    // Space opens the office from the manifest; Shift+A again stamps the take-all-recommended list
+    const go = box.classList.contains('manifest') && e.key === ' ' ? box.querySelector('footer .pbtn') : box.classList.contains('sweep') && k === 'a' ? box.querySelector('footer .pbtn:not(.ghost)') : null;
+    if (go) { e.preventDefault(); go.click(); }
+    return;
+  }
+  if (tgt.matches('input') && !tgt.closest('#desk-surface')) return; // a radio or checkbox on the desk still takes letters and Space
   if (k === 'u' || k === 'z') { if (pending) { e.preventDefault(); undoPending(); } return; }
   if (k === 'm') { e.preventDefault(); setMenu(!menuOpen()); return; }
   if (k === 'p') { e.preventDefault(); $('#btn-plain').click(); return; }
@@ -1094,15 +1224,28 @@ document.addEventListener('keydown', e => {
   if (tgt.closest('#rail')) { railKeys(e); if (e.key.startsWith('Arrow')) return; }
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
   if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
-  else if (k === 'n') next(); else if (k === 'b') $('#btn-shop').click(); else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
+  else if (k === 'n') next(); else if (k === 'b' && e.shiftKey) $('#btn-shop').click(); /* plain B picks option B (quick calls) */ else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
+  else if (box) return;
+  // quick calls: Space stamps (never Enter), A-E pick, J/K move on a sheet, S later, Shift+A take all recommended
+  else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); stamp('approve'); }
+  else if (e.shiftKey && k === 'a') { e.preventDefault(); quick.openSweep(queueItems().filter(i => !st(i.id).awaiting), sweep); }
+  else if (!e.shiftKey && 'abcde'.includes(k) && k) { e.preventDefault(); pickLetter('abcde'.indexOf(k)); }
+  else if (k === 'j') moveRow(1); else if (k === 'k') moveRow(-1);
+  else if (k === 's') { e.preventDefault(); stamp('later', e.shiftKey); }
 });
+// Take all recommended: one stamp writes the recommended option for every ticked decision; undone together.
+function sweep(list) {
+  const lines = list.map(it => ({ it, line: { id: it.id, action: 'decide', key: it.options.find(o => o.recommended).key } }));
+  S.current = list[0].id; st(list[0].id).read = true; save(); renderAll();
+  finishStamp(list[0], `APPROVED ×${lines.length}`, 'approve', lines[0].line, false, lines.slice(1), true); // bulk: never a tidy run
+}
 window.addEventListener('beforeunload', commitPending);
-window.addEventListener('resize', () => { if (!S.prefs.plain) renderDesk(); });
+window.addEventListener('resize', () => { if (!S.prefs.plain) { renderDesk(); railCues(); } });
 
 renderAll();
-if (!S.dayOpen) openManifest(); else { markDay(); if (!S.current) next(); }
+if (!S.dayOpen) morning(); else { markDay(); if (!S.current) next(); }
 const low = QUOTA.map(quotaView).filter(q => q.left < 10); if (low.length) setTimeout(() => toast(`Stamina nearly empty: ${low.map(q => `${q.name} ${q.window}`).join(', ')}. Refill in ${age(low[0].in)}.`, 'warn'), 1500);
 if (S.prefs.music) { const once = () => { try { musicStart(); } catch (e) {} document.removeEventListener('pointerdown', once); }; document.addEventListener('pointerdown', once); }
 })();

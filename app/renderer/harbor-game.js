@@ -26,7 +26,7 @@ const COATS = ['#c8552d', '#3b6f9e', '#4f8a5b', '#8a3a7a', '#2d8a8a', '#a8632d',
 const SKINS = ['#f0c9a0', '#e2b48a', '#c98f62', '#a86f48', '#8d5a3b', '#f3d2b3'];
 function regular(project) {
   const p = String(project || 'desk'); const x = hash(p);
-  return { id: `reg:${p}`, project: p, name: `${TRADE[x % TRADE.length]} ${FIRST[(x >> 4) % FIRST.length]}`, coat: COATS[(x >> 8) % COATS.length], cap: COATS[(x >> 11) % COATS.length], skin: SKINS[(x >> 14) % SKINS.length], hat: (x >> 17) % 4 };
+  return { id: `reg:${p}`, project: p, name: `${TRADE[x % TRADE.length]} ${FIRST[(x >>> 4) % FIRST.length]}`, coat: COATS[(x >>> 8) % COATS.length], cap: COATS[(x >>> 11) % COATS.length], skin: SKINS[(x >>> 14) % SKINS.length], hat: (x >>> 17) % 4 };
 }
 // mood and a one-line memory from the captain's recent calls on this project (answers: [{ action, at, project }])
 const WEEK = 7 * DAY;

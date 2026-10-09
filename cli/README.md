@@ -49,6 +49,7 @@ hd answer|review|todo <id> "<title>" [flags]
   -p/--pri 1-4   -d/--due <epoch|ISO|+12h|+2d>   -f/--from <agent>   --project <p>   --stream <s>
   -r/--rule <key> (repeat)   --ok <rule>[:note]   --flag <rule>:<note>
   -t/--topic <slug>   --rel <id>[,<id>]   (kept when a rewrite omits them)
+  --why key="<one line>"   (decisions, repeat) what an option means or costs
 hd reply <id> "<text>"            append to the item's thread (also answers a request id)
 hd resolve <id>...
 hd batch                          stdin, one command per line, all-or-nothing validation
@@ -81,6 +82,7 @@ Behaviour worth knowing:
 - Artifact type is inferred: `/pull/N` and `/merge_requests/N` URLs are `pr`, other URLs `link`; by extension `video`, `image`, `audio`, `report` (md, txt, pdf, html), `diff`, else `file`. Prefix to override: `-a image:https://...`.
 - `-a web:<url>` shows a local page (dev server, local report) in the desk's browser pane. `-a lavish:<url>` does the same for a Lavish review page; `-a lavish:<file.html>` runs `lavish-axi <file> --no-open` to start or resume its session and stores the session URL (the path, with a warning, when `lavish-axi` is missing or `HARBORDECK_LAVISH=0`).
 - `--opt key*` also marks a recommendation, but `+` is safe from shell globbing.
+- An id shaped `<task>.q<N>` gets topic `<task>` when no `-t` is given (and none is kept from a rewrite), so a task's questions bundle into one question sheet on the desk.
 - `hd answers --wait [--timeout <s>]` blocks until the app appends an answer, then prints it: an on-answer hook is `while :; do hd answers -c me --wait | my-handler; done`.
 - `hd answers` without a cursor ends with `next=<offset>`; pass it back as `--since-offset`. `--json` returns `{"next", "lines": [{"end", "answer"}]}` with each line's end offset, for routers that commit per line.
 - Everything is written atomically (temp file + rename); JSONL appends are one write per line.

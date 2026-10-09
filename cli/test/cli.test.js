@@ -263,3 +263,38 @@ test('web and lavish artifacts: URLs kept, lavish html path resolved to its sess
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /web needs a URL/);
 });
+
+test('decision options carry an optional why line; --why needs a known key', () => {
+  const { hd, item } = setup();
+  const r = hd(['decision', 'host', 'Where to host?', '--opt', 'edge+=Edge host', '--opt', 'mac=This Mac', '--why', 'edge=free tier, phone access', '--why', 'mac=off when the lid closes']);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(item('host').options, [
+    { key: 'edge', label: 'Edge host', recommended: true, why: 'free tier, phone access' },
+    { key: 'mac', label: 'This Mac', why: 'off when the lid closes' },
+  ]);
+  assert.match(hd(['decision', 'h2', 'H?', '--opt', 'a', '--why', 'b=nope']).err, /--why "b=nope" needs <option key>=<text>/);
+  assert.match(hd(['review', 'r2', 'R', '--why', 'a=x']).err, /--why is for decision options only/);
+});
+
+test('question ids <task>.qN default their topic to the task; an explicit or kept topic wins', () => {
+  const { hd, item } = setup();
+  assert.equal(hd(['decision', 'plant-shop.q1', 'Direction?', '--opt', 'a+', '--opt', 'b']).code, 0);
+  assert.equal(hd(['decision', 'plant-shop.q2', 'Hosting?', '--opt', 'a+', '--opt', 'b', '-t', 'hosting']).code, 0);
+  assert.equal(item('plant-shop.q1').topic, 'plant-shop');
+  assert.equal(item('plant-shop.q2').topic, 'hosting');
+  assert.equal(hd(['decision', 'plant-shop.q2', 'Hosting, again?', '--opt', 'a+']).code, 0);
+  assert.equal(item('plant-shop.q2').topic, 'hosting');
+  assert.equal(hd(['todo', 'plain-task', 'T']).code, 0);
+  assert.equal(item('plain-task').topic, undefined);
+});
+
+test('validate: a defer answer needs until', () => {
+  const { hd, append } = setup();
+  assert.equal(hd(['todo', 't1', 'T']).code, 0);
+  append({ id: 't1', action: 'defer', until: 1791500000, note: '', at: 1791400000 });
+  assert.equal(hd(['validate']).code, 0);
+  append({ id: 't1', action: 'defer', note: '', at: 1791400001 });
+  const r = hd(['validate']);
+  assert.equal(r.code, 1);
+  assert.match(r.out, /answers\.jsonl:2: \$: missing until/);
+});

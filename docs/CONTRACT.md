@@ -46,7 +46,7 @@ One file per item, `items/<id>.json`, file name = `id`. Rewrite the same file to
   "summary": "Release 2.4 adds hourly radar. All 212 tests pass.",
   "body": "/abs/path/release-notes.md",
   "options": [
-    {"key": "ship", "label": "Ship today", "recommended": true},
+    {"key": "ship", "label": "Ship today", "recommended": true, "why": "radar is done; crash rate 0.2%"},
     {"key": "hold", "label": "Hold for one more beta week"}
   ],
   "artifacts": [
@@ -74,13 +74,13 @@ Required: `id`, `kind`, `title`, `created`, `status`.
 | `id` | slug `[A-Za-z0-9][A-Za-z0-9._-]{0,127}` | Stable key. Answers refer to it. When an item stands for an agent-side task, use that task's id. |
 | `kind` | `decision` \| `answer` \| `review` \| `todo` | See [kinds](#kinds). |
 | `project`, `stream` | string | Grouping. `stream` is a finer lane inside a project. |
-| `topic` | slug | What the item is about, shared by every item and [note](#topics-and-notes) on the same subject. Agents should always set it. |
+| `topic` | slug | What the item is about, shared by every item and [note](#topics-and-notes) on the same subject. Agents should always set it. The CLI defaults it for an id shaped `<task>.q<N>` to `<task>`, so the questions of one hold arrive as one question sheet. |
 | `rel` | `[item id]` | Related items, possibly in other topics. |
 | `from` | string | Agent id that raised it (matches `fleet.json` `firstmates[].id` when present). |
 | `title` | string ≤ 300 | One line. Phrase decisions as a question. |
 | `summary` | string ≤ 2000 | One to three plain sentences. The app treats each sentence as an inspectable claim. |
 | `body` | path or URL | Markdown or text to read in full. Never inline prose. |
-| `options` | `[{key, label, recommended?}]` | **Decision only, required there.** Keys are slugs. At most one should be recommended. |
+| `options` | `[{key, label, recommended?, why?}]` | **Decision only, required there.** Keys are slugs. At most one should be recommended. `why` (≤ 200) is one short line on what the option means or costs, shown in grey under it. |
 | `artifacts` | `[{type, url \| path, label?}]` | Evidence by reference. See [artifacts](#artifacts). |
 | `rules` | `[rule key]` | Standing orders this item should be read against (keys in `rules.json`). |
 | `checks` | `[{rule, ok, note?}]` | The agent's own check of a standing order: `ok: true` passed, `ok: false` flagged (note says why). Advisory; the user decides. |
@@ -119,9 +119,11 @@ If a response fits none of these, write the closest item if one is useful and al
 | `diff` | code diff |
 | `link`, `file` | link / file reference |
 
+A local `.html` file (any type but `pdf`/`image`, given by `path`) opens in the desk's browser pane, served from its own folder (so its relative CSS, scripts and images load) in the same sandboxed session as `web` pages. The desk shows file names, never absolute paths (hover for the full path).
+
 Exactly one of `url` (any `scheme://`) or `path` is required.
 
-`web` and `lavish` pages render inside the app only when the URL is `http(s)` on this machine (`localhost`, `127.0.0.1`, `[::1]`) or on a host the user added in Settings → Web hosts; anything else is offered in the system browser. The page runs in its own session with no access to the desk, every permission request is denied, and links or popups that leave the allowed hosts open in the system browser. A `lavish` artifact with a `path` instead of a `url` (no running Lavish session) shows as a file card. Older apps show both types as link cards.
+`web` and `lavish` pages render inside the app only when the URL is `http(s)` on this machine (`localhost`, `127.0.0.1`, `[::1]`) or on a host the user added in Settings → Web hosts; anything else is offered in the system browser. The page runs in its own session with no access to the desk, every permission request is denied, and links or popups that leave the allowed hosts open in the system browser. A `lavish` artifact with a `path` to an `.html` file instead of a `url` (no running Lavish session) opens that file in the pane, like any local `.html` artifact. Older apps show both types as link cards.
 
 ## Answers
 
@@ -135,6 +137,7 @@ The app appends one line per user action to `answers.jsonl`:
 {"id":"onboarding-video","action":"comment","note":"mismatch: captions drift","anchor":{"artifact":"https://example.com/v.mp4","t":41.5},"at":1791431450}
 {"id":"db-research","action":"ask","note":"why host B over A?","at":1791431500}
 {"id":"req-1791431600-3","action":"request","note":"Add a dark theme","to":"mate-design","at":1791431600}
+{"id":"flaky-test","action":"defer","until":1791478800,"note":"","at":1791431700}
 ```
 
 | `action` | From | Extra fields | Meaning for the agent |
@@ -147,6 +150,7 @@ The app appends one line per user action to `answers.jsonl`:
 | `ask` | ask slip | `note` | A question. Reply with a `thread` entry. |
 | `comment` | inspect match/mismatch | `note`, `anchor` | Feedback pinned to something. `anchor` may carry `claim`, `artifact`, `t` (seconds), `x`,`y` (position on an image), `heading`, `rule`. |
 | `request` | new order slip or ship phone | `note` (required), `to` | A new task. `id` is minted by the app; `to` is a `firstmates[].id`. The user never picks crew. |
+| `defer` | Later stamp | `until` (required, epoch seconds), `note` | Not now: bring it back at `until` (tomorrow 9:00, or after the next usage reset). The item stays open; the app hides it until then, or until the agent rewrites it. Do not act on it; park the work until that time. |
 
 **Undo is not an action.** After a stamp the app holds the line for about 4 seconds; Undo drops it and nothing is written. Closing the app flushes a held line. Agents therefore only ever see final lines and never need to reconcile undo.
 
@@ -182,7 +186,7 @@ When a remark fits no item or topic, log a [gap](#gaps) instead.
 The app derives each topic from items, answers and notes (shared code: `cli/src/topics.js`; `harbordeck topic <slug>` prints the same timeline):
 
 - **Topic page**: what is still open, then a timeline oldest first of items raised, the user's stamps, asks and comments, agent replies, notes and resolutions, with their artifacts, and related topics (topics whose items are linked by `rel`).
-- **Bundles**: open items that share a topic or are linked by `rel` (either way, transitively) arrive at the desk together, as one visitor with several papers. One bundle stamp writes the usual line per item (`decide` with the chosen or recommended option, `approve` for reviews, `file` otherwise), held and undone together.
+- **Bundles**: open items that share a topic or are linked by `rel` (either way, transitively) arrive at the desk together, as one visitor with one question sheet: a row per item, decisions with their options on letter keys. One stamp writes the usual line per ticked row (`decide` with the chosen or recommended option, `approve` for reviews, `file` otherwise), held and undone together.
 - Notes appear live on the topic page and, for item notes, in the item's correspondence.
 
 ## Snapshots (optional)

@@ -10,7 +10,7 @@ Environment for every call: `HARBORDECK_FROM=@FROM@` (secondmates: your own endp
 
 | Captain must... | Kind | Command |
 |---|---|---|
-| pick between options (every captain hold with choices) | decision | `harbordeck decision <task-id> "<question?>" -s "<one line>" --opt <key>+ --opt <key>="<Label>" [-b <report>]` |
+| pick between options (every captain hold with choices) | decision | `harbordeck decision <task-id> "<question?>" -s "<one line>" --opt <key>+ --opt <key>="<Label>" --why <key>="<what it means or costs>" [-b <report>]` |
 | judge finished work (PR, video, design, draft) | review | `harbordeck review <task-id> "<title>" -s "<one line>" -a <pr url or file>` |
 | review a plan you presented with Lavish | decision or review | add `-a lavish:<session url>` (or `-a lavish:<file.html>`; the CLI finds the session URL) |
 | read a finished report | answer | `harbordeck answer <task-id> "<title>" -s "<finding, 1-3 sentences>" -b data/<task>/report.md` |
@@ -18,8 +18,8 @@ Environment for every call: `HARBORDECK_FROM=@FROM@` (secondmates: your own endp
 
 - **A captain hold and its item share one id: the held task id.** Raise the hold with `bin/fm-captain-hold.sh hold` as usual, then write the item. The bridge answers that exact hold when the captain stamps it.
 - **Always set `-t <topic>`**: a short slug for the subject (the project feature, release, vendor, or the task family), reused by every item about it; add `--rel <id>,<id>` for related items in other topics. Items sharing a topic or link reach the captain as one bundle. `harbordeck topics` lists existing topics: reuse one before inventing a new one.
-- `+` marks your recommendation. `-s` is plain sentences. `-b`/`-a` take paths or URLs only; never paste report text.
-- A hold with several questions: one decision per question, ids `<task-id>.q1`, `.q2`, ... Those answers arrive as inbox notes; once all are in, close the hold with `bin/fm-captain-hold.sh answer`.
+- `+` marks your recommendation. Give each option a `--why <key>="<few words>"` (what it means or costs) so the captain can decide without opening the report. `-s` is plain sentences. `-b`/`-a` take paths or URLs only; never paste report text.
+- A hold with several questions: one decision per question, ids `<task-id>.q1`, `.q2`, ..., all with `-t <task-id>` (the CLI sets that topic for a `.qN` id when you omit `-t`), so they reach the captain as one question sheet answered with one stamp. Those answers arrive as inbox notes; once all are in, close the hold with `bin/fm-captain-hold.sh answer`.
 - Presenting a Lavish plan: always attach it with `-a lavish:<url>` so the captain can annotate it inside the desk. Keep polling Lavish for the feedback as usual; the desk stamp is the verdict, Lavish carries the annotations.
 - Several items: `harbordeck batch` with one command per line on stdin (one process, all or nothing).
 - Priority `-p 1`..`4` (1 = blocks work now); due `-d +2d` or an ISO date.
@@ -41,6 +41,7 @@ It lands live on the topic page and the item's correspondence, so it is not lost
 The HarborDeck bridge (launchd job `dev.harbordeck.firstmate`) routes every stamp the moment it lands:
 
 - decide / approve / reject on a held task: a keyed answer through `bin/fm-captain-hold.sh answers --source harbordeck` (closes the hold); `needs-work` releases the hold and also sends an inbox note.
+- defer (the captain's **Later** stamp) on a held task, or on a `<task-id>.qN` question of one: `bin/fm-captain-hold.sh hold <task-id> --until <date>`, the date the item comes back on the desk. Park that work until then; the item stays open.
 - ask / comment / request, and stamps on items that are not held tasks: an inbox note starting `HarborDeck <action> on <id>`, ending with the exact reply command.
 
 Answer every ask with `harbordeck reply <id> "<text>"`; the reply lands on the captain's ticket rail. When a hold closes another way (chat, terminal), run `harbordeck resolve <id>` so the desk matches.

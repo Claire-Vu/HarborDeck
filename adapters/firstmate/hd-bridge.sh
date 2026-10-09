@@ -9,6 +9,8 @@
 #   decide, approve, reject  -> bin/fm-captain-hold.sh answers (keyed answer, closes the hold)
 #   needs-work               -> keyed answer with mode release (held work resumes) + inbox note
 #   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent)
+#   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <local date of until>
+#                               (a <task>.qN question defers its held task), else an inbox note
 #   file on a todo           -> inbox note ("done"); file on an answer -> nothing to route
 # A keyed answer whose item id is not a captain-held task falls back to an
 # inbox note, so no answer is ever dropped. decide/approve/reject/file also mark
@@ -77,12 +79,17 @@ keyed() {  # <id> <answer> <label> <mode> -> 0 when the hold was closed
   [ "$rc" = 0 ] && ! grep -q '^skipped:\|^refused:' <<<"$out"
 }
 
+held() {  # <task-id> -> 0 when firstmate holds it for the captain (read-only predicate)
+  [ "$dry" = 1 ] && return 0
+  "$FM_HOME/bin/fm-captain-hold.sh" open "$1" </dev/null >/dev/null 2>&1
+}
+
 note() {  # <request-id> <text>
   fm "$FM_HOME/bin/fm-inbox.sh" note --request-id "$1" -- "$2"
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
-  local a=$1 id action key note at to anchor title='' kind='' label text rid reply
+  local a=$1 id action key note at to anchor title='' kind='' label text rid reply until day task
   id=$(jq -r '.id' <<<"$a"); action=$(jq -r '.action' <<<"$a")
   key=$(jq -r '.key // ""' <<<"$a"); note=$(jq -r '.note // ""' <<<"$a"); at=$(jq -r '.at // 0' <<<"$a")
   to=$(jq -r '.to // "any mate"' <<<"$a"); anchor=$(jq -c '.anchor // empty' <<<"$a")
@@ -113,6 +120,16 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       note "$id" "HarborDeck request for $to: $note. $reply" || return 1 ;;
     file)
       [ "$kind" != todo ] || note "$rid" "$text: done${note:+ - $note}" || return 1 ;;
+    defer)
+      until=$(jq -r '.until // 0' <<<"$a")
+      day=$(date -r "$until" +%Y-%m-%d 2>/dev/null || date -d "@$until" +%Y-%m-%d)
+      task=$id
+      held "$task" || { [[ $id =~ \.q[0-9]+$ ]] && held "${id%.q*}" && task=${id%.q*}; } || task=''
+      if [ -n "$task" ]; then
+        fm "$FM_HOME/bin/fm-captain-hold.sh" hold "$task" --reason "captain deferred $id on HarborDeck until $day" --until "$day" || return 1
+      else
+        note "$rid" "$text: later, back on the desk $day${note:+ - $note}" || return 1
+      fi ;;
     *) log "skipping unknown action $action on $id" ;;
   esac
   case "$action" in

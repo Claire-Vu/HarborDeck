@@ -12,9 +12,11 @@ const MIME = {
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
   '.pdf': 'application/pdf',
   '.md': 'text/markdown; charset=utf-8', '.markdown': 'text/markdown; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.log': 'text/plain; charset=utf-8',
+  '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.csv': 'text/csv; charset=utf-8', '.yaml': 'text/plain; charset=utf-8', '.yml': 'text/plain; charset=utf-8'
 };
 const MAX_TEXT = 512 * 1024;
+const HTML_EXT = new Set(['.html', '.htm']);
 
 const expandHome = p => (p && p.startsWith('~') ? path.join(os.homedir(), p.slice(1)) : p);
 const defaultHome = () => path.join(os.homedir(), '.harbordeck');
@@ -73,15 +75,17 @@ function readJsonl(file) {
 }
 const readAnswers = home => readJsonl(path.join(home, 'answers.jsonl'));
 
-const ACTIONS = new Set(['decide', 'approve', 'reject', 'needs-work', 'comment', 'ask', 'file', 'request']);
+const ACTIONS = new Set(['decide', 'approve', 'reject', 'needs-work', 'comment', 'ask', 'file', 'request', 'defer']);
 // Validates and appends one answer line; returns the exact line written (without newline).
 function appendAnswer(home, line) {
   if (!line || typeof line !== 'object' || !line.id || !ACTIONS.has(line.action)) throw new Error('invalid answer line');
+  if (line.action === 'defer' && !(Number.isFinite(+line.until) && +line.until > 0)) throw new Error('defer needs until');
   const out = { id: String(line.id), action: line.action };
   if (line.key != null) out.key = String(line.key);
   out.note = line.note == null ? '' : String(line.note);
   if (line.anchor && typeof line.anchor === 'object') out.anchor = line.anchor;
   if (line.to != null) out.to = String(line.to);
+  if (line.action === 'defer') out.until = Math.floor(+line.until);
   out.at = Number.isFinite(+line.at) && +line.at > 0 ? Math.floor(+line.at) : Math.floor(Date.now() / 1000);
   const text = JSON.stringify(out);
   ensureHome(home);
@@ -111,6 +115,7 @@ function resolveFiles(items, opts, notes = []) {
     try { const s = fs.statSync(abs); exists = s.isFile(); size = s.size; } catch (e) { /* missing */ }
     const ext = path.extname(abs).toLowerCase();
     const f = { abs, exists, mime: mimeFor(abs), url: exists ? fileUrl(abs) : null };
+    if (exists && HTML_EXT.has(ext)) f.page = pageUrl(abs);
     if (exists && TEXT_EXT.has(ext)) { try { f.text = readHead(abs, Math.min(size, MAX_TEXT)); f.truncated = size > MAX_TEXT; } catch (e) { /* unreadable */ } }
     files[p] = f;
   };
@@ -121,6 +126,12 @@ function resolveFiles(items, opts, notes = []) {
 function readHead(file, n) { const fd = fs.openSync(file, 'r'); try { const b = Buffer.alloc(n); fs.readSync(fd, b, 0, n, 0); return b.toString('utf8'); } finally { fs.closeSync(fd); } }
 const fileUrl = abs => 'harbor://file/' + encodeURIComponent(abs);
 const pathFromUrl = url => { const m = String(url).match(/^harbor:\/\/file\/(.+)$/); return m ? decodeURIComponent(m[1].split(/[?#]/)[0]) : null; };
+// A local HTML page for the browser pane: harbor://page/<absolute path, one URL segment per folder>, so its
+// relative CSS, scripts and images resolve to sibling files. Served only in the pane's own session.
+const pageUrl = abs => 'harbor://page' + abs.split(path.sep).map(encodeURIComponent).join('/');
+const pathFromPageUrl = url => { let u; try { u = new URL(String(url)); } catch (e) { return null; } return u.protocol === 'harbor:' && u.host === 'page' ? path.resolve(decodeURIComponent(u.pathname)) : null; };
+// Folders whose files a local page may load: the folder of every existing local .html file an item references.
+const pageDirs = files => [...new Set(Object.values(files).filter(f => f && f.page).map(f => path.dirname(f.abs)))];
 
 function snapshot(home, opts = {}) {
   const { items, errors } = loadItems(home);
@@ -140,4 +151,4 @@ function snapshot(home, opts = {}) {
   };
 }
 
-module.exports = { defaultHome, ensureHome, expandHome, loadItems, readAnswers, readJsonl, appendAnswer, resolvePath, resolveFiles, snapshot, mimeFor, fileUrl, pathFromUrl, ACTIONS };
+module.exports = { defaultHome, ensureHome, expandHome, loadItems, readAnswers, readJsonl, appendAnswer, resolvePath, resolveFiles, snapshot, mimeFor, fileUrl, pathFromUrl, pageUrl, pathFromPageUrl, pageDirs, ACTIONS };

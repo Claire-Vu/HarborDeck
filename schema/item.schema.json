@@ -24,7 +24,8 @@
         "properties": {
           "key": { "$ref": "#/$defs/slug" },
           "label": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "recommended": { "type": "boolean" }
+          "recommended": { "type": "boolean" },
+          "why": { "type": "string", "maxLength": 200, "description": "Optional: one short line on what this option means or costs, shown in grey under it on the desk." }
         }
       }
     },

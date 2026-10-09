@@ -29,13 +29,14 @@ let sched = null;
 const schedReady = import('../cli/src/scheduler.js').then(m => { sched = m; }, e => log(`scheduler unavailable: ${e.message}`));
 let topicsMod = null; // topic derivation shared with `harbordeck topic`
 const topicsReady = import('../cli/src/topics.js').then(m => { topicsMod = m; }, e => log(`topics unavailable: ${e.message}`));
-let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, demoSite = null, win = null, allowed = new Set(), logLines = [];
+let settings, home, demo = false, demoSeed = 0, watcher = null, demoAgent = null, demoSite = null, win = null, allowed = new Set(), pageDirs = [], logLines = [];
 
 function log(msg) { logLines.push(`${new Date().toISOString()} ${msg}`); if (logLines.length > 200) logLines.shift(); if (!app.isPackaged) console.log('[harbordeck]', msg); }
 
 function snapshot() {
   const snap = store.snapshot(home, { artifactRoot: settings.artifactRoot });
   allowed = new Set(Object.values(snap.files).filter(f => f && f.exists).map(f => f.abs));
+  pageDirs = store.pageDirs(snap.files);
   let scheduler = null;
   try { scheduler = sched ? sched.statusData(home) : null; } catch (e) { log(`scheduler status: ${e.message}`); }
   const topics = topicsMod ? topicsMod.buildTopics(snap) : {};
@@ -60,11 +61,22 @@ function reload() { if (win && !win.isDestroyed()) win.webContents.send('harbor:
 function serveFile(request) {
   const abs = store.pathFromUrl(request.url);
   if (!abs || !allowed.has(abs)) return new Response('not found', { status: 404 });
+  return sendFile(request, abs, false);
+}
+// harbor://page/<path> in the browser pane's session only: a referenced local .html file and anything in its folder.
+// Hidden files and folders (.ssh, .env, ...) are never served, even inside such a folder.
+const localPage = abs => !!abs && pageDirs.some(d => abs.startsWith(d + path.sep) && !abs.slice(d.length + 1).split(path.sep).some(s => s.startsWith('.')));
+function servePage(request) {
+  const abs = store.pathFromPageUrl(request.url);
+  if (!localPage(abs)) return new Response('not found', { status: 404 });
+  return sendFile(request, abs, true);
+}
+function sendFile(request, abs, page) {
   let stat; try { stat = fs.statSync(abs); } catch (e) { return new Response('not found', { status: 404 }); }
-  const type = store.mimeFor(abs) || 'application/octet-stream';
+  const type = store.mimeFor(abs) || (page && { '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript' }[path.extname(abs).toLowerCase()]) || 'application/octet-stream';
   const headers = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'X-Content-Type-Options': 'nosniff' };
   // SVG and text are inert documents here: no script even if one is ever framed directly.
-  if (/svg|text|json/.test(type)) headers['Content-Security-Policy'] = "default-src 'none'; img-src harbor: data:; style-src 'unsafe-inline'";
+  if (!page && /svg|text|json/.test(type)) headers['Content-Security-Policy'] = "default-src 'none'; img-src harbor: data:; style-src 'unsafe-inline'";
   const range = /bytes=(\d*)-(\d*)/.exec(request.headers.get('range') || '');
   if (range && stat.size) {
     const start = range[1] ? +range[1] : Math.max(0, stat.size - +range[2]);
@@ -104,7 +116,7 @@ function phoneHotkey() {
 }
 app.on('harbor:phone-hotkey', phoneHotkey); // test seam: smoke tests fire the hotkey without a system-wide registration
 function openExternal(url) { if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
-const webPane = createWebPane({ getWin: () => win, getHosts: () => settings.webHosts, openExternal, log });
+const webPane = createWebPane({ getWin: () => win, getHosts: () => settings.webHosts, isLocalPage: url => localPage(store.pathFromPageUrl(url)), servePage, openExternal, log });
 
 function buildMenu() {
   const isMac = process.platform === 'darwin';

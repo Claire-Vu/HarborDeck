@@ -6,8 +6,8 @@ This directory is the maintained source for verifying Harbor Deck's user-facing 
 
 - Launch with `$H launch` (seeded synthetic data dir, no pretend agent) and require every `$H doctor` line to be `ok`.
 - `eval "$($H env)"` in the shell that drives, so `ui.mjs` and chrome-devtools-axi reach this instance only.
-- Seed state: 17 open items, among them `Merge PR 142 (calmer checkout)?` (`pr-142-checkout`, decision, recommended `merge`), `Pick a logo direction` (`logo-direction`), `Quarantine the flaky drag-and-drop test?` (`flaky-e2e`), `Newsletter #6 draft` (`newsletter-6`, its ask already replied), `Review the offline-mode plan` (`plan-offline`, a `web` artifact on the run's loopback demo page `$HDV_SITE`); 2 answer lines; first mates `mate-main` (First Mate), `mate-web`, `mate-growth`; quota windows below 100 %.
-- A fresh profile opens on the `Morning manifest` dialog. Every recipe starts with `$U click --role button --name 'Open the office'`.
+- Seed state: 20 items (19 open), among them `Merge PR 142 (calmer checkout)?` (`pr-142-checkout`, decision, recommended `merge`), `Pick a logo direction` (`logo-direction`), `Quarantine the flaky drag-and-drop test?` (`flaky-e2e`), `Newsletter #6 draft` (`newsletter-6`, its ask already replied), `Review the offline-mode plan` (`plan-offline`, a `web` artifact on the run's loopback demo page `$HDV_SITE`), the question sheet `beta-invites.q1`-`q3` (topic `beta-invites`, options with `why` lines, q1 carries the local report `assets/beta/waves.html`); 2 answer lines; first mates `mate-main` (First Mate), `mate-web`, `mate-growth`; quota windows below 100 %.
+- A fresh profile opens on the `Morning manifest` dialog. Every recipe starts with `$U click --role button --name 'Open the office'` (or `$U press ' '`).
 - Never drive an instance this run did not launch. Never run a bare `hd`; use `$H hd`.
 
 ## Driving conventions
@@ -33,6 +33,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 ## Features
 
+- [Quick calls](./quick-call.md) covers letter keys + Space, question sheets, why lines, Later/defer, take all recommended, lanes and weights, paper layout, local HTML in the pane, the lean manifest, rail scrolling and the stamp tray.
 - [Stamp items](./stamp.md) covers stamping each kind by key and tray, the undo hold, and the line in `answers.jsonl`.
 - [Live agent writes](./live-feed.md) covers CLI and file item writes, resolve, and fleet/quota snapshots appearing on the running desk.
 - [Ask and reply](./ask-reply.md) covers the ask slip, the waiting ticket, the agent's `hd reply`, and reading it on the rail.
