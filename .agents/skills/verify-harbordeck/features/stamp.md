@@ -38,5 +38,5 @@ Preconditions:
 
 - The hold is about 4 s; assert the file after 5 s, never right after the key.
 - Keys do nothing while a textarea, input or modal has focus, and nothing on a fresh profile until `Open the office` closes the manifest.
-- After a stamp the desk moves to another item (~1.4 s in); select explicitly before the next key, and only after `$U wait --css '.toast.undo' --gone --timeout 7000`: a selection made in those first ~1.4 s is overridden by the move (known product gap), so the next key stamps a different item.
+- After a stamp the desk moves to another item (~1.4 s in) unless you select something else first; a pick made during the hold/animation wins (covered by `test/smoke/stamp-select-race.spec.js`). Undo during the hold still restores the stamped item.
 - Closing the app flushes a held line; cleanup during a hold can write it.

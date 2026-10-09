@@ -776,7 +776,9 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
       if (!pending || pending.line !== line) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
       const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); popCash(bonus); }
     }, 300);
-    setTimeout(() => { if (!pending || pending.line !== line) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!pending || pending.line !== line) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
+    // a pick made during the hold wins: only move on while the stamped item is still the one on the desk
+    const held = () => pending && pending.line === line && S.current === it.id;
+    setTimeout(() => { if (!held()) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!held()) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
   });
 }
 // After a clearing stamp is written (the undo hold is over): the tide goal (F7) and the stamp book (F6).
