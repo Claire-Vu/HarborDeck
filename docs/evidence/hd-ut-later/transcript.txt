@@ -1,0 +1,62 @@
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press  
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Renew the domain
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #stamps .stamp[data-verdict=later]
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.laterslip
+exit 0
+Tomorrow morning Oct 10 09:00 AM S
+After the next usage reset Oct 9 03:04 PM ⇧S
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs fill --css .modal.laterslip .ls-at --value 2026-10-12T14:30
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .modal.laterslip .ls-pick .pbtn --text Park
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Forward September receipts
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Shift+S
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #filters .chip --text All
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Rename the repo
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press s
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #parked-btn
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #parked-view .parked-row
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #parked-view .parked-row[data-id="todo-domain"] .pk-back
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/hdv hd resolve analytics-options beta-invites.q1 beta-invites.q2 beta-invites.q3 competitor-scan dashboard-mock flaky-e2e logo-direction newsletter-6 onboarding-copy plan-offline postgres-options pr-142-checkout pricing-launch promo-cut-v2 todo-app-store todo-domain
+ok resolve analytics-options
+ok resolve beta-invites.q1
+ok resolve beta-invites.q2
+ok resolve beta-invites.q3
+ok resolve competitor-scan
+ok resolve dashboard-mock
+ok resolve flaky-e2e
+ok resolve logo-direction
+ok resolve newsletter-6
+ok resolve onboarding-copy
+ok resolve plan-offline
+ok resolve postgres-options
+ok resolve pr-142-checkout
+ok resolve pricing-launch
+ok resolve promo-cut-v2
+ok resolve todo-app-store
+ok resolve todo-domain
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs reload
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press p
+exit 0
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press p
+exit 0
+$ env FM_HOME=/tmp/hdv-fm-ZBgd HD=/tmp/hd-later/HarborDeck/cli/bin/harbordeck.js adapters/firstmate/hd-bridge.sh
+2026-10-09T19:54:23Z hd-bridge: routed ask newsletter-6
+2026-10-09T19:54:23Z hd-bridge: routed request req-1791557620-7
+2026-10-09T19:54:23Z hd-bridge: routed defer todo-domain
+2026-10-09T19:54:23Z hd-bridge: routed defer todo-receipts
+2026-10-09T19:54:23Z hd-bridge: routed defer rename-repo
+exit 0

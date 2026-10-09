@@ -1,0 +1,30 @@
+PASS slip offers tomorrow 9:00 (S)
+PASS slip offers after the next usage reset (⇧S)
+PASS slip has a date/time picker
+PASS picked date/time writes one defer line with until=1791840600 (2026-10-12T14:30)
+line: {"id":"todo-domain","action":"defer","note":"","until":1791840600,"at":1791575629}
+PASS Shift+S writes until = next reset + 60 (1791583480)
+line: {"id":"todo-receipts","action":"defer","note":"","until":1791583480,"at":1791575635}
+PASS S writes until = tomorrow 09:00 (1791648000)
+PASS shelf shows 3 parked
+NOTICE Forward September receipts to the bookkeeper back Oct 9 03:04 PM Bring back now
+DECISION Rename the repo to match the product name? back Oct 10 09:00 AM Bring back now
+NOTICE Renew the domain before it lapses back Oct 12 02:30 PM Bring back now
+PASS shelf row has its return time
+sill: 16 to zero · 3 parked · 2 crew paused
+PASS window sill counts parked
+PASS Bring back now puts it at the desk
+PASS Bring back now writes nothing
+PASS shelf now 2
+all clear: ⚑ Zero waiting anywhere · 2 parked | sill: Zero waiting · 2 parked
+PASS all clear says parked: '⚑ Zero waiting anywhere · 2 parked'
+PASS sill says 'Zero waiting · 2 parked'
+PASS after reload the shelf still shows 2
+plain: PARKED FOR LATER (2) NOTICE Forward September receipts to the bookkeeper back Oct 9 03:04 PM Bring back now DECISION Rename the repo to match the product name? back Oct 10 09:00 AM Bring back now
+PASS plain mode lists Parked for later (2)
+fm-captain-hold.sh hold todo-domain --reason captain deferred todo-domain on HarborDeck until 2026-10-12 14:30 --until 2026-10-13
+fm-captain-hold.sh hold todo-receipts --reason captain deferred todo-receipts on HarborDeck until 2026-10-09 15:04 --until 2026-10-10
+fm-inbox.sh note --request-id hd-rename-repo-defer-1791575641 -- HarborDeck defer on rename-repo "Rename the repo to match the product name?": later, back on the desk 2026-10-10 09:00
+PASS Shift+S hold carries exact time and a date never before it
+PASS picked date/time hold: until 2026-10-12 14:30 -> --until 2026-10-13
+PASS unheld item gets an inbox note with the exact time
