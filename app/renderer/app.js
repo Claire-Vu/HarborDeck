@@ -31,7 +31,7 @@ const G = window.HarborGame;
 // kept per data directory. Prefs are shared by all directories.
 const PREFS_KEY = 'harbor-deck-prefs';
 const deskKey = () => `harbor-deck-desk:${SNAP.home}`;
-const freshPrefs = () => ({ plain: false, sound: false, music: false, musicVol: 40, theme: 'auto', filter: 'all', tab: 'window', tray: true });
+const freshPrefs = () => ({ plain: false, sound: false, music: false, musicVol: 40, theme: 'auto', filter: 'all', tray: true });
 // fun: the harbor game (harbor-game.js): cosmetics owned, ink and tune in use, stamp book, days at the desk, the tide goal
 const freshFun = () => ({ owned: [], ink: 'red', track: 'harbor', badges: {}, spent: 0, dayCount: 0, lastDay: null, tide: null, bestRun: 0 });
 const fresh = () => ({ day: 1, streak: 0, dayOpen: false, dayStart: 0, cash: 0, answers: [], items: {}, positions: {}, stowed: {}, current: null, tickets: { seen: {}, done: {} }, fun: freshFun(), prefs: freshPrefs() });
@@ -45,6 +45,7 @@ function loadState() {
   for (const x of Object.values(S.items)) delete x.shown; // highlights last one look
 }
 try { S.prefs = Object.assign(freshPrefs(), JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) { /* defaults */ }
+delete S.prefs.tab; // the left tabs are gone (window only); an old saved tab is dropped
 loadState();
 const save = () => { try { const { answers, prefs, ...desk } = S; localStorage.setItem(deskKey(), JSON.stringify(desk)); localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
 const now = () => Math.floor(Date.now() / 1000);
@@ -147,13 +148,6 @@ function crewFor(it) {
   const pool = mine.filter(c => it.kind === 'answer' ? /scout/.test(c.id) : !/scout/.test(c.id));
   const list = pool.length ? pool : mine;
   return list.length ? list[hash(it.stream || it.id) % list.length] : null;
-}
-function traits(c) {
-  const t = []; const m = (c.model || '').toLowerCase();
-  if (m.includes('opus')) t.push('Steady hand'); else if (m.includes('sonnet')) t.push('Quick stitch'); else if (m.includes('fable')) t.push('Storyteller'); else if (m) t.push('Second opinion');
-  if (c.effort === 'low') t.push('Light touch'); else if (c.effort === 'medium') t.push('Even keel'); else if (c.effort) t.push('Deep diver');
-  if ((c.rework || 0) === 0 && (c.shipped || 0) >= 3) t.push('Clean record'); else if ((c.rework || 0) >= 2) t.push('Second look');
-  return t;
 }
 const answersToday = () => S.answers.filter(a => a.at >= S.dayStart);
 function regularDelta(a) { const it = byId[a.id]; if (!it) return null; const d = { decide: 2, approve: 2, file: 1, 'needs-work': -1, reject: -2 }[a.action]; return d == null ? null : { stream: it.stream || it.project, d }; }
@@ -344,19 +338,22 @@ const quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, mo
 const HS = HarborScenes;
 const scenes = HS.view({ h, sprite: it => (w => spriteSVG(w.id, it.kind, { mate: w.mate, reg: w.reg, ...face(w), tired: tired(), sweat: impatience(it) >= 1 }))(whoBrings(it)), who: it => whoBrings(it).name,
   age: it => age(now() - it.created), away: it => st(it.id).awaiting, impatience: it => impatience(it), flagged: it => flaggedCount(it), coat: it => G.regular(it.project).coat, now, current: () => S.current,
-  open: id => stepUp(id), flip: d => setScene(HS.step(sceneKind(), d)), jump: k => setScene(k) });
+  open: id => stepUp(id), flip: d => setScene(HS.step(sceneKind(), d)), jump: k => setScene(k), cat: (bell, nap) => harbor.cat(nap ? 'on-pier' : 'on-visitor', bell, nap) });
 const sceneKind = () => (HS.byKind[S.prefs.scene] ? S.prefs.scene : HS.byKind[S.prefs.filter] ? S.prefs.filter : HS.KINDS[0]);
 function setScene(k) { S.prefs.scene = k; S.prefs.filter = k; save(); snd('flip'); renderAll(true); }
+// the top window: the current kind's scene over the harbor sky; the ship cat (F8) sits by its most urgent figure
+// (highest priority, then the most impatient), and naps when the scene is clear
 function renderScenes() {
-  const open = queueItems('all'); const groups = HS.group(open, () => true);
-  scenes.render($('#scenes'), { kind: sceneKind(), groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size });
+  const open = queueItems('all'); const groups = HS.group(open, () => true); const kind = sceneKind();
+  const here = groups[kind].filter(i => !st(i.id).awaiting && i.id !== S.current);
+  const urgent = here.reduce((a, b) => (!a || (prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), null);
+  scenes.render($('#scenes'), { kind, groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size, urgent: urgent?.id, catBell: S.fun.owned.includes('bell') });
 }
-function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else { stepUp(id); selectTab('window'); } }
+function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else stepUp(id); }
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
   $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].filter(k => k === 'all' || counts[k] || S.prefs.filter === k).map(k =>
     h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { S.prefs.filter = k; if (k !== 'all') S.prefs.scene = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
-  $('#tab-window-count').textContent = counts.all; $('#tab-topics-count').textContent = topicView.openCount();
 }
 function renderQueue() {
   const list = queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
@@ -403,30 +400,15 @@ function renderHarbor() {
   harbor.render({ t, open: ITEMS.filter(i => statusOf(i) === 'open'), stamina: staminaMin(), tide: tideNow(), goal, owned: S.fun.owned, days: S.fun.dayCount });
   renderScenes();
 }
+// the visitor at the desk speaks in the top window, over the scene
 function renderWindowScene() {
   const w = $('#at-window'); w.replaceChildren(); w.className = 'at-window';
-  const tz = tired(); const it = byId[S.current]; const t0 = now();
-  // queue outside the window: one sprite per item waiting on the captain (not the one at the counter)
-  const present = queueItems().filter(i => !st(i.id).awaiting); const groups = topicView.groups(present); const mine = groups.get(S.current) || [];
-  const line = present.filter(i => !mine.includes(i) && groups.get(i.id)[0] === i);
+  const it = byId[S.current];
   renderHarbor();
-  const pq = $('#pier-queue'); pq.replaceChildren();
-  // the ship cat (F8) sits on the most urgent visitor outside: highest priority, then the most impatient
-  const urgent = line.slice(0, 7).reduce((a, b) => ((prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), line[0]);
-  line.slice(0, 7).forEach((i, n) => {
-    const who = whoBrings(i); const lvl = impatience(i);
-    const label = `${who.name}${who.mood ? ` (${who.mood})` : ''} · ${i.title} · waiting ${age(t0 - i.created)}${i.due ? ` · due ${age(i.due - t0)}` : ''}${lvl === 2 ? ' · very impatient' : lvl === 1 ? ' · getting impatient' : ''}${i === urgent ? ' · the cat says: this one first' : ''}`;
-    const el = h('div', { class: `pq ${lvl ? 'tap' : ''} ${lvl === 2 ? 'fast' : ''}${i === urgent ? ' urgent' : ''}`, title: label, 'aria-label': label, style: `animation-delay:${(n * 137) % 600}ms`, onclick: () => stepUp(i.id), html: spriteSVG(who.id, i.kind, { mate: who.mate, reg: who.reg, ...face(who), tired: tz, sweat: lvl >= 1, watch: lvl === 2 }) });
-    if (i === urgent) el.append(harbor.cat('on-visitor', S.fun.owned.includes('bell')));
-    pq.append(el);
-  });
-  if (!line.length) pq.append(harbor.cat('on-pier', S.fun.owned.includes('bell'), true));
-  if (line.length > 7) pq.append(h('div', { class: 'pq-more', title: `${line.length - 7} more waiting` }, `+${line.length - 7}`));
-  pq.setAttribute('aria-label', `${line.length} waiting outside the window`);
-  if (!it || statusOf(it) !== 'open') { w.append(h('div', { class: 'empty' }, line.length ? 'N: next at the window' : 'The pier is quiet')); return; }
+  if (!it || statusOf(it) !== 'open') return;
+  const present = queueItems().filter(i => !st(i.id).awaiting); const mine = topicView.groups(present).get(S.current) || [];
   const m = mateFor(it); const who = whoBrings(it);
-  w.append(h('div', { class: 'speech', title: `${m.label} · ${KIND[it.kind].toLowerCase()}` }, quick.ask(it, mine.length > 1 ? mine : [it]), who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : h('small', null, who.mate ? m.label : `from ${who.name}`)),
-    h('div', { class: 'walk', title: `${who.name} at the window`, html: spriteSVG(who.id, it.kind, { mate: who.mate, reg: who.reg, ...face(who), tired: tz, sweat: impatience(it) === 2 }) }));
+  w.append(h('div', { class: 'speech', title: `${m.label} · ${KIND[it.kind].toLowerCase()}` }, quick.ask(it, mine.length > 1 ? mine : [it]), who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : h('small', null, who.mate ? m.label : `from ${who.name}`)));
 }
 function renderYard() {
   const yard = $('#yard'); if (!yard) return; yard.replaceChildren(); const tz = tired();
@@ -784,7 +766,6 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
     if (!stays && !parks) { run = G.comboNext(run, line.at, bulk || extra.length > 0); S.fun.bestRun = Math.max(S.fun.bestRun || 0, run.n); harbor.showRun(run.n); }
     const pitch = stays || parks ? 1 : G.comboPitch(run.n), runN = stays || parks ? 0 : run.n;
     $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud', pitch);
-    const walk = $('#at-window .walk'); if (walk) { const who = whoBrings(it); walk.innerHTML = spriteSVG(who.id, stays ? it.kind : '', { mate: who.mate, reg: who.reg, happy: ink === 'approve' || ink === 'file', sad: ink === 'reject' }); walk.className = `walk ${stays ? 'go-off' : ink === 'reject' ? 'go-sad' : 'go-happy'}`; }
     // a defer leaves the item open; the held line itself parks it (statusOf)
     if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
     for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
@@ -1013,20 +994,6 @@ async function queueOrder(note, to, when) {
   S.prefs.lastMate = to; save(); snd('slide');
   applySnapshot(r.snapshot); return true;
 }
-function renderCrewPane() {
-  const pane = $('#crew-pane'); pane.replaceChildren(staminaPanel());
-  const tz = tired();
-  pane.append(h('h3', { class: 'oh' }, 'Counter staff'), ...FLEET.firstmates.map(m => h('div', { class: 'crew-card mate' }, h('div', { html: spriteSVG(m.id, '', { mate: true, tired: tz }) }), h('div', null, h('div', { class: 'cc-name' }, m.label, h('span', { class: 'tag idle' }, m.state || 'attending')), h('div', { class: 'cc-meta' }, `${m.domain || ''} · ${m.harness || ''} ${m.model || ''}`)))));
-  pane.append(h('h3', { class: 'oh' }, 'Galley'), h('p', { class: 'legend' }, 'Who is cooking what. Crew answer to their first mate, not to you.'));
-  for (const c of FLEET.crew) {
-    const item = c.item && byId[c.item]; const stateLabel = { working: 'cooking', waiting: 'at the window', done: 'ready at the pass', idle: 'on the pier' }[c.state] || c.state;
-    pane.append(h('div', { class: `crew-card ${c.state}` }, h('div', { html: spriteSVG(c.id, c.state === 'idle' ? '' : (item?.kind || 'decision'), { tired: tz }) }),
-      h('div', null, h('div', { class: 'cc-name' }, crewName(c.id), h('span', { class: `tag ${c.state}` }, stateLabel), tz && c.state !== 'idle' ? h('span', { class: 'yawn', title: 'low stamina' }, 'yawning') : null),
-        h('div', { class: 'cc-meta' }, `${mateLabel(c.firstmate)} · ${c.harness} ${c.model} · ${c.effort} · ${c.shipped || 0} shipped, ${c.rework || 0} rework`),
-        h('div', { class: 'cc-traits' }, traits(c).map(t => h('span', { class: 'trait' }, t))),
-        c.task ? h('div', { class: 'cc-task' }, c.task_title || c.task, c.state === 'working' && h('div', { class: 'cook' }, h('span')), item && statusOf(item) === 'open' && h('button', { class: 'ibtn', onclick: () => { stepUp(item.id); selectTab('window'); } }, 'at the window')) : null)));
-  }
-}
 function staminaPanel() {
   const box = h('div', { class: 'stamina' }, h('h3', { class: 'oh' }, 'Stamina'));
   const views = staminaViews();
@@ -1054,7 +1021,7 @@ function renderSchedChip() {
 function renderStaminaMini() {
   renderSchedChip();
   const views = staminaViews(); const m = ST.lowest(views); const box = $('#stamina-cluster'); box.replaceChildren();
-  if (!views.length) { box.append(h('span', { class: 'dim' }, 'no usage data')); box.className = 'stamina-cluster'; $('#tab-crew-flag').hidden = true; document.body.classList.remove('tired'); return; }
+  if (!views.length) { box.append(h('span', { class: 'dim' }, 'no usage data')); box.className = 'stamina-cluster'; document.body.classList.remove('tired'); return; }
   const groups = new Map(); for (const v of views) { if (!groups.has(v.name)) groups.set(v.name, []); groups.get(v.name).push(v); }
   for (const [name, vs] of groups) box.append(h('span', { class: 'ms-group' }, h('span', { class: 'ms-prov' }, name),
     vs.map(v => h('span', { class: `mini-sub ${v.level}${v.model ? ' model' : ''}${v.secs >= 86400 ? ' long' : ''}${v.stale ? ' stale' : ''}`, title: staminaTitle(v), 'aria-label': `${v.label}: ${v.left == null ? 'unknown' : v.left + '% left'}` },
@@ -1065,9 +1032,8 @@ function renderStaminaMini() {
       v.runsOut ? h('span', { class: 'ms-warn' }, `⚠ out ~${staminaWhen(v.runsOut)}`) : null,
       v.stale ? h('span', { class: 'ms-stale' }, 'stale') : null))));
   box.className = `stamina-cluster ${m != null && m < 10 ? 'empty' : m != null && m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
-  $('#tab-crew-flag').hidden = m == null || m >= 25; document.body.classList.toggle('tired', m != null && m < 20);
+  document.body.classList.toggle('tired', m != null && m < 20);
 }
-function selectTab(name) { if (!document.querySelector(`.tab[data-tab="${name}"]`)) name = 'window'; S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'topics') $('#topics-pane').replaceChildren(topicView.list()); }
 
 // ------------------------------------------------------------ day cycle: morning manifest, shift report
 function meter(score, max) { const pct = Math.max(0, Math.min(100, Math.round(((score + max) / (2 * max)) * 100))); return h('div', { class: 'meter' }, h('span', { style: `width:${pct}%` })); }
@@ -1182,7 +1148,7 @@ function renderAll(keepDesk) {
   $('#shift-label').textContent = `Day ${S.day}${S.streak ? ` · ${S.streak}-day streak` : ''}`;
   $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; $('#log-count').textContent = S.answers.length;
   if (S.prefs.plain) { renderPlain(); return; }
-  renderFilters(); renderQueue(); renderWindowScene(); renderYard(); if (keepDesk) renderTray(byId[S.current]); else renderDesk(); renderRail(); selectTab(S.prefs.tab || 'window');
+  renderFilters(); renderQueue(); renderWindowScene(); renderYard(); if (keepDesk) renderTray(byId[S.current]); else renderDesk(); renderRail();
   if ($('#orders').classList.contains('open')) renderOrders();
 }
 // ------------------------------------------------------------ live data: snapshots pushed by the main process on every change
@@ -1280,7 +1246,7 @@ bridge.onMenu(async what => {
 
 const tickClock = () => { $('#clock').textContent = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); };
 tickClock(); setInterval(tickClock, 1000); let parkedSig = ITEMS.filter(i => statusOf(i) === 'later').length;
-setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); if (S.prefs.tab === 'crew') renderCrewPane(); } }, 30000);
+setInterval(() => { const n = ITEMS.filter(i => statusOf(i) === 'later').length; if (n !== parkedSig) { parkedSig = n; if (!typing()) renderAll(true); } renderStaminaMini(); if (!S.prefs.plain) { renderHarbor(); renderRail(); } }, 30000);
 $('#btn-next').onclick = next;
 $('#btn-inspect').onclick = () => setInspect(!document.body.classList.contains('inspect'));
 $('#btn-shop').onclick = () => harbor.openChandlery();
@@ -1327,7 +1293,7 @@ menuEl.addEventListener('keydown', e => {
 });
 document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
 $('#sched-chip').onclick = () => phone.open();
-$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } if (S.prefs.plain) { S.prefs.plain = false; save(); renderAll(); } selectTab('crew'); };
+$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel()); };
 $('#cash').onclick = () => harbor.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
 $('#btn-sound').onclick = () => { S.prefs.sound = !S.prefs.sound; save(); applyPrefs(); snd('ding'); };
@@ -1341,7 +1307,6 @@ $('#rail').addEventListener('wheel', e => { const rail = e.currentTarget; if (ra
 $('#rail').addEventListener('scroll', railCues);
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers);
 document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey));
-document.querySelectorAll('.tab').forEach(t => t.onclick = () => selectTab(t.dataset.tab));
 document.addEventListener('keydown', e => {
   // Cmd/Ctrl+K: search, from anywhere but the ship phone (it swallows keys while up; checked again here)
   if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyK') { e.preventDefault(); if (!phone.isOpen()) { setMenu(false); search.toggle(); } return; }

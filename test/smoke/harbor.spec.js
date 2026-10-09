@@ -41,7 +41,7 @@ test('the window shows the harbor: boats per task, real-clock sky, tide line, re
   await expect(page.locator('#stamina-cluster .mini-sub.model .ms-name')).toHaveText('Opal · week');
   await expect(page.locator('#stamina-cluster .ms-stale')).toHaveCount(0);
   await page.locator('#stamina-cluster').screenshot({ path: path.join(SHOTS, 'harbordeck-stamina.png') });
-  await expect(page.locator('#pier-queue .pq.urgent .ship-cat')).toHaveCount(1);
+  await expect(page.locator('#scenes .sc-fig.urgent .ship-cat')).toHaveCount(1); // the cat sits by the most urgent figure in the scene
   await page.locator('#queue li', { hasText: 'Sign the app store' }).click(); // a project regular brings this one
   await expect(page.locator('#at-window .speech small.memory')).toContainText('First time at your window.');
   await page.locator('.window-frame').screenshot({ path: path.join(SHOTS, 'harbordeck-harbor.png') });

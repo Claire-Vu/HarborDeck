@@ -86,3 +86,24 @@ test('existing keys still work beside the arrows: letters pick, U undoes a stamp
   await page.keyboard.press('u');
   await expect(figs()).toHaveCount(n);
 });
+
+test('the left column is the top scene, the working crew, the kind chips and the list; no tabs', async () => {
+  await expect(page.locator('.window-frame #scenes')).toBeVisible(); // the scene is the big window, not a panel below it
+  await expect(page.locator('.window-frame #scenes .sc-head .sc-arrow')).toHaveCount(2);
+  await expect(page.locator('#yard .zone.galley')).toBeVisible(); // the crew at work replaces the Crew tab
+  await expect(page.locator('.tabs, .tab, .tabpane, #crew-pane, #topics-pane')).toHaveCount(0);
+  const order = await page.evaluate(() => ['.window-frame', '#yard', '#filters', '#queue', '#btn-next'].map(s => Math.round(document.querySelector(s).getBoundingClientRect().top)));
+  expect([...order].sort((a, b) => a - b)).toEqual(order);
+  // the header usage chip opens the long form that used to live on the Crew tab
+  await page.locator('#stamina-cluster').click();
+  await expect(page.locator('.modal.stamina-modal .stamina .sub').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  // a saved pref pointing at a removed tab falls back to the window
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem('harbor-deck-prefs') || '{}'); localStorage.setItem('harbor-deck-prefs', JSON.stringify({ ...p, tab: 'crew' })); });
+  await page.reload();
+  const office = page.getByRole('button', { name: 'Open the office' });
+  if (await office.isVisible().catch(() => false)) await office.click();
+  await expect(page.locator('#queue li').first()).toBeVisible();
+  await expect(page.locator('#scenes .sc-fig').first()).toBeVisible();
+  await page.locator('.window-col').screenshot({ path: path.join(SHOTS, 'harbordeck-left-column.png') });
+});

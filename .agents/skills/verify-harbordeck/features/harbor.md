@@ -1,6 +1,6 @@
 # Living harbor
 
-The window scene carries desk status with no extra keys: one boat per open task (sail size by question count) that sails out once its task is settled, the project's recurring regular at the window with a mood and a one-line memory, a ship cat on the most urgent visitor outside, sky and weather from the real clock and the lowest stamina, and a tide line rising toward the next refill. Quick clearing stamps build a tidy run; cash buys cosmetics in the chandlery; milestones fill a stamp book; the shore town grows with days at the desk; `L` shows the ships-out recap; the harbor music adds a layer per item cleared today.
+The window scene carries desk status with no extra keys: one boat per open task (sail size by question count) that sails out once its task is settled, the project's recurring regular at the window with a mood and a one-line memory, a ship cat by the most urgent figure in the scene, sky and weather from the real clock and the lowest stamina, and a tide line rising toward the next refill. Quick clearing stamps build a tidy run; cash buys cosmetics in the chandlery; milestones fill a stamp book; the shore town grows with days at the desk; `L` shows the ships-out recap; the harbor music adds a layer per item cleared today.
 
 ## Sub-features
 
@@ -8,7 +8,7 @@ The window scene carries desk status with no extra keys: one boat per open task 
 - `harbor-sky` `.window-frame[data-phase=night|dawn|day|dusk]` from the local hour; `[data-weather=fair|cloudy|rain]` from the lowest stamina (rain below 20 %).
 - `harbor-tide` `#sc-tide text` reads `high tide <time>` (or `⚑ beat the tide`); the top bar keeps its own readable usage chips (features/stamina.md).
 - `harbor-regulars` with no crew on the item, the visitor is the project's regular; `#at-window .speech small.memory` reads `<Trade Name>: <memory>`.
-- `harbor-cat` `#pier-queue .pq.urgent .ship-cat` on the most urgent waiting visitor; `.ship-cat.on-pier.nap` when nobody waits.
+- `harbor-cat` `#scenes .sc-fig.urgent .ship-cat` by the most urgent figure in the shown scene (not the one at the desk); `.sc-clear .ship-cat.on-pier.nap` when the scene is clear.
 - `harbor-run` `#run` shows `×N tidy run` for resolving stamps within 8 s; `u` hides it; bundle stamps never count.
 - `harbor-book-shop` cash chip or `b` opens `.modal.chandlery-modal`: `.sb-stamp` (`.got` when earned), `.shop-row` buy buttons; badge toast `New stamp in your book: …` (small corner chip).
 - `harbor-tide-goal` clearing every present item before the shortest window's refill pays a `.cash-pop` (+$50) once per tide, no toast.
@@ -29,7 +29,7 @@ Preconditions:
 - Baseline instance, office opened, doctor `ok`; fresh profile (stamp book empty, till $0).
 
 - **Before.** Run `$H capture harbor before`. `$U eval "document.querySelector('.window-frame').dataset.boats"` prints the boat count; `$U eval "document.querySelector('.window-frame').dataset.phase"` matches the local hour.
-- **Regular and cat.** `$U text --css '#at-window .speech small.memory'` prints `…: First time at your window.`; `$U wait --css '#pier-queue .pq.urgent .ship-cat'` succeeds.
+- **Regular and cat.** `$U text --css '#at-window .speech small.memory'` prints `…: First time at your window.`; `$U wait --css '#scenes .sc-fig.urgent .ship-cat'` succeeds.
 - **Sail out + run.** `$U press 1`, then `$U wait --css '#sc-boats .hb.sailing'`; data-boats drops by one when that task had one item. Press `1` again within 8 s after the next item reaches the desk: `$U wait --css '#run' --text '×2 tidy run'` (the badge appears after the stamp lands, ~0.4 s). `$U press u`: `#run` loses `show`.
 - **Book and shop.** After the hold, `$U wait --css '.toast' --text 'First stamp'`. `$U press b`; `$U text --css '.modal.chandlery-modal .sb-stamp.got'` lists `First stamp`. Buy with `$U click --css '.modal.chandlery-modal .shop-row' --text 'Dock lamp'` only via its button: `$U click --role button --name '$40'`; the row then reads `owned` and `#sc-lamp rect` exists.
 - **Recap.** `$U press Escape`, `$U press l`; `$U wait --css '.modal.ledger .recap-boat'`; `$U text --css '.recap-tally'`.

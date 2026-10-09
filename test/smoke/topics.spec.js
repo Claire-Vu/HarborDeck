@@ -85,15 +85,13 @@ test('one stamp settles the whole bundle, one line per paper, undoable as one', 
   await expect(page.locator('#queue li', { hasText: 'Review onboarding copy v2' })).toHaveCount(0);
 });
 
-test('Topics tab lists topics, open ones first', async () => {
-  await page.locator('.tab[data-tab="topics"]').click();
-  const rows = page.locator('#topics-pane .tp-row');
-  await expect(rows.first()).toBeVisible();
-  await expect(page.locator('#topics-pane .tp-row', { hasText: '#releases' })).toHaveClass(/settled/);
-  await page.locator('#topics-pane .tp-row', { hasText: '#infra' }).click();
-  await expect(page.locator('.modal.topic h2')).toHaveText('Topic · infra');
+test('no Topics tab: O opens the topic page of the item at the desk', async () => {
+  await expect(page.locator('.tab, .tabs')).toHaveCount(0);
+  await page.locator('#filters .chip', { hasText: 'All' }).click();
+  await page.locator('#queue li', { hasText: 'Hosted Postgres' }).click();
+  await page.keyboard.press('o');
+  await expect(page.locator('.modal.topic .topic-page')).toHaveAttribute('data-topic', 'infra');
   await page.keyboard.press('Escape');
-  await page.locator('.tab[data-tab="window"]').click();
 });
 
 test('plain mode: topic chips, topics list and the bundle stamp', async () => {
