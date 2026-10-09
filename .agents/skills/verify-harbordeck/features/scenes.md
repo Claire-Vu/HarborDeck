@@ -33,4 +33,6 @@ Preconditions:
 ## Gotchas
 
 - Flipping a scene also sets the queue filter to that kind, so `N` walks only that kind; click `All` to widen it again.
+- A kind chip with zero items is hidden; reach an empty kind with its `.sc-pip` or the arrows.
+- Arrow keys do nothing while a modal or the phone is open.
 - Arrow keys inside the ticket rail still move between tickets; they flip scenes only outside it.

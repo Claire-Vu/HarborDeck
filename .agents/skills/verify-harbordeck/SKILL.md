@@ -25,7 +25,7 @@ The skill lives in `.agents/skills/verify-harbordeck/`; `.claude/skills/verify-h
 
 ## Launch
 
-Once per worktree: `npm install` (if Electron reports `failed to install correctly`: `npm approve-scripts electron && npm rebuild electron`).
+Once per worktree, and again after any dependency bump: `npm ci` (if Electron reports `failed to install correctly`: `npm approve-scripts electron && npm rebuild electron`). A stale `node_modules` launches the old Electron without complaint; doctor's `electron` line catches it.
 
 ```bash
 H=.agents/skills/verify-harbordeck/scripts/hdv
@@ -44,7 +44,7 @@ Run before the first drive, and again whenever anything looks off (a drive faile
 $H doctor
 ```
 
-Every line must be `ok`: app pid alive, the pid runs this worktree's Electron, the CDP port is owned by that pid tree, the window is titled `Harbor Deck`, the data dir lives in the state dir, the app log says it reads that data dir, and the scheduler's wake command is the stub. It also prints `build <branch>@<sha>` (with `(dirty)` for uncommitted product changes) and item/answer counts. A `FAIL` means relaunch: `$H cleanup && $H launch`.
+Every line must be `ok`: app pid alive, the pid runs this worktree's Electron, the CDP port is owned by that pid tree, the window is titled `Harbor Deck`, the data dir lives in the state dir, the app log says it reads that data dir, the scheduler's wake command is the stub, and the installed Electron is the one `package.json` pins. It also prints `build <branch>@<sha>` (with `(dirty)` for uncommitted product changes) and item/answer counts. A `FAIL` means relaunch: `$H cleanup && $H launch` (an `electron` FAIL: `$H cleanup && npm ci && $H launch`).
 
 ## Drive
 
@@ -60,10 +60,12 @@ $U click --role button --name 'Open the office'      # ARIA role + accessible na
 $U click --css '#queue li' --text 'Merge PR 142'     # app id/class + visible text
 $U press 1                                           # keyboard: 1-4 / ' ' stamp, a-e pick, j/k row, s later, Shift+A take recs, u undo, n next, t tickets, p plain, Shift+B book, l ships out, Escape
 $U fill --css '.modal.noteslip textarea' --value 'why?'
+$U drag --css '#desk-surface .paper .grip' --to '#stow-box'   # pointer drag (or --by dx,dy)
 $U wait --css '#rail .ticket.replied' --text 'Quarantine' [--gone] [--timeout 15000]
 $U text --css '#desk-surface .paper.manifest h3'     # print matching text
-$U aria --out f.aria.yml ; $U shot f.png ; $U eval 'document.title'   # inspection only
-$U text --pane --css h1 ; $U click --pane --css '#s2' ; $U shot --pane p.png   # inside the open browser pane
+$U aria --out f.aria.yml ; $U shot f.png [--size 960x600] ; $U eval 'document.title'   # inspection only
+$U reload                                            # reload the desk page (persistence checks)
+$U text --pane --css h1 ; $U click --pane --css '#s2' ; $U shot --pane p.png   # inside the open browser pane (http or local harbor:// page)
 ```
 
 Stable handles (from `app/renderer/index.html` and `app.js`):
@@ -78,18 +80,18 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.waitn`, `.upd`, `.chg`, `.chg-note`, `.modal.search .sr-in` / `.sr-row[aria-selected=true]`, `#btn-search`, key `Meta+k` | review tools (features/review-tools.md) |
 | `#scenes[data-scene][data-count]`, `.sc-fig[.leaving\|.at-desk\|.away]`, `.sc-arrow.prev\|.next`, `.sc-pip`, `.sc-go`, `.sc-clear`, keys `ArrowLeft`/`ArrowRight` | scenes (features/scenes.md) |
-| `#stow[data-n]`, `#stow-box`, `#stow-list .stowed\|.all`, `.paper .stow-btn`, keys `x`/`Shift+X` | storage box (features/storage-box.md) |
+| `#stow[data-n]`, `#stow-n`, `#stow-box`, `#stow-stack .leaf`, `#stow-view .stow-card[data-pid]` / `.all`, `.paper .stow-btn`, keys `x`/`Shift+X` | storage box (features/storage-box.md) |
 | `.toast.undo` | small bottom-right chip: the 4 s undo hold after a stamp; `u` drops it |
 | `.cash-pop` | floating `+$n` under the cash chip (merges quick earnings, no clicks); cash is no longer a `.toast`. Info `.toast`s are small corner chips; `.toast.warn` stays until its `×` |
 | `.modal.noteslip textarea` + button `Send` | note slip for Ask / Needs work |
 | `#rail .ticket.waiting\|.queued\|.replied[.new]`, `.tk-foot`, `.tk-pop` | ticket rail (asks, orders, queued orders) and its popover |
-| `#btn-menu`, key `m`; `#menu` with `#btn-inspect`, `#btn-plain`, `#btn-shop`, `#btn-orders`, `#btn-vault`, `#btn-ledger`, `#btn-log`, `#btn-sound`, `#btn-music`, `#music-vol`, `#btn-theme`, `#btn-settings` | header menu: every moved control lives here (open it first; Esc/outside click/action closes it; sound, music, theme keep it open). Header keeps only `#btn-phone`, `#btn-menu` (+`#orders-flag`) |
+| `#btn-menu`, key `m`; `#menu` (entries are `role=menuitem`, not buttons) with `#btn-inspect`, `#btn-plain`, `#btn-shop`, `#btn-orders`, `#btn-vault`, `#btn-ledger`, `#btn-log`, `#btn-sound`, `#btn-music`, `#music-vol`, `#btn-theme`, `#btn-settings` | header menu: every moved control lives here (open it first; Esc/outside click/action closes it; sound, music, theme keep it open). Header keeps only `#btn-phone`, `#btn-menu` (+`#orders-flag`) |
 | `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`, key `Alt+Enter`, `.phone-q` buttons `Queue for after reset` / `Queue at time`, input `Send at time`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, queue for the reset or a time, sent cue (the only desk entry point for new orders) |
-| `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>`; click opens the phone |
-| button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
+| `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <time to reset> · ☕ <awake until>`; click opens the phone |
+| `#btn-menu` → menuitem `Agent log` (`#btn-log`) → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .ms-group` (`.ms-prov`), `.mini-sub[.model][.stale]` (`.ms-name`, `.ms-pct`, `.ms-time` = `↻ <countdown>`, `.ms-warn`, `.ms-stale`, `[title]`), `#yard .yc.cook` | usage left per window (features/stamina.md; from quota.json + `schedule/rate-limits.json`), crew sprites (fleet.json) |
 | `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#scenes .sc-fig.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
-| cash chip / key `b` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
+| cash chip / key `Shift+B` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` or menu `#btn-ledger` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
 | `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
 
 `chrome-devtools-axi` also attaches (`eval "$($H env)"` sets its browser URL and a per-instance session) and is fine for reading (`snapshot`, `screenshot`, `console`). Do not click with its `@uid` refs: the desk re-renders every second (clock, animations), so refs go `STALE_REF` between the snapshot and the click. Use `ui.mjs` for every action.

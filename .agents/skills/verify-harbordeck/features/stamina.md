@@ -24,8 +24,8 @@ Preconditions:
 
 - Baseline instance, office opened, doctor `ok`. `t=$(date +%s)`.
 
-- **Quota reading.** `echo '[{"name":"Claude","window":"5h","used_pct":17,"resets_at":'$((t+15120))',"at":'$((t-300))'},{"name":"Claude","window":"7d","used_pct":3,"resets_at":'$((t+540000))',"at":'$((t-300))'},{"name":"Claude","model":"Fable","window":"7d","used_pct":0,"resets_at":'$((t+540000))',"at":'$((t-300))'}]' | $H hd quota -`. `$U text --css '#stamina-cluster'` prints `Claude 5h 83% ↻ 4h 12m … week 97% ↻ 6d 6h Fable · week 100% ↻ 6d 6h`.
-- **Fresher status line wins.** `echo '{"rate_limits":{"five_hour":{"used_percentage":18,"resets_at":'$((t+15120))'},"seven_day":{"used_percentage":2,"resets_at":'$((t+540000))'}}}' | $H hd limit snapshot`. The 5h chip shows `82%` and `⚠ out ~<time>`; `$U eval '[...document.querySelectorAll("#stamina-cluster .mini-sub")].map(e=>e.title).join("\n")'` shows `Claude Code status line, just now` for 5h and week, `quota.json, 5m ago` for Fable.
+- **Quota reading.** `echo '[{"name":"Claude","window":"5h","used_pct":17,"resets_at":'$((t+15120))',"at":'$((t-300))'},{"name":"Claude","window":"7d","used_pct":3,"resets_at":'$((t+540000))',"at":'$((t-300))'},{"name":"Claude","model":"Fable","window":"7d","used_pct":0,"resets_at":'$((t+540000))',"at":'$((t-300))'}]' | $H hd quota -`. `$U text --css '#stamina-cluster'` prints `Claude 5h 83% ↻ 4h 12m ⚠ out ~<time> week 97% ↻ 6d 6h Fable · week 100% ↻ 6d 6h` (17 % used 5 min after the window opened already projects a run-out).
+- **Fresher status line wins.** `echo '{"rate_limits":{"five_hour":{"used_percentage":18,"resets_at":'$((t+15120))'},"seven_day":{"used_percentage":2,"resets_at":'$((t+540000))'}}}' | $H hd limit snapshot`. The 5h chip shows `82%` and a later `⚠ out ~<time>`; `$U eval '[...document.querySelectorAll("#stamina-cluster .mini-sub")].map(e=>e.title).join("\n")'` shows `Claude Code status line, just now` for 5h and week, `quota.json, 5m ago` for Fable.
 - **Stale and reset.** `rm $HDV_HOME/schedule/rate-limits.json`, then write a quota row with `"at":'$((t-10800))'` and `"resets_at":'$((t-600))'`: its chip shows `?`, `reset`, `STALE`.
 - **Any provider.** A row `{"name":"Acme","window":"1d",...}` gets its own `.ms-group` labelled `Acme` with `day`.
 - **Capture.** `$H capture stamina header`.
@@ -34,4 +34,5 @@ Preconditions:
 
 - The status line only reports Claude Code's account windows, always named `Claude`; it merges with quota.json rows named `Claude` (same `model`, same window length).
 - A reset that has passed is never rolled forward: what is left is unknown until a new reading lands.
+- Expected texts assume the default 1440 px window: at 1120-1360 px the week chips drop their `↻`, at 860 px or less bars and countdowns hide until the cluster is clicked.
 - The app reloads on `rate-limits.json` writes (polled every 3 s), so allow a few seconds after `hd limit snapshot`.

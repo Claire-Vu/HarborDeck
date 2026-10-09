@@ -1,12 +1,12 @@
 # Ship phone
 
-A person brings up the ship phone with the phone shortcut (default `⇧⌘Space`, a setting) or the speaking-tube icon in the top bar; it takes the middle of the desk with the pad focused. They dial a first mate, type, and `Enter` writes one `request` line to `answers.jsonl`; the phone hangs up with a check on the icon. `⌥Enter` (or `Queue for after reset`) and a time plus `Queue at time` hold the order in the scheduler instead (see [Queue for after reset](./scheduler.md)). The agent answers by writing an item whose id is the request id. The phone is the only desk entry point for new orders (plain mode has its own form). `Esc` or the shortcut hangs up and keeps an unsent draft. From another app the same shortcut brings Harbor Deck forward with the phone open.
+A person brings up the ship phone with the phone shortcut (default `⇧⌘Space`, a setting) or the megaphone icon in the top bar; it takes the middle of the desk with the pad focused. They dial a first mate, type, and `Enter` writes one `request` line to `answers.jsonl`; the phone hangs up with a check on the icon. `⌥Enter` (or `Queue for after reset`) and a time plus `Queue at time` hold the order in the scheduler instead (see [Queue for after reset](./scheduler.md)). The agent answers by writing an item whose id is the request id. The phone is the only desk entry point for new orders (plain mode has its own form). `Esc` or the shortcut hangs up and keeps an unsent draft. From another app the same shortcut brings Harbor Deck forward with the phone open.
 
 ## Sub-features
 
 - `phone-open` shortcut or `#btn-phone` opens `#phone` centered, `.phone-pad` focused, `#btn-phone[aria-expanded=true]`; shortcut again or `Esc` closes it.
-- `phone-dial` `1`-`9` and arrows dial while the pad is empty (digits type once speaking); `Cmd/Ctrl+1`-`9` any time; click a `.dial-pos`. The lit position is `[aria-checked=true]`; the last dialed is remembered.
-- `phone-send` `Enter` writes `{"id":"req-…","action":"request","note","to"}` at once (no undo hold); `Shift+Enter` is a new line; `#btn-phone.sent` cue, no toast, an `ORDER` ticket on the rail.
+- `phone-dial` `1`-`9` and arrows dial while the pad is empty (digits type once speaking); `Cmd/Ctrl+1`-`9` any time; click a `.dial-pos`. The lit position is `[aria-checked=true]`; the mate of the last send or queue is remembered (a dial without a send is not).
+- `phone-send` `Enter` writes `{"id":"req-…","action":"request","note","to"}` at once (no undo hold); `Shift+Enter` is a new line; `#btn-phone.sent` cue, no toast, an order ticket on the rail (text `order`, shown uppercase).
 - `phone-queue` `⌥Enter` in the pad or `.phone-q` `Queue for after reset` queues for the reset; `Tab` cycles dial → pad → `Queue for after reset` → input `Send at time` → `Queue at time` (enabled once a time is set; `Enter` in the time field queues). Digits and arrows in the time field never dial. Nothing reaches `answers.jsonl`; a `.ticket.queued` clips to the rail and `#sched-chip` counts it. `#sched-chip` click opens the phone.
 - `phone-reply` `hd reply <request-id> "<text>"` creates an `answer` item with that id; the order ticket turns replied.
 - `phone-modal` while the phone is up, desk keys (`1`-`4` stamps, `n`, `t`…) never reach the desk.
@@ -16,7 +16,7 @@ A person brings up the ship phone with the phone shortcut (default `⇧⌘Space`
 ## How to get to it (user POV)
 
 - `⇧⌘Space` (Ctrl+Shift+Space off macOS) anywhere in the app.
-- The speaking-tube icon, first in the top-bar tools.
+- The megaphone icon (`#btn-phone`), first in the top-bar tools.
 - `⇧⌘Space` from any other app (system-wide; not registered in headless runs).
 
 ## Driving it with hdv + ui.mjs

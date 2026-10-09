@@ -21,7 +21,7 @@ Preconditions:
 - Baseline instance, office opened, doctor `ok`.
 - `Quarantine the flaky drag-and-drop test?` (`flaky-e2e`) is open with no ask yet.
 
-- **Ask.** Run `$U click --css '#queue li' --text 'Quarantine the flaky'`, `$U press 4`, `$U fill --css '.modal.noteslip textarea' --value 'how often does it fail locally?'`, `$U click --role button --name Send --exact`. Within a second `answers.jsonl` ends with `{"id":"flaky-e2e","action":"ask","note":"how often does it fail locally?",...}` (asks are not held).
+- **Ask.** Run `$U click --css '#queue li' --text 'Quarantine the flaky'`, `$U press 4`, `$U fill --css '.modal.noteslip textarea' --value 'how often does it fail locally?'`, `$U click --role button --name Send --exact`. The undo chip shows; after the 4 s hold (`$U wait --css '.toast.undo' --gone --timeout 7000`) `answers.jsonl` ends with `{"id":"flaky-e2e","action":"ask","note":"how often does it fail locally?",...}` and the ticket appears.
 - **Ticket.** Run `$U wait --css '#rail .ticket.waiting' --text 'Quarantine'`, then `$H capture ask-reply asked`.
 - **Agent reply.** Run `$H hd reply flaky-e2e "Never locally; only on the slow runner."`. Stdout `ok reply flaky-e2e`; `$U wait --css '#rail .ticket.replied.new' --text 'Quarantine'` succeeds.
 - **Read.** Run `$U click --css '#rail .ticket.replied.new' --text 'Quarantine'` and `$U text --css '.tk-pop'`. It contains `only on the slow runner`.
