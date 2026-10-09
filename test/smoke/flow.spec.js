@@ -152,5 +152,6 @@ test('F3 + F8: fast Space presses each stamp the next item; the empty list reads
     .toEqual(['todo-app-store', 'todo-domain', 'todo-receipts']);
   const empty = page.locator('#queue li.q-empty');
   await expect(empty).toHaveText('Nobody at the window.');
-  expect((await empty.boundingBox()).height).toBeLessThan(50); // one line (it wrapped to three, ~76 px)
+  // the list is redrawn on every snapshot (the held lines land after the hold): measure whichever copy is current
+  await expect.poll(async () => (await empty.boundingBox())?.height ?? Infinity).toBeLessThan(50); // one line (it wrapped to three, ~76 px)
 });
