@@ -54,7 +54,7 @@ test('dial by number and arrows, digits type once speaking, Enter sends one requ
   await page.keyboard.press('Enter');
   await expect(page.locator('#phone')).toHaveCount(0);
   await expect(page.locator('#btn-phone.sent')).toBeVisible();
-  await expect(page.locator('.toast', { hasText: 'Order handed to' })).toBeVisible();
+  await expect(page.locator('.toast')).toHaveCount(0); // the ticket on the rail is the feedback
   const lines = answers();
   expect(lines.length).toBe(before + 1); // no undo hold, nothing else written
   expect(lines.at(-1)).toMatchObject({ action: 'request', note: 'Ship 2 fixes\ntoday', to: 'mate-web' });

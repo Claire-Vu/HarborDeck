@@ -6,7 +6,7 @@ A person brings up the ship phone with the phone shortcut (default `⇧⌘Space`
 
 - `phone-open` shortcut or `#btn-phone` opens `#phone` centered, `.phone-pad` focused, `#btn-phone[aria-expanded=true]`; shortcut again or `Esc` closes it.
 - `phone-dial` `1`-`9` and arrows dial while the pad is empty (digits type once speaking); `Cmd/Ctrl+1`-`9` any time; click a `.dial-pos`. The lit position is `[aria-checked=true]`; the last dialed is remembered (shared with the Requests tab).
-- `phone-send` `Enter` writes `{"id":"req-…","action":"request","note","to"}` at once (no undo hold); `Shift+Enter` is a new line; `#btn-phone.sent` cue, `Order handed to …` toast, an `ORDER` ticket on the rail.
+- `phone-send` `Enter` writes `{"id":"req-…","action":"request","note","to"}` at once (no undo hold); `Shift+Enter` is a new line; `#btn-phone.sent` cue, no toast, an `ORDER` ticket on the rail.
 - `phone-modal` while the phone is up, desk keys (`1`-`4` stamps, `n`, `t`…) never reach the desk.
 - `phone-setting` Settings → Phone shortcut changes the key in the app and system-wide; the note under it says `Taken by another app` when the system-wide registration failed.
 - `phone-global` the system-wide hotkey brings the window forward with the phone open (the only thing that raises the window).

@@ -27,7 +27,7 @@ Preconditions:
 
 - **Before.** Run `$H capture stamp before`.
 - **Select.** Click the PR item. Run `$U click --css '#queue li' --text 'Merge PR 142'`. `$U text --css '#desk-surface .paper.manifest h3'` prints `Merge PR 142 (calmer checkout)?`.
-- **Stamp.** Press `1`. Run `$U press 1` then `$U wait --css '.toast.undo'`. The undo toast shows and `answers.jsonl` has no new line yet (`wc -l "$HDV_HOME/answers.jsonl"` unchanged).
+- **Stamp.** Press `1`. Run `$U press 1` then `$U wait --css '.toast.undo'`. The undo chip (`Undo U`, bottom-right, no text about the decision) shows and `answers.jsonl` has no new line yet (`wc -l "$HDV_HOME/answers.jsonl"` unchanged).
 - **Hold elapses.** Wait 5 s. The last line of `$HDV_HOME/answers.jsonl` is `{"id":"pr-142-checkout","action":"decide","key":"merge",...}`.
 - **Undo.** Select `Pick a logo direction`, press `2`, then `u` within 4 s. Run `$U click --css '#queue li' --text 'Pick a logo'`, `$U press 2`, `$U wait --css '.toast.undo'`, `$U press u`. After 5 s `answers.jsonl` is byte-identical to before.
 - **Tray.** Select another item and click a tray stamp. Run `$U click --css '#stamps .stamp[data-verdict=reject]'`. A `reject` line lands after the hold.
