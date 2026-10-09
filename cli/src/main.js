@@ -7,7 +7,7 @@ import { Store, SLUG, homeDir, writeAtomic } from './store.js';
 import { validate } from './schema.js';
 import { SCHEDULER_COMMANDS } from './scheduler-cli.js';
 import { TOPIC_COMMANDS, NOTE_FLAGS } from './topics-cli.js';
-import { parseArt, isUrl, absPath } from './artifacts.js';
+import { parseArt, isUrl, absPath, attachOptArt } from './artifacts.js';
 
 export const VERSION = '1.0.0';
 const KINDS = ['decision', 'answer', 'review', 'todo'];
@@ -160,15 +160,7 @@ function buildItem(kind, argv, ctx) {
       const why = v.slice(i + 1).trim();
       if (why) o.why = why;
     }
-    for (const v of flags['opt-art'] || []) {
-      const i = v.indexOf('=');
-      const o = i > 0 && item.options.find((x) => x.key === v.slice(0, i).trim());
-      if (!o) fail(`decision ${id}: --opt-art "${v}" needs <option key>=<[type:]path|url> for one of ${keys.join(', ')}`);
-      if (o.artifact) fail(`decision ${id}: option ${o.key} already has an --opt-art`);
-      const ref = v.slice(i + 1).trim();
-      if (!ref) fail(`decision ${id}: --opt-art "${v}" is missing the path or URL`);
-      try { o.artifact = parseArt(ref, ctx); } catch (e) { fail(`decision ${id}: ${e.message}`); }
-    }
+    attachOptArt(item.options, flags['opt-art'] || [], ctx, `decision ${id}`, fail);
   } else if (kind === 'decision') fail(`decision ${id}: needs at least one --opt`);
   if (flags['opt-art'] && kind !== 'decision') fail(`${kind} ${id}: --opt-art is for decision options only`);
   if (flags.why && kind !== 'decision') fail(`${kind} ${id}: --why is for decision options only`);
