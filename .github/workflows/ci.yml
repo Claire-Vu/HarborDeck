@@ -26,5 +26,7 @@ jobs:
       # so `npm run garden` skips itself here; test/unit/file-size.test.js carries its file-growth rule.
       - run: npm test
       - run: npm run check
+      # Public repo: OCR every committed image/video for usernames and home paths (text is covered by npm test).
+      - run: npm run test:privacy-images
       - run: npm run test:smoke
       - run: npm audit --audit-level=high
