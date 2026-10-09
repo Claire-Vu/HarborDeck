@@ -116,6 +116,7 @@ test('queue at a time from the keyboard: Tab to the time, digits never dial, Ent
   await expect(dial).toHaveAttribute('data-mate', 'mate-web');
   await page.keyboard.type('Rotate the staging keys');
   await expect(page.getByRole('button', { name: 'Queue at time' })).toBeDisabled();
+  await page.keyboard.press('Tab'); await expect(page.getByRole('button', { name: 'Snap desk' })).toBeFocused(); // the image tray sits under the pad
   await page.keyboard.press('Tab'); await expect(page.getByRole('button', { name: 'Queue for after reset' })).toBeFocused();
   await page.keyboard.press('Tab'); await expect(page.getByLabel('Send at time')).toBeFocused();
   await page.keyboard.type('0345'); await page.keyboard.press('a'); // fills the time field (am, where the locale asks): the dial stays on the Web mate

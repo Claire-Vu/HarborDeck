@@ -51,7 +51,8 @@ Source files must stay under 400 non-blank lines (`test/unit/file-size.test.js`,
 - `BrowserWindow`: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity: true`. Never loosen these.
 - The renderer loads only `file://` (own app files). Popups are denied; any navigation off `file://` is cancelled and opened in the system browser (`http(s)` only).
 - **Web-pane allow-list** (`web-allow.js`): `http(s)` to loopback, or hosts the user lists in Settings; no credentials in URLs. Everything else goes to the system browser. The pane has no preload, no node, permissions denied, its own `persist:harbor-web` session.
-- **`harbor://`**: `harbor://file/...` serves only files referenced by current items (path in the snapshot's allow set); text and SVG get a `default-src 'none'` CSP. `harbor://page/...` exists in the pane's session only and serves a referenced local `.html` and its folder, never hidden files or folders. Both support Range.
+- **`harbor://`**: `harbor://file/...` serves only files referenced by current items, and the app's own `attachments/` copies named by answer lines (path in the snapshot's allow set); text and SVG get a `default-src 'none'` CSP. `harbor://page/...` exists in the pane's session only and serves a referenced local `.html` and its folder, never hidden files or folders. Both support Range.
+- **Attachments** (`app/lib/attach.js`): `harbor:attach` takes bytes, never a path; type by magic bytes (PNG, JPEG, WebP, GIF; no SVG), 15 MB cap, content-addressed atomic 0600 write under `<home>/attachments/`. An answer line naming anything else is refused. `harbor:snap` captures this window only (`capturePage`), so no Screen Recording permission.
 - IPC handlers validate their input; `open-path` and `open-external` check the allow set / URL scheme.
 - Public repo: no private data or secrets in code, fixtures or docs. Demo content is synthetic.
 

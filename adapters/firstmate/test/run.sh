@@ -135,6 +135,9 @@ cat > "$HARBORDECK_HOME/answers.jsonl" <<'EOF'
 {"id":"free-2","action":"defer","until":1791540000,"note":"","at":11}
 {"id":"req-10","action":"request","note":"Never use max effort","to":"sm","rule":true,"at":12}
 {"id":"res-1","action":"needs-work","note":"always cite sources","rule":true,"at":13}
+{"id":"res-1","action":"comment","note":"see [1] overlap","attachments":[{"type":"image","path":"/hd/attachments/2026-10/aa.png","marked":"/hd/attachments/2026-10/aa.marked.png"},{"type":"image","path":"/hd/attachments/2026-10/bb.png"}],"at":15}
+{"id":"req-11","action":"request","note":"Fix this","to":"sm","attachments":[{"type":"image","path":"/hd/attachments/2026-10/cc.png"}],"at":16}
+{"id":"held-1","action":"reject","note":"","attachments":[{"type":"image","path":"/hd/attachments/2026-10/dd.png"}],"at":17}
 EOF
 day=$(date -r 1791540000 +%Y-%m-%d 2>/dev/null || date -d @1791540000 +%Y-%m-%d)
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
@@ -167,6 +170,10 @@ check "bridge: plain request has no Standing order" test "$(grep -F 'request-id 
 check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/items/held-1.json")" = resolved
 check "bridge: Later on a question defers its held task" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until $day --until $day" "$log"
 check "bridge: Later on an unheld item is a note" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk $day" "$log"
+check "bridge: comment lists its images, marked copy first" grep -qF "HarborDeck comment on res-1 \"Research\": see [1] overlap. Attached: /hd/attachments/2026-10/aa.marked.png, /hd/attachments/2026-10/bb.png. Reply: $HD reply res-1" "$log"
+check "bridge: request carries its image" grep -qF "request-id req-11 -- HarborDeck request for sm: Fix this. Attached: /hd/attachments/2026-10/cc.png. Reply:" "$log"
+check "bridge: keyed reject with an image also notes it" grep -qF "request-id hd-held-1-reject-17 -- HarborDeck reject on held-1 \"Ship 2.4?\". Attached: /hd/attachments/2026-10/dd.png" "$log"
+check "bridge: answers without images say nothing about them" test "$(grep -c 'Attached:' "$log")" = 3
 check "bridge: deferred item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-3.q2.json")" = open
 check "bridge: asked item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-2.json")" = open
 before=$(wc -l < "$log")

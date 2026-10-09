@@ -14,7 +14,7 @@
     "garden": "g=${GARDEN:-$HOME/.agents/skills/garden/bin/garden.mjs}; if [ -f \"$g\" ]; then node \"$g\" check .; else echo \"garden: $g not installed; skipped (see .garden/)\"; fi",
     "test:smoke": "playwright test",
     "test:roundtrip": "node test/live/agent-roundtrip.mjs",
-    "check": "node --check app/main.js && node --check app/preload.js && node --check app/renderer/app.js && node --check app/renderer/schedule-view.js && node --check app/renderer/stamina.js && node --check app/renderer/topic-view.js && node --check app/renderer/harbor-game.js && node --check app/renderer/harbor-scene.js && node --check app/renderer/phone-view.js && node --check app/renderer/changes.js && node --check app/renderer/search-view.js && node --check app/renderer/option-preview.js && node --check app/renderer/quick-call.js && node --check app/renderer/scene-view.js && node --check cli/src/scheduler.js",
+    "check": "node --check app/main.js && node --check app/preload.js && node --check app/renderer/app.js && node --check app/renderer/schedule-view.js && node --check app/renderer/stamina.js && node --check app/renderer/topic-view.js && node --check app/renderer/harbor-game.js && node --check app/renderer/harbor-scene.js && node --check app/renderer/phone-view.js && node --check app/renderer/attach-view.js && node --check app/renderer/markup-view.js && node --check app/lib/attach.js && node --check app/renderer/changes.js && node --check app/renderer/search-view.js && node --check app/renderer/option-preview.js && node --check app/renderer/quick-call.js && node --check app/renderer/scene-view.js && node --check cli/src/scheduler.js",
     "dist": "electron-builder --mac dir",
     "dist:dmg": "electron-builder --mac dmg"
   },

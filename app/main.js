@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
 const store = require('./lib/store');
+const attach = require('./lib/attach');
 const { watchHome } = require('./lib/watch');
 const { runOnAnswer } = require('./lib/hook');
 const { loadSettings, saveSettings, effectiveHome } = require('./lib/settings');
@@ -152,13 +153,31 @@ ipcMain.handle('harbor:schedule', (e, req) => {
     const r = req && req.request;
     if (!r || typeof r.note !== 'string') throw new Error('invalid request');
     const when = req.when === 'reset' ? 'reset' : Math.floor(+req.when);
-    const out = sched.enqueue(home, { when, request: { id: String(r.id), note: r.note, to: r.to ? String(r.to) : undefined, rule: r.rule === true } });
+    const attachments = attach.clean(home, r.attachments) || undefined; // written with the request line at delivery
+    const out = sched.enqueue(home, { when, request: { id: String(r.id), note: r.note, to: r.to ? String(r.to) : undefined, rule: r.rule === true, attachments } });
     log(`queued ${out.id}`);
     return { ok: true, id: out.id, snapshot: snapshot() };
   } catch (err) { log(`schedule rejected: ${err.message}`); return { ok: false, error: err.message }; }
 });
 ipcMain.handle('harbor:schedule-cancel', (e, id) => {
   try { const hits = sched ? sched.cancel(home, String(id)) : []; return { ok: hits.length > 0, snapshot: snapshot() }; } catch (err) { return { ok: false, error: err.message }; }
+});
+// An image the user pasted, dropped or snapped: copied into <home>/attachments at once (lib/attach.js validates
+// type and size). The renderer keeps its own bytes for previews; answers name the returned path.
+ipcMain.handle('harbor:attach', (e, bytes) => {
+  try { const r = attach.save(home, bytes); log(`attached ${path.basename(r.path)}`); return { ok: true, path: r.path }; }
+  catch (err) { log(`attach refused: ${err.message}`); return { ok: false, error: err.message }; }
+});
+// Snap: this window only (no Screen Recording permission). The renderer hides its own overlays first.
+ipcMain.handle('harbor:snap', async () => {
+  try {
+    if (!win || win.isDestroyed()) throw new Error('no window');
+    // capturePage can hand back the last composited frame: force a fresh paint of the overlay-free page first
+    win.webContents.invalidate(); await new Promise(r => setTimeout(r, 120));
+    const png = (await win.webContents.capturePage()).toPNG();
+    const r = attach.save(home, png); log(`snapped ${path.basename(r.path)}`);
+    return { ok: true, path: r.path, bytes: png };
+  } catch (err) { log(`snap failed: ${err.message}`); return { ok: false, error: err.message }; }
 });
 ipcMain.handle('harbor:open-external', (e, url) => openExternal(String(url)));
 ipcMain.handle('harbor:open-path', (e, url) => { const abs = store.pathFromUrl(url); if (abs && allowed.has(abs)) return shell.openPath(abs); return 'not allowed'; });

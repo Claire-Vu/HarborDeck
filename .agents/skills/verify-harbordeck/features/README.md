@@ -39,6 +39,7 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Stamina](./stamina.md) covers the top bar usage chips: % left per window, countdowns, run-out warning, per-model windows, stale readings, quota.json vs the Claude Code status line.
 - [Live agent writes](./live-feed.md) covers CLI and file item writes, resolve, and fleet/quota snapshots appearing on the running desk.
 - [Ask and reply](./ask-reply.md) covers the ask slip, the waiting ticket, the agent's `hd reply`, and reading it on the rail.
+- [Image attachments](./attachments.md) covers pasting, dropping and snapping images onto the phone and the Ask / Needs-work / Mismatch slips, the markup (pins, boxes, arrows, notes), the `attachments` answer field, thumbnails on the rail, queueing with images, Add to… (a comment on running work) and the bridge's `Attached:` relay.
 - [Ship phone](./phone.md) covers the phone shortcut and header icon, dialing a first mate, sending with Enter, queueing for the reset or a time, the agent answering a request id, hanging up, and the shortcut setting.
 - [Browser pane](./browser-pane.md) covers web/lavish artifact cards, the in-desk page, its controls, and the refusal of off-machine pages.
 - [Scenes](./scenes.md) covers one scene per kind with a figure per open item, arrow and chip navigation, figures leaving on a stamp, the per-scene quirks and progress to zero.

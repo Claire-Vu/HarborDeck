@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { fileURLToPath } = require('url');
+const attach = require('./attach');
 
 const TEXT_EXT = new Set(['.md', '.markdown', '.txt', '.log', '.json', '.csv', '.yaml', '.yml']);
 const MIME = {
@@ -99,6 +100,8 @@ function appendAnswer(home, line) {
   if (line.to != null) out.to = String(line.to);
   if (line.rule === true && RULE_ACTIONS.has(line.action)) out.rule = true;
   if (line.action === 'defer') out.until = Math.floor(+line.until);
+  const atts = attach.clean(home, line.attachments); // images the user attached: desk copies only (attach.js)
+  if (atts) out.attachments = atts;
   out.at = Number.isFinite(+line.at) && +line.at > 0 ? Math.floor(+line.at) : Math.floor(Date.now() / 1000);
   const text = JSON.stringify(out);
   ensureHome(home);
@@ -118,7 +121,7 @@ function resolvePath(p, { home, artifactRoot }) {
 }
 
 // One entry per referenced path: {abs, url, mime, exists, text?}. url uses the harbor:// protocol.
-function resolveFiles(items, opts, notes = []) {
+function resolveFiles(items, opts, notes = [], extra = []) {
   const files = {};
   const add = p => {
     if (!p || files[p] !== undefined) return;
@@ -134,6 +137,7 @@ function resolveFiles(items, opts, notes = []) {
   };
   for (const it of items) { add(it.body); for (const a of it.artifacts || []) add(a.path); for (const o of it.options || []) add(o.artifact?.path); }
   for (const n of notes) add(n.artifact?.path);
+  for (const p of extra) add(p);
   return files;
 }
 function readHead(file, n) { const fd = fs.openSync(file, 'r'); try { const b = Buffer.alloc(n); fs.readSync(fd, b, 0, n, 0); return b.toString('utf8'); } finally { fs.closeSync(fd); } }
@@ -152,6 +156,7 @@ function snapshot(home, opts = {}) {
   const { items, errors } = loadItems(home);
   const ro = { home, artifactRoot: opts.artifactRoot };
   const notes = readJsonl(path.join(home, 'notes.jsonl')).filter(n => n && n.text && (n.item || n.topic));
+  const answers = readAnswers(home);
   return {
     home,
     items,
@@ -161,10 +166,10 @@ function snapshot(home, opts = {}) {
     quota: readJson(path.join(home, 'quota.json'), []),
     quota_at: mtime(path.join(home, 'quota.json')),
     rates: readJson(path.join(home, 'schedule', 'rate-limits.json'), null),
-    answers: readAnswers(home),
+    answers,
     gaps: readJsonl(path.join(home, 'gaps.jsonl')).filter(g => g && g.text),
     notes,
-    files: resolveFiles(items, ro, notes)
+    files: resolveFiles(items, ro, notes, attach.referenced(home, answers))
   };
 }
 

@@ -4,6 +4,9 @@
    Cmd/Ctrl+1-9 any time, or a click), speak, Enter sends (Shift+Enter: new line) one `request` line to answers.jsonl; "Remember this" adds `rule: true` (a standing order).
    Out of stamina? Option/Alt+Enter queues it for after the usage-limit reset, or pick a time and queue it for then;
    the scheduler sends it by itself. Esc or the shortcut hangs up; an unsent message stays on the pad.
+   Images: paste or drop one on the phone, or Snap the desk, and mark it up (attach-view.js); they go out with
+   the message. "Add to…" (off by default) aims the message at a running order or the item at the desk instead:
+   it then goes out as a `comment` on that id, which reaches the crew already on it; × goes back to a new order.
    Loaded before app.js; holds no desk state: app.js passes its helpers and live accessors in. */
 'use strict';
 const HarborPhoneKeys = (() => {
@@ -37,10 +40,22 @@ const HarborPhoneKeys = (() => {
   }
   return { parse, matches, label };
 })();
-if (typeof module === 'object') module.exports = HarborPhoneKeys;
+// "Add to…" targets: the open item at the desk, then running orders and asks on the ticket rail (not queued ones),
+// one entry per id. Pure, so it is unit-tested.
+const HarborAddTo = {
+  targets(desk, tickets) {
+    const out = [], seen = new Set(), push = (id, kind, label) => { if (id && !seen.has(id)) { seen.add(id); out.push({ id, kind, label }); } };
+    if (desk) push(desk.id, 'at the desk', desk.title);
+    for (const t of tickets || []) if (!t.queued) push(t.a.id, t.a.action === 'request' ? 'order' : 'item', t.a.action === 'request' ? t.a.note : t.title);
+    return out;
+  }
+};
+if (typeof module === 'object') module.exports = { ...HarborPhoneKeys, HarborPhoneKeys, HarborAddTo };
 else window.HarborPhone = deps => {
   const { h, snd } = deps;
   let el = null, rule = null, pad = null, dial = null, dialed = null, back = null, resetBtn = null, at = null, atBtn = null;
+  let addTo = null, picker = null, target = null; // target: { id, label } once the message is an addition
+  const tray = deps.tray; // image tray (attach-view.js), kept across hang-ups like the unsent text
   const mates = () => deps.mates();
   const shortcut = () => deps.settings().phoneShortcut || '';
   const isOpen = () => !!el;
@@ -64,6 +79,24 @@ else window.HarborPhone = deps => {
     pad.placeholder = who ? `Speak to ${who.label}…` : '';
     pad.setAttribute('aria-label', who ? `Message to ${who.label}` : 'Message');
   }
+  // "Add to…": a chip above the pad; picking a running order or the desk's item turns the message into a comment on it.
+  function renderAddTo() {
+    el.classList.toggle('adding', !!target);
+    for (const b of [resetBtn, at, atBtn]) b.disabled = !!target || (b === atBtn && !at.value);
+    addTo.replaceChildren(target
+      ? h('span', { class: 'addto-chip' }, h('b', null, 'Add to: '), h('span', { class: 'addto-label', title: target.label }, target.label),
+          h('button', { class: 'addto-x', type: 'button', 'aria-label': 'Back to a new order', title: 'Back to a new order', onclick: () => detach() }, '×'))
+      : h('button', { class: 'addto-btn', type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': String(!!picker), title: 'Send this as an addition to a running order or the item at the desk, instead of a new order', onclick: () => picker ? closePicker() : openPicker() }, 'Add to…'));
+  }
+  function openPicker() {
+    const list = deps.targets();
+    picker = h('div', { class: 'addto-list', role: 'listbox', 'aria-label': 'Add to' }, list.length ? list.map(t => h('button', { class: 'addto-opt', type: 'button', role: 'option', dataset: { id: t.id }, onclick: () => choose(t) }, h('span', { class: 'addto-kind' }, t.kind), h('span', { class: 'addto-label' }, t.label))) : h('span', { class: 'addto-none' }, 'Nothing running to add to.'));
+    addTo.after(picker); renderAddTo(); picker.querySelector('button')?.focus();
+  }
+  function closePicker() { picker?.remove(); picker = null; if (el) renderAddTo(); }
+  function choose(t) { target = { id: t.id, label: t.label }; snd('tick'); closePicker(); pad.focus(); }
+  function detach() { target = null; snd('tick'); closePicker(); pad.focus(); }
+
   function dialTo(id) { if (id === dialed) return; dialed = id; snd('tick'); render(); }
   function step(d) { const list = mates(); if (!list.length) return; const i = list.findIndex(m => m.id === dialed); dialTo(list[(i + d + list.length) % list.length].id); }
 
@@ -76,38 +109,40 @@ else window.HarborPhone = deps => {
     resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset');
     at = h('input', { type: 'time', class: 'phone-at', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
     atBtn = h('button', { class: 'phone-q', disabled: true, onclick: () => { if (at.value) queue(deps.clockEpoch(at.value)); } }, 'Queue at time');
-    at.addEventListener('input', () => { atBtn.disabled = !at.value; });
+    at.addEventListener('input', () => { atBtn.disabled = !at.value || !!target; });
+    target = null; picker = null; addTo = h('div', { class: 'phone-addto' });
     rule = h('input', { type: 'checkbox', id: 'phone-rule', onchange: () => pad.focus() }); // back to the pad, so Enter still sends
     el = h('div', { class: 'phone', id: 'phone', onclick: e => { if (e.target === el) close(); } },
       h('div', { class: 'phone-box', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Ship phone' },
         h('div', { class: 'phone-art', html: ART }),
-        h('div', { class: 'phone-main' }, dial, pad,
+        h('div', { class: 'phone-main' }, dial, addTo, pad, tray.el,
           h('div', { class: 'phone-when' }, resetBtn, h('span', { class: 'phone-at-group' }, at, atBtn), h('label', { class: 'remember', title: 'A standing order: your first mate files it with your preferences and follows it from now on' }, rule, ' Remember this')),
-          h('div', { class: 'phone-keys', 'aria-hidden': 'true' }, h('span', null, h('b', null, '1-9'), ' dial'), h('span', null, h('b', null, '⏎'), ' send'), h('span', null, h('b', null, '⌥⏎'), ' after reset'), h('span', null, h('b', null, '⇧⏎'), ' new line'), h('span', null, h('b', null, 'Esc'), ' hang up')))));
-    render();
+          h('div', { class: 'phone-keys', 'aria-hidden': 'true' }, h('span', null, h('b', null, '1-9'), ' dial'), h('span', null, h('b', null, '⏎'), ' send'), h('span', null, h('b', null, '⌘V'), ' image'), h('span', null, h('b', null, '⌥⏎'), ' after reset'), h('span', null, h('b', null, '⇧⏎'), ' new line'), h('span', null, h('b', null, 'Esc'), ' hang up')))));
+    render(); renderAddTo(); tray.mount(el.querySelector('.phone-box'), pad);
     document.body.append(el); document.getElementById('btn-phone')?.setAttribute('aria-expanded', 'true');
     pad.focus(); pad.setSelectionRange(pad.value.length, pad.value.length);
     snd('whistle');
   }
   function close() {
     if (!el) return;
-    el.remove(); el = null; document.getElementById('btn-phone')?.setAttribute('aria-expanded', 'false');
+    el.remove(); el = null; picker = null; target = null; document.getElementById('btn-phone')?.setAttribute('aria-expanded', 'false');
     if (back && back.isConnected && back !== document.body) back.focus(); else document.activeElement?.blur();
     back = null;
   }
   function toggle() { if (el) close(); else open(); }
   function send() {
-    const v = pad.value.trim(); if (!v || !dialed) { pad.focus(); return; }
-    if (!deps.send(v, dialed, rule.checked)) return; // write failed: the pad keeps the words
+    const v = pad.value.trim(); if ((!v && !tray.has()) || (!dialed && !target)) { pad.focus(); return; }
+    const note = tray.note(v), atts = tray.payload();
+    if (!deps.send(note, dialed, atts, target?.id, rule.checked)) return; // write failed: the pad keeps it all (target: a comment on it)
     sent();
   }
   async function queue(when) {
-    const v = pad.value.trim(); if (!v || !dialed) { pad.focus(); return; }
-    if (!(await deps.queue(v, dialed, when, rule.checked))) return; // refused: the pad keeps the words
+    const v = pad.value.trim(); if ((!v && !tray.has()) || !dialed || target) { pad.focus(); return; }
+    if (!(await deps.queue(tray.note(v), dialed, when, tray.payload(), rule.checked))) return; // refused: the pad keeps it all
     sent();
   }
   function sent() {
-    deps.draft.set(''); close();
+    deps.draft.set(''); tray.clear(); close();
     const b = document.getElementById('btn-phone');
     if (b) { b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); setTimeout(() => b.classList.remove('sent'), 1600); }
   }
@@ -119,14 +154,15 @@ else window.HarborPhone = deps => {
     if (!el) return;
     const empty = !pad.value, inPad = e.target === pad, inTime = e.target === at;
     e.stopPropagation(); // the phone is modal: the desk's own shortcuts never fire under it
-    if (e.key === 'Escape') close();
-    else if (e.key === 'Enter' && e.altKey && !e.shiftKey && inPad) queue('reset');
+    if (e.key === 'Escape') { if (picker) closePicker(); else close(); }
+    else if (e.key === 'Enter' && e.altKey && !e.shiftKey && inPad) { if (!target) queue('reset'); }
     else if (e.key === 'Enter' && !e.shiftKey && inPad) send();
     else if (e.key === 'Enter' && inTime) { if (at.value) queue(deps.clockEpoch(at.value)); }
+    else if (['ArrowUp', 'ArrowDown'].includes(e.key) && picker?.contains(e.target)) { const o = [...picker.querySelectorAll('button')]; o[(o.indexOf(e.target) + (e.key === 'ArrowDown' ? 1 : -1) + o.length) % o.length]?.focus(); }
     else if (/^[1-9]$/.test(e.key) && !e.altKey && !e.shiftKey && (e.metaKey || e.ctrlKey || (!inTime && (empty || !inPad)))) { const m = mates()[+e.key - 1]; if (m) dialTo(m.id); }
     else if (['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey && !inTime && (empty || !inPad)) step(e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1);
-    else if (e.key === 'Tab') { // focus stays in the phone: dial, pad, then the queue controls
-      const ring = [dial.querySelector('[aria-checked="true"]'), pad, resetBtn, at, atBtn, rule].filter(x => x && !x.disabled);
+    else if (e.key === 'Tab') { // focus stays in the phone: dial, add-to, pad, images, then the queue controls
+      const ring = [dial.querySelector('[aria-checked="true"]'), ...addTo.querySelectorAll('button'), ...(picker ? picker.querySelectorAll('button') : []), pad, ...tray.el.querySelectorAll('button'), resetBtn, at, atBtn, rule].filter(x => x && !x.disabled);
       const i = ring.indexOf(e.target); ring[(i + (e.shiftKey ? -1 : 1) + ring.length) % ring.length].focus();
     }
     else return;

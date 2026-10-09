@@ -53,6 +53,7 @@ Any agent that can write a JSON file can join without the CLI: the format is in 
   answers.jsonl     app → agent   append-only, one line per action
   gaps.jsonl        agent → app   responses that fit no item kind (listed in the Agent log drawer)
   notes.jsonl       agent → app   remarks kept with an existing item or topic (topic pages)
+  attachments/      app → agent   images you paste, drop or snap, named by answer lines
   fleet.json        optional      crew scene: who is cooking, waiting, idle
   quota.json        optional      stamina bars and refill countdowns
   rules.json        optional      standing orders that items are checked against
@@ -151,6 +152,8 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 | `⇧⌘Space` | ship phone (see below; the key is a setting) |
 
 Ship phone: the speaking tube in the top bar, or `⇧⌘Space` (Ctrl+Shift+Space elsewhere) from any app, brings a phone to the middle of the desk with the pad focused. Dial a first mate with `1`-`9` or the arrows (before you start typing; `⌘1`-`⌘9` any time), speak, `Enter` sends (`Shift+Enter` for a new line), `⌥Enter` queues it for after the usage reset, and a time plus **Queue at time** queues it for then. Sending writes one `request` line to `answers.jsonl`; it remembers who you dialed last, and hangs up with a check on the icon. `Esc` or the shortcut hangs up and keeps an unsent message. The system-wide shortcut is the only thing that ever brings the window forward.
+
+Screenshots and images: paste (`⌘V`) or drop an image on the phone or on an Ask, Needs-work or Mismatch slip, or press **Snap desk** to capture this window without the phone. Click a thumbnail to mark it up: `P` numbered pins (a note each), `B` boxes, `A` arrows, `⌘Z` undo, `⌘Enter` done. The desk copies every image into `attachments/` the moment it arrives (so a macOS screenshot thumbnail vanishing later loses nothing), the line names the copies and a flattened marked-up copy, and the pin notes join the text as `[1] …`. **Add to…** on the phone (off by default) turns the message into an addition to the item at the desk or a running order on the ticket rail: it goes out as a `comment` on that id instead of a new order; `×` goes back.
 
 Topics: every item carries a topic chip; its page shows what is still open and a timeline of the items, stamps, replies and agent notes on that subject (`O` opens the topic of the item at the desk, `⌘K` finds any topic). Items that share a topic or a `rel` link arrive as one visitor with one question sheet (a row per item, letter keys per row) and are settled with one stamp; agents number a task's questions `<task>.q1`, `.q2`, ... and the CLI gives them that topic. Options can carry a grey `why` line. The queue groups visitors in lanes by project, each with weight icons (quick call, report, PR, video); the speech bubble says the ask. Desk papers never overlap: the main artifact fills a reading column, and paths show as file names (hover for the full path). A local `.html` report opens in the browser pane with its own CSS and scripts. Parked (`Later`) items wait in a lane at the bottom of the queue and come back by themselves; click one to bring it back now.
 

@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('harbor', {
   onPhone: fn => ipcRenderer.on('harbor:phone', (e, how) => fn(how)),
   schedule: req => ipcRenderer.invoke('harbor:schedule', req),
   cancelScheduled: id => ipcRenderer.invoke('harbor:schedule-cancel', id),
+  // Images for answers: bytes in, a path under <home>/attachments out (snap captures this window).
+  attach: bytes => ipcRenderer.invoke('harbor:attach', bytes),
+  snap: () => ipcRenderer.invoke('harbor:snap'),
   openExternal: url => ipcRenderer.invoke('harbor:open-external', url),
   openPath: url => ipcRenderer.invoke('harbor:open-path', url),
   getSettings: () => ipcRenderer.invoke('harbor:get-settings'),

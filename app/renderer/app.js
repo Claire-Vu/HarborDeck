@@ -495,7 +495,7 @@ function renderDesk() {
   // the main artifact fills the blotter; cards that only open something elsewhere (PR, link, web page) stay small
   const reading = papers.find(p => p.dataset.pid !== 'm' && !p.classList.contains('prcard')); reading?.classList.add('reading');
   const thread = threadFor(it);
-  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: `msg${isNewMsg(x, ch) ? ' chg' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, anchorText(x.anchor)))), 't'));
+  if (thread.length) papers.push(paper('thread', 'Correspondence', thread.map(x => h('div', { class: `msg${isNewMsg(x, ch) ? ' chg' : ''}` }, h('div', { class: 'who' }, `${x.from} · ${fmtDate(x.at)} ${fmtTime(x.at)}`), h('div', null, x.text), x.anchor && h('div', { class: 'anchor' }, anchorText(x.anchor)), attachView.thumbs(x.attachments))), 't'));
   const group = bundleOf(it);
   papers.push(group.length > 1 ? quick.sheet(it, group, { awaiting: s.awaiting }) : askSlip(it, ch));
   // Moving between rows of one sheet keeps the papers still: no deal-in animation, the sheet keeps its scroll.
@@ -619,7 +619,7 @@ function layoutPapers(papers, surf, pos) {
 const anchorText = a => Object.entries(a).map(([k, v]) => `${k}: ${k === 'artifact' && !/^[a-z]+:\/\//i.test(v) ? base(v) : v}`).join(' · ');
 function threadFor(it) {
   const s = st(it.id);
-  return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...(SNAP.notes || []).filter(n => n.item === it.id).map(n => ({ from: `note · ${n.from ? mateLabel(n.from) : 'agent'}`, text: n.text, at: n.at })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, me: true }))].sort((a, b) => a.at - b.at);
+  return [...(it.thread || []).map(x => ({ ...x, from: x.from === 'captain' ? 'captain' : mateLabel(x.from) })), ...(SNAP.notes || []).filter(n => n.item === it.id).map(n => ({ from: `note · ${n.from ? mateLabel(n.from) : 'agent'}`, text: n.text, at: n.at })), ...S.answers.filter(a => a.id === it.id && ['comment', 'ask', 'needs-work'].includes(a.action)).map(a => ({ from: 'captain', text: `${a.action}: ${a.note}`, at: a.at, anchor: a.anchor, attachments: a.attachments, me: true }))].sort((a, b) => a.at - b.at);
 }
 function paper(cls, label, kids, pid, extraGrip) {
   return h('div', { class: `paper ${cls}`, dataset: { pid } }, h('div', { class: 'grip' }, h('span', null, label), h('span', { class: 'spacer' }), extraGrip || null, h('span', { class: 'drag-only', title: 'drag' }, '⋮⋮')), ...kids);
@@ -760,7 +760,7 @@ function stamp(verdict, toReset) {
   }
   if (verdict === 'reject') return finishStamp(it, 'REJECTED', 'reject', { id: it.id, action: 'reject' });
   const action = verdict === 'ask' ? 'ask' : 'needs-work';
-  openNote({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…', rule: true }, (note, rule) => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note, ...(rule ? { rule: true } : {}) }, true));
+  attachView.slip({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…', attach: true, rule: true }, (note, attachments, rule) => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note, attachments, ...(rule ? { rule: true } : {}) }, true));
 }
 // Later (S): park the item (and the rest of its ticked sheet) until tomorrow 9:00, or with Shift+S until just
 // after the next usage reset. Writes a defer line; firstmate turns it into a hold --until.
@@ -881,7 +881,7 @@ function renderRail(ring) {
     const state = t.queued ? queuedLabel(t.queued) : t.reply ? (unread ? 'reply waiting' : 'replied') : 'waiting ' + age(t0 - t.a.at);
     rail.append(h('button', { class: `ticket ${t.queued ? 'queued' : t.reply ? 'replied' : 'waiting'} ${unread ? 'new' : ''} ${t.a.action}`, dataset: { key: t.key, i }, tabindex: i === railFocus ? 0 : -1, 'aria-label': `${t.title}: ${t.a.note}. ${state}`, onclick: e => openTicket(t, e.currentTarget), onfocus: () => { railFocus = i; } },
       h('span', { class: 'tk-head' }, h('span', { class: `tk-kind ${t.a.action}` }, { ask: 'ask', 'needs-work': 'rework', request: 'order' }[t.a.action]), h('span', { class: 'tk-title' }, t.title), t.a.rule || t.queued?.request?.rule ? h('span', { class: 'tk-pin', title: Object.values(RULES).some(r => r.answer === t.a.id) ? 'Standing order: recorded' : 'Standing order: waiting for your first mate to record it', 'aria-label': 'standing order' }, '📌') : null, unread ? h('span', { class: 'tk-badge' }, '1') : null),
-      h('span', { class: 'tk-note' }, t.a.note),
+      h('span', { class: 'tk-note' }, t.a.note), attachView.badge(t.a.attachments),
       h('span', { class: 'tk-foot' }, t.queued ? `⏳ ${state}` : t.reply ? (unread ? '● reply waiting' : '✓ replied') : [h('span', { class: 'tk-dot' }), ` sent · waiting ${age(t0 - t.a.at)}`], t.item && st(t.item.id).read && t.item.id !== S.current && changesOf(t.item) ? h('span', { class: 'upd' }, 'updated') : null)));
   });
   rail.dataset.count = list.filter(t => t.reply && !t.seen).length;
@@ -902,7 +902,7 @@ function openTicket(t, el) {
   S.tickets.seen[t.key] = true; save(); renderRail();
   const r = el.getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
-    h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note),
+    h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note, attachView.thumbs(t.a.attachments)),
     t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)
       : t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}. Waiting ${age(now() - t.a.at)}.`),
     t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); if (!r.ok) toast('Already sent', 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
@@ -935,7 +935,7 @@ function showPairPopover(claim, point, nearEl) {
   const pop = h('div', { class: 'popover' }, h('div', null, 'Cross-check'), h('div', { class: 'pair' }, 'Claim: ', claim.label), h('div', { class: 'pair' }, 'Evidence: ', point.label),
     h('div', { class: 'row' },
       h('button', { class: 'pbtn', onclick: () => { emit({ id: it.id, action: 'comment', note: `match: ${claim.label}`, anchor }); if (claim.idx != null) st(it.id).flags[claim.idx] = 'match'; save(); snd('tick'); earn(it, 'comment'); clearPick(); renderDesk(); } }, 'Match'),
-      h('button', { class: 'pbtn danger', onclick: () => { pop.remove(); openNote({ title: 'Mismatch: what is off?', to: `comment on ${it.title}`, prefill: `mismatch: "${claim.label}" vs ${point.label}: `, rule: true }, (note, rule) => { emit({ id: it.id, action: 'comment', note, anchor, ...(rule ? { rule: true } : {}) }); if (claim.idx != null) st(it.id).flags[claim.idx] = 'flag'; save(); snd('thud'); earn(it, 'comment'); clearPick(); renderDesk(); }); } }, 'Mismatch'),
+      h('button', { class: 'pbtn danger', onclick: () => { pop.remove(); attachView.slip({ title: 'Mismatch: what is off?', to: `comment on ${it.title}`, prefill: `mismatch: "${claim.label}" vs ${point.label}: `, attach: true, rule: true }, (note, attachments, rule) => { emit({ id: it.id, action: 'comment', note, anchor, attachments, ...(rule ? { rule: true } : {}) }); if (claim.idx != null) st(it.id).flags[claim.idx] = 'flag'; save(); snd('thud'); earn(it, 'comment'); clearPick(); renderDesk(); }); } }, 'Mismatch'),
       h('button', { class: 'pbtn ghost', onclick: clearPick }, 'Cancel')));
   document.body.append(pop);
   const r = nearEl?.getBoundingClientRect(); const x = r ? Math.min(window.innerWidth - 320, r.left) : window.innerWidth / 2 - 150, y = r ? Math.min(window.innerHeight - 180, r.bottom + 8) : 120;
@@ -991,28 +991,24 @@ function openViewer(a) {
   const ext = f ? h('button', { class: 'tbtn', title: 'Open with the default app', onclick: () => bridge.openPath(f.url) }, 'Open') : null;
   modal(cls, base(a.path || a.url), body, null, h('div', { class: 'zoomer' }, zoomer, ext));
 }
-function openNote(opts, onSubmit) {
-  const ta = h('textarea', { placeholder: opts.placeholder || '', value: opts.prefill || '' });
-  const rule = opts.rule ? h('input', { type: 'checkbox', id: 'note-rule' }) : null;
-  modal('noteslip', opts.title, h('div', null, h('div', { class: 'to' }, opts.to), ta, rule && h('label', { class: 'remember', title: 'A standing order: filed with your preferences and followed from now on' }, rule, ' Remember this')), [h('button', { class: 'pbtn ghost', onclick: closeModal }, 'Cancel'), h('button', { class: 'pbtn', onclick: submit }, 'Send')]);
-  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
-  ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit(); });
-  function submit() { const v = ta.value.trim(); if (!v) { ta.focus(); return; } const r = !!rule?.checked; closeModal(); onSubmit(v, r); }
-}
+// Note slips (needs-work, ask, mismatch) with their image tray live in attach-view.js (attachView.slip).
+const attachView = window.HarborAttach({ h, bridge, toast, modal, closeModal, fileFor: p => fileFor(p), openViewer: a => openViewer(a), markup: window.HarborMarkup({ h, bridge, toast }) });
 
 // ------------------------------------------------------------ requests (orders to firstmates), crew flavour, stamina
 // One order line, from the ship phone or plain mode. false when answers.jsonl could not be written.
-function sendOrder(note, to, rule) {
+// onto: an addition to running work ("Add to…" on the phone): a comment on that id instead of a new order.
+// rule: "Remember this", a standing order (see standing orders).
+function sendOrder(note, to, attachments, onto, rule) {
   const n = S.answers.length;
-  emit({ id: `req-${now()}-${hash(note) % 1000}`, action: 'request', note, to, ...(rule ? { rule: true } : {}) }); if (S.answers.length === n) return false;
+  emit({ ...(onto ? { id: onto, action: 'comment' } : { id: `req-${now()}-${hash(note) % 1000}`, action: 'request', to }), note, attachments, ...(rule ? { rule: true } : {}) }); if (S.answers.length === n) return false;
   S.prefs.lastMate = to; save(); snd('ding');
   if (S.prefs.plain) renderPlain(); else renderRail();
   return true;
 }
 // A queued order waits in the scheduler and goes out by itself (harbordeck tick), no prompt needed.
 // when: 'reset' (after the next usage-limit reset) or an epoch. false when the scheduler refused it.
-async function queueOrder(note, to, when, rule) {
-  const r = await bridge.schedule({ when, request: { id: `req-${now()}-${hash(note) % 1000}`, note, to, ...(rule ? { rule: true } : {}) } });
+async function queueOrder(note, to, when, attachments, rule) {
+  const r = await bridge.schedule({ when, request: { id: `req-${now()}-${hash(note) % 1000}`, note, to, attachments, ...(rule ? { rule: true } : {}) } });
   if (!r.ok) { toast(`Could not queue: ${r.error}`, 'warn'); return false; }
   S.prefs.lastMate = to; save(); snd('slide');
   applySnapshot(r.snapshot); return true;
@@ -1251,7 +1247,7 @@ async function openSettings() {
 // ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
 let phoneDraft = '';
 const phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
-  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, clockEpoch: nextClockEpoch,
+  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()), tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
   resetNote: () => SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable' });
 function renderPhoneButton() {
   const set = SNAP.settings || {}, key = HarborPhoneKeys.label(set.phoneShortcut), b = $('#btn-phone');
