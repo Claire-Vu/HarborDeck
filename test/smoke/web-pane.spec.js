@@ -19,7 +19,7 @@ test.beforeAll(async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harbordeck-web-'));
   site = await startStaticSite(path.join(ROOT, 'app', 'demo', 'assets', 'web'));
   home = seedDemo(path.join(tmp, 'home'), undefined, { webUrl: site.url });
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
+  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: path.join(tmp, 'profile') } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow, shell }) => {
     BrowserWindow.getAllWindows()[0].setContentSize(1280, 800);

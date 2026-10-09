@@ -4,7 +4,9 @@
 # a synthetic data dir, a private Electron profile, a stub caffeinate and a stub wake command that only logs.
 # Never touches ~/.harbordeck, the installed app, launchd, or the real caffeinate.
 #
-#   hdv launch [--demo] [--port N]   start the app (seeded synthetic data dir; --demo: the app's own demo + pretend agent)
+#   hdv launch [--demo] [--port N] [--visible]
+#                                    start the app headless (seeded synthetic data dir; --demo: the app's own demo + pretend agent;
+#                                    --visible: show the window, for a human who wants to watch)
 #   hdv doctor                       read-only: is this instance ours, up, and on synthetic data?
 #   hdv env                          print exports (eval "$(hdv env)") for chrome-devtools-axi and the CLI
 #   hdv hd <args...>                 run the harbordeck CLI against the instance's data dir
@@ -30,8 +32,8 @@ ours() { local p=${1:-}; while [ -n "$p" ] && [ "$p" -gt 1 ]; do [ "$p" = "$HDV_
 free_port() { local p=$1; while lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; do p=$((p + 1)); done; echo "$p"; }
 
 cmd_launch() {
-  local demo=0 port=""
-  while [ $# -gt 0 ]; do case "$1" in --demo) demo=1 ;; --port) port=$2; shift ;; *) die "launch: unknown flag $1" ;; esac; shift; done
+  local demo=0 port="" headless=1
+  while [ $# -gt 0 ]; do case "$1" in --demo) demo=1 ;; --port) port=$2; shift ;; --visible) headless=0 ;; *) die "launch: unknown flag $1" ;; esac; shift; done
   if [ -f "$info" ]; then . "$info"; alive "${HDV_PID:-}" && die "already running (pid $HDV_PID); hdv cleanup first"; fi
   rm -rf "$state"; mkdir -p "$state/bin" "$state/profile" "$state/launchd"
   [ -x "$root/node_modules/.bin/electron" ] || die "no electron: run npm install in $root"
@@ -64,7 +66,7 @@ HDV_RUN_ID='$run_id'
 HDV_SITE='$(cat "$state/site.url" 2>/dev/null)'
 $(cat "$state/site.pid" 2>/dev/null)
 ENV
-  HARBORDECK_HOME=$([ "$demo" = 1 ] || echo "$home") HARBORDECK_USER_DATA="$state/profile" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" \
+  HARBORDECK_HEADLESS=$headless HARBORDECK_HOME=$([ "$demo" = 1 ] || echo "$home") HARBORDECK_USER_DATA="$state/profile" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" \
     nohup "$root/node_modules/.bin/electron" "$root" $([ "$demo" = 1 ] && echo --demo) --remote-debugging-port="$port" > "$state/electron.log" 2>&1 &
   echo "HDV_PID=$!" >> "$info"
   local i

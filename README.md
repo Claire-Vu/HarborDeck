@@ -157,7 +157,10 @@ npm run check       # syntax check of main, preload, renderer and the scheduler 
 (cd cli && npm test)             # CLI + scheduler (parsing, claim/no-resend, retries, keep-awake, installer, wake presets)
 adapters/firstmate/test/run.sh   # adapter + install.sh against a stub firstmate home
 test/evidence/run.sh demo        # recorded proof of the live round trip (ystack evidence runner)
+npm run test:roundtrip          # a real claude -p agent -> desk -> stamp -> bridge -> agent, timed per leg (needs claude)
 ```
+
+Tests and verification run the app headless (`HARBORDECK_HEADLESS=1`: the window is never shown, focused or in the Dock, but still paints for screenshots and UI driving). Set `HARBORDECK_HEADLESS=0` to watch a run.
 
 `npm run garden` runs the ystack garden gate (`.garden/`) when `~/.agents/skills/garden` is installed, and skips otherwise. It ratchets two rules: no new source files over 400 code lines (the renderer and the CLI dispatcher are grandfathered, so add features as new modules), and no generic module names (`utils`, `helpers`).
 

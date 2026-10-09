@@ -2,15 +2,17 @@
 # install.sh - connect a firstmate home to HarborDeck. Idempotent: re-run it to update; --uninstall undoes it.
 #
 # Usage: adapters/firstmate/install.sh [--fm-home <dir>] [--data-dir <dir>] [--mode live|echo] [--from <id>]
-#                                      [--bin-dir <dir>] [--no-service] [--uninstall]
+#                                      [--pending deliver|skip] [--bin-dir <dir>] [--no-service] [--uninstall]
 #
 #  1. Links the `harbordeck` and `hd` commands into --bin-dir (default ~/.local/bin).
 #  2. Creates the data dir (default $HARBORDECK_HOME or ~/.harbordeck) and points the app at it, with the
 #     firstmate home as the Artifact root, in the app's settings.json.
 #  3. Starts the bridge cursor at the end of answers.jsonl on the first install and when switching from echo
-#     to live, so answers written before (tests, echo runs) are never replayed into firstmate.
+#     to live, so answers written before (tests, echo runs) are never replayed into firstmate. On a re-install,
+#     answers past the cursor (written while the bridge was down) need --pending: deliver routes them, skip drops
+#     them (cursor to the end); without it install.sh lists them and stops before changing anything.
 #  4. On macOS, installs and (re)starts the launchd agent dev.harbordeck.firstmate, which runs hd-live.sh:
-#     the on-answer bridge (--follow) plus fleet, quota and rules feeders. --mode echo makes the bridge log
+#     the on-answer bridge (--follow) plus fleet, quota and rules feeders, and fails unless it is running after. --mode echo makes the bridge log
 #     the firstmate commands instead of running them. Elsewhere, or with --no-service, prints the command.
 #  5. Writes the firstmate-side instructions to <fm-home>/data/harbordeck.md and one standing order
 #     pointing at them into <fm-home>/data/captain.md (between harbordeck markers, replaced on re-run).
@@ -25,6 +27,7 @@ from=${HARBORDECK_FROM:-mate-main}
 bin_dir=$HOME/.local/bin
 service=1
 uninstall=0
+pending=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fm-home) shift; fm_home=${1:?} ;;
@@ -32,9 +35,10 @@ while [ "$#" -gt 0 ]; do
     --mode) shift; mode=${1:?} ;;
     --from) shift; from=${1:?} ;;
     --bin-dir) shift; bin_dir=${1:?} ;;
+    --pending) shift; pending=${1:?} ;;
     --no-service) service=0 ;;
     --uninstall) uninstall=1 ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "install.sh: unknown argument $1 (see --help)" >&2; exit 2 ;;
   esac
   shift
@@ -42,6 +46,7 @@ done
 [ -n "$fm_home" ] || { echo "install.sh: pass --fm-home <firstmate home> or set FM_HOME" >&2; exit 2; }
 fm_home=$(cd "$fm_home" && pwd)
 case "$mode" in live|echo) ;; *) echo "install.sh: --mode is live or echo" >&2; exit 2 ;; esac
+case "$pending" in ''|deliver|skip) ;; *) echo "install.sh: --pending is deliver or skip" >&2; exit 2 ;; esac
 case "$data_dir" in "~"*) data_dir=$HOME${data_dir#\~} ;; esac
 
 LABEL=dev.harbordeck.firstmate
@@ -69,6 +74,23 @@ if [ "$uninstall" = 1 ]; then
   exit 0
 fi
 
+# Answers past the live cursor were never routed (the bridge was down). Decide before anything changes.
+cursor=$data_dir/cursors/firstmate-bridge
+was_echo=0; [ ! -f "$plist" ] || ! grep -q '<string>echo</string>' "$plist" || was_echo=1
+if [ "$mode" = live ] && [ "$was_echo" = 0 ] && [ -s "$cursor" ] && [ -f "$data_dir/answers.jsonl" ]; then
+  off=$(cat "$cursor"); size=$(wc -c < "$data_dir/answers.jsonl" | tr -d ' ')
+  if [ "$off" -lt "$size" ]; then
+    case "$pending" in
+      skip) echo "$size" > "$cursor"; say "bridge: skipped $((size - off)) bytes of unrouted answers; cursor at byte $size" ;;
+      deliver) say "bridge: delivering unrouted answers from byte $off" ;;
+      *) { echo "install.sh: answers.jsonl has answers the bridge never routed (from byte $off):"
+           tail -c +"$((off + 1))" "$data_dir/answers.jsonl"
+           echo "re-run with --pending deliver (route them to firstmate) or --pending skip (drop them)"; } >&2
+         exit 2 ;;
+    esac
+  fi
+fi
+
 for t in node jq; do command -v "$t" >/dev/null || { echo "install.sh: $t is required" >&2; exit 1; }; done
 for s in fm-captain-hold.sh fm-inbox.sh fm-crew-state.sh; do
   [ -x "$fm_home/bin/$s" ] || { echo "install.sh: $fm_home is not a firstmate home (no bin/$s)" >&2; exit 1; }
@@ -94,8 +116,6 @@ say "app: data dir $data_dir, artifact root $fm_home ($settings)"
 
 # 3. bridge cursor: a fresh install, or a switch from echo to live, starts at the end of answers.jsonl, so
 #    answers written before (tests, echo runs) are never replayed into firstmate.
-cursor=$data_dir/cursors/firstmate-bridge
-was_echo=0; [ ! -f "$plist" ] || ! grep -q '<string>echo</string>' "$plist" || was_echo=1
 if [ ! -e "$cursor" ] || { [ "$mode" = live ] && [ "$was_echo" = 1 ]; }; then
   mkdir -p "$(dirname "$cursor")"
   if [ -f "$data_dir/answers.jsonl" ]; then wc -c < "$data_dir/answers.jsonl" | tr -d ' ' > "$cursor"; else echo 0 > "$cursor"; fi
@@ -132,8 +152,19 @@ if [ "$service" = 1 ] && [ "$(uname)" = Darwin ]; then
 </dict>
 </plist>
 EOF
-  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "$plist"
+  domain=gui/$(id -u)
+  launchctl bootout "$domain/$LABEL" 2>/dev/null || true
+  # bootout returns before the old agent is gone; bootstrapping over it fails ("5: Input/output error")
+  # and leaves no agent at all, so wait for it to go, retry, then check the new one is running.
+  for _ in $(seq 1 50); do launchctl print "$domain/$LABEL" >/dev/null 2>&1 || break; sleep 0.2; done
+  for i in 1 2 3 4 5; do
+    err=$(launchctl bootstrap "$domain" "$plist" 2>&1) && break
+    [ "$i" -lt 5 ] || { echo "install.sh: launchctl bootstrap failed: $err" >&2; exit 1; }
+    sleep 1
+  done
+  for _ in $(seq 1 50); do launchctl print "$domain/$LABEL" 2>/dev/null | grep -q 'state = running' && break; sleep 0.2; done
+  launchctl print "$domain/$LABEL" 2>/dev/null | grep -q 'state = running' || {
+    echo "install.sh: launchd agent $LABEL is not running; last log lines:" >&2; tail -5 "$log" >&2 2>/dev/null; exit 1; }
   say "service: launchd agent $LABEL running hd-live.sh (bridge mode: $mode), log $log"
 else
   say "service: not installed; run this under your process supervisor or a terminal pane:"

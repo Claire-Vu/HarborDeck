@@ -16,6 +16,10 @@ const { createWebPane } = require('./lib/web-pane');
 
 // Isolated profile (settings, desk state, demo dir) for tests and side-by-side runs.
 if (process.env.HARBORDECK_USER_DATA) app.setPath('userData', path.resolve(process.env.HARBORDECK_USER_DATA));
+// Headless (tests, verification): the window is never shown, focused or in the Dock, yet keeps painting
+// so CDP/Playwright screenshots and UI driving work.
+const headless = process.env.HARBORDECK_HEADLESS === '1';
+if (headless && process.platform === 'darwin') app.setActivationPolicy('prohibited');
 protocol.registerSchemesAsPrivileged([{ scheme: 'harbor', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
@@ -74,7 +78,8 @@ function serveFile(request) {
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 900, minHeight: 600, title: 'Harbor Deck', backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f1923' : '#dde8ef',
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, plugins: true }
+    show: !headless, paintWhenInitiallyHidden: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, plugins: true, backgroundThrottling: !headless }
   });
   win.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file://')) { e.preventDefault(); openExternal(url); } });

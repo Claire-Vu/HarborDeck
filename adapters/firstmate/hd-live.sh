@@ -22,25 +22,26 @@ prefs=${1:-$FM_HOME/data/captain.md}
 fleet_every=${HD_FLEET_EVERY:-10}
 quota_every=${HD_QUOTA_EVERY:-120}
 
-echo "hd-live: bridge mode ${HD_BRIDGE_MODE:-live}" >&2
+log() { printf '%s hd-live: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
+log "bridge mode ${HD_BRIDGE_MODE:-live}"
 "$here/hd-bridge.sh" --follow &
 bridge=$!
 trap 'kill "$bridge" 2>/dev/null; exit 0' INT TERM EXIT
 
 rules_mtime='' last_quota=0
 while :; do
-  "$here/hd-fleet.sh" >/dev/null || echo "hd-live: fleet refresh failed" >&2
+  "$here/hd-fleet.sh" >/dev/null || log "fleet refresh failed"
   now=$(date +%s)
   if [ $((now - last_quota)) -ge "$quota_every" ]; then
-    "$here/hd-quota.sh" >/dev/null || echo "hd-live: quota refresh failed" >&2
+    "$here/hd-quota.sh" >/dev/null || log "quota refresh failed"
     last_quota=$now
   fi
   if [ -f "$prefs" ]; then
     m=$(stat -f %m "$prefs" 2>/dev/null || stat -c %Y "$prefs")
     if [ "$m" != "$rules_mtime" ]; then
-      "$here/hd-rules.sh" "$prefs" >/dev/null && rules_mtime=$m || echo "hd-live: rules refresh failed" >&2
+      "$here/hd-rules.sh" "$prefs" >/dev/null && rules_mtime=$m || log "rules refresh failed"
     fi
   fi
-  kill -0 "$bridge" 2>/dev/null || { echo "hd-live: bridge exited" >&2; exit 1; }
+  kill -0 "$bridge" 2>/dev/null || { wait "$bridge"; log "bridge exited (status $?); launchd restarts the feed"; exit 1; }
   sleep "$fleet_every"
 done

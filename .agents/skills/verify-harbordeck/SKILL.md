@@ -31,9 +31,10 @@ Once per worktree: `npm install` (if Electron reports `failed to install correct
 H=.agents/skills/verify-harbordeck/scripts/hdv
 $H launch            # seeded synthetic data dir (17 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
+$H launch --visible  # show the window (default is headless)
 ```
 
-Ready when it prints `ready  pid=<pid>  site=http://127.0.0.1:<port>/  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). It opens a visible window; CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
+Ready when it prints `ready  pid=<pid>  site=http://127.0.0.1:<port>/  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). The app runs headless (`HARBORDECK_HEADLESS=1`): no window on screen, no Dock icon, never takes focus, yet it paints, so `ui.mjs` drives and screenshots it as usual. Pass `--visible` when a human wants to watch. CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
 
 ## Doctor
 
@@ -116,6 +117,19 @@ Proof standards:
 - The only mocks are at boundaries the product already isolates: the wake command (configurable by design) and caffeinate (`HARBORDECK_CAFFEINATE`).
 
 Recorded proof (video, contact sheet, manifest) of the live round trip including the firstmate bridge: `test/evidence/run.sh demo` (repo-owned; launches its own isolated instance with a stub firstmate home, needs `~/.agents/skills/evidence`). Output lands in `~/.local/share/evidence/harbordeck/<run-id>/`. It never uses the `hdv` instance.
+
+## Live agent round trip
+
+`npm run test:roundtrip` (`node test/live/agent-roundtrip.mjs [--model <m>] [--keep]`) proves the firstmate loop with a real agent and times each leg. It launches its own headless `hdv` instance (own `HDV_STATE`, so it runs beside yours), a stub firstmate home whose `fm-captain-hold.sh`/`fm-inbox.sh` write ms-stamped lines to `received.log`, and `hd-bridge.sh --follow` in live mode. A `claude -p` agent (default `--model haiku`; `AGENT_CMD` to swap) posts a decision with the CLI and blocks on `fm-wait`; the script stamps it on the desk through Playwright, and the agent must reply with the stamped key. It prints one line per leg and PASS/FAIL, and saves `legs.json`, `bridge.log`, `agent.log`, `received.log` under `~/.local/share/verify-harbordeck/roundtrip-<id>/`.
+
+| Leg | Typical |
+|---|---|
+| item posted -> on the desk | ~0.2 s |
+| stamp -> answer line | ~4.4 s (the desk's undo hold, by design) |
+| answer line -> firstmate received (bridge) | ~0.4 s |
+| firstmate received -> agent acted | ~1-2 s (agent turn) |
+
+A bridge leg over ~2 s, or a FAIL, is a regression: read `bridge.log` (timestamped `hd-bridge: routed ...` per answer).
 
 ## Cleanup
 

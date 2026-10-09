@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Records the live-feed evidence (test/evidence/harbor-live.mjs) of the real Electron app with the ystack
-# evidence runner (~/.agents/skills/evidence). The app opens a window for the length of the run.
+# evidence runner (~/.agents/skills/evidence). The app runs headless (HARBORDECK_HEADLESS=0 to watch it).
 #
 # Usage: test/evidence/run.sh [demo | real] [evidence run flags, e.g. --gif]
 #   demo (default): synthetic data dir and a stub firstmate home; safe to commit or attach.
@@ -48,7 +48,7 @@ esac
 
 HD_BRIDGE_MODE=echo "$root/adapters/firstmate/hd-bridge.sh" --follow > "$HD_EV_BRIDGE_LOG" 2>&1 &
 pids+=($!)
-HARBORDECK_USER_DATA="$tmp/profile" "$root/node_modules/.bin/electron" "$root" --remote-debugging-port="$port" > "$tmp/electron.log" 2>&1 &
+HARBORDECK_HEADLESS=${HARBORDECK_HEADLESS-1} HARBORDECK_USER_DATA="$tmp/profile" "$root/node_modules/.bin/electron" "$root" --remote-debugging-port="$port" > "$tmp/electron.log" 2>&1 &
 pids+=($!)
 node "$root/test/evidence/cdp-shim.js" "http://127.0.0.1:$port" "$shim_port" > "$tmp/shim.log" 2>&1 &
 pids+=($!)

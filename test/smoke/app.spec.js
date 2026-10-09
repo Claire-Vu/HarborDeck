@@ -15,7 +15,7 @@ test.beforeAll(async () => {
   home = seedDemo(path.join(tmp, 'home')); profile = path.join(tmp, 'profile');
   // keep-awake runs a stub, never the real caffeinate
   caffeinate = path.join(tmp, 'caffeinate-stub'); fs.writeFileSync(caffeinate, '#!/bin/sh\nsleep 120\n'); fs.chmodSync(caffeinate, 0o755);
-  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile, HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
+  app = await electron.launch({ args: [ROOT], env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS ?? '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile, HARBORDECK_CAFFEINATE: caffeinate, HARBORDECK_WAKE_COMMAND: 'true' } });
   page = await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1280, 760));
 });
@@ -27,6 +27,12 @@ test('security: renderer has no node, preload bridge only', async () => {
   const prefs = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences());
   expect(prefs.contextIsolation).toBe(true);
   expect(prefs.nodeIntegration).toBe(false);
+});
+
+test('headless: the window is never shown yet still paints', async () => {
+  test.skip(process.env.HARBORDECK_HEADLESS === '0', 'watching run');
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
+  expect((await page.screenshot()).length).toBeGreaterThan(10000);
 });
 
 test('morning manifest opens, then the desk fills from the data dir', async () => {
