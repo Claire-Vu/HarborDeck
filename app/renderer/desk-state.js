@@ -61,6 +61,8 @@ function deferredUntil(it) {
   return a.until > now() ? a.until : 0;
 }
 const statusOf = it => st(it.id).status || (deferredUntil(it) ? 'later' : it.status);
+// every parked item, the soonest back first
+const parkedItems = () => ITEMS.filter(i => statusOf(i) === 'later').sort((a, b) => deferredUntil(a) - deferredUntil(b));
 
 // ------------------------------------------------------------ derived game data
 const mateFor = it => FLEET.firstmates.find(f => f.id === it.from) || FLEET.firstmates[0] || { id: 'mate', label: 'First Mate' };

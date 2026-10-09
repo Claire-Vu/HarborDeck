@@ -7,8 +7,11 @@ function deskKeys(e) {
   if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyK') { e.preventDefault(); if (!phone.isOpen()) { setMenu(false); search.toggle(); } return; }
   if (e.key === 'Escape' && menuOpen()) { setMenu(false); return; }
   if (e.key === 'Escape' && !$('#stow-view').hidden) { closeStowView(); return; }
+  if (e.key === 'Escape' && !$('#parked-view').hidden) { closeParkedView(); return; }
   if (e.key === 'Escape') { closeModal(); closeDrawers(); clearPick(); document.querySelector('.tk-pop')?.remove(); return; }
   const tgt = e.target instanceof Element ? e.target : document.body;
+  // Alt/Option+S: the Later slip (pick when it comes back); e.code, since Option+S types a letter on a Mac
+  if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyS' && !tgt.matches('textarea,select,input') && !phone.isOpen() && !S.prefs.plain && !document.querySelector('.modal')) { e.preventDefault(); stamp('later', false, true); return; }
   if (tgt.matches('textarea,select,input:not([type=radio]):not([type=checkbox])') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (phone.isOpen()) return; // the ship phone is modal: no desk keys (letters, Space, S, Shift+A) while it is up
@@ -32,7 +35,7 @@ function deskKeys(e) {
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
   else if (box) return;
   else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !tgt.matches('input')) { e.preventDefault(); setScene(HS.step(sceneKind(), e.key === 'ArrowRight' ? 1 : -1)); }
-  // quick calls: Space stamps (never Enter), A-E pick, J/K move on a sheet, S later, Shift+A take all recommended
+  // quick calls: Space stamps (never Enter), A-E pick, J/K move on a sheet, S later (Shift+S after the reset), Shift+A take all recommended
   else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); if (!openUnreadReply()) stamp('approve'); } // an unread reply is read first
   else if (e.shiftKey && k === 'a') { e.preventDefault(); quick.openSweep(queueItems().filter(i => !st(i.id).awaiting), sweep); }
   else if (!e.shiftKey && 'abcde'.includes(k) && k) { e.preventDefault(); pickLetter('abcde'.indexOf(k)); }

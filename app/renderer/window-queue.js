@@ -61,7 +61,7 @@ function renderScenes() {
   const open = queueItems('all'); const groups = Object.fromEntries(HS.KINDS.map(k => [k, sceneLine(k)])); const kind = sceneKind();
   const here = groups[kind].filter(i => !st(i.id).awaiting && i.id !== S.current);
   const urgent = here.reduce((a, b) => (!a || (prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), null);
-  scenes.render($('#scenes'), { kind, groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size, urgent: urgent?.id, catBell: S.fun.owned.includes('bell') });
+  scenes.render($('#scenes'), { kind, groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size, parked: parkedItems().length, urgent: urgent?.id, catBell: S.fun.owned.includes('bell') });
 }
 function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else stepUp(id); }
 function renderFilters() {
@@ -85,7 +85,7 @@ function renderQueue() {
         h('div', { class: 'q-meta' }, prioChip(it), waitChip(it), h('span', { class: `tag ${it.kind}` }, KIND[it.kind]), topicView.chip(it), dueChip(it), flagged ? h('span', { class: 'flag', title: `${flagged} standing order flagged` }, `⚠${flagged}`) : null, h('span', { class: 'via' }, c ? `via ${crewName(c.id)}` : m.label, s.awaiting ? ' · away' : '')))));
   }
   if (!list.length) ul.append(h('li', { class: 'q-empty' }, 'Nobody at the window.'));
-  const later = ITEMS.filter(i => statusOf(i) === 'later').sort((a, b) => deferredUntil(a) - deferredUntil(b));
+  const later = parkedItems();
   if (later.length) {
     ul.append(h('li', { class: 'q-lane later' }, h('span', null, 'Later'), h('span', null, later.length)));
     for (const it of later) ul.append(h('li', { class: 'q-later', tabindex: 0, title: 'Parked with the Later stamp. Click to bring it back now.', onclick: () => unpark(it.id), onkeydown: e => { if (e.key === 'Enter') unpark(it.id); } },
@@ -143,7 +143,12 @@ function stepUp(id) {
 }
 // The sheet's row in focus is the item at the desk; moving rows keeps the papers still (renderDesk 'calm').
 function focusRow(id) { const it = byId[id]; if (!it || st(id).awaiting) return; S.current = id; st(id).read = true; follow(it); save(); renderAll(); }
-function unpark(id) { const s = st(id); s.undeferAt = now(); save(); snd('slide'); stepUp(id); }
+// Bring back now: the item is at the desk again and nothing is written. While its Later line is still held for undo,
+// that is the undo (the line never goes out); after it, a desk-only pull back.
+function unpark(id) {
+  if (pending && [pending.line, ...(pending.extra || []).map(e => e.line)].some(l => l.action === 'defer' && l.id === id)) undoPending();
+  const s = st(id); s.undeferAt = now(); save(); snd('slide'); stepUp(id);
+}
 // A letter (or click) picked an option on `id`: on a sheet move to the next row, else just mark it on the slip.
 function afterPick(id) {
   const it = byId[id]; snd('tick'); const group = bundleOf(it);

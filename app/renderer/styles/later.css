@@ -1,0 +1,27 @@
+/* ---------- Later: the Later slip (pick when a parked item comes back) and the Parked shelf above the storage box ---------- */
+.laterslip .box { width: min(440px, 100%); background: var(--paper); color: var(--paper-ink); font-family: var(--font-paper); border-top: 10px solid #6b7785; }
+.laterslip .box header, .laterslip .box footer { border-color: var(--paper-line); }
+.laterslip .to { font-size: 12px; color: var(--paper-faint); margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.laterslip .ls-opt { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; width: 100%; margin-bottom: 6px; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: 6px; background: rgba(255,255,255,.45); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.laterslip .ls-opt:hover:not(:disabled), .laterslip .ls-opt:focus-visible { border-color: #6b7785; background: rgba(255,255,255,.75); outline: none; }
+.laterslip .ls-opt:disabled { opacity: .5; cursor: default; }
+.laterslip .ls-when { color: var(--paper-faint); font-size: 12px; white-space: nowrap; }
+.laterslip .ls-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px dashed var(--paper-line); border-radius: 6px; }
+.laterslip .ls-pick b { flex: 1 1 100%; }
+.laterslip .ls-at { flex: 1 1 180px; min-width: 0; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: 4px; background: rgba(255,255,255,.6); color: inherit; font: inherit; }
+.laterslip .ls-pick .pbtn { background: #6b7785; color: #fff; }
+/* the shelf: a small slate tag above the box with the count; hidden when nothing is parked */
+.parked-btn { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid rgba(241,228,192,.35); border-radius: 10px; background: #4b5561; color: #f1e4c0; font: 600 10px/16px var(--font-paper); text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+.parked-btn[hidden] { display: none; }
+.parked-btn:hover, .parked-btn:focus-visible, .parked-btn[aria-expanded="true"] { background: #5d6976; outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+.parked-n { min-width: 14px; padding: 0 4px; border-radius: 7px; background: #f1e4c0; color: #2b2318; text-align: center; letter-spacing: 0; }
+.parked-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.parked-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 6px 8px; border-radius: 4px; background: rgba(0,0,0,.18); font-size: 12px; }
+.parked-row .pk-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.parked-row .pk-when { grid-column: 2; opacity: .75; font-size: 11px; }
+.parked-row .pk-back { grid-column: 3; grid-row: 1 / span 2; white-space: nowrap; }
+/* plain mode lists them in a card of its own */
+.plain-group.parked .parked-row { grid-template-columns: auto minmax(0, 1fr) auto auto; padding: 8px 12px; border-radius: 0; background: none; border-bottom: 1px solid var(--plain-edge); }
+.plain-group.parked .parked-row:last-child { border-bottom: 0; }
+.plain-group.parked .pk-when { grid-column: auto; }
+.plain-group.parked .pk-back { grid-column: auto; grid-row: auto; }

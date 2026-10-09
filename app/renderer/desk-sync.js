@@ -18,7 +18,7 @@ function renderAll(keepDesk) {
   $('#shift-label').textContent = `Day ${S.day}${S.streak ? ` · ${S.streak}-day streak` : ''}`;
   $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; $('#log-count').textContent = S.answers.length;
   if (S.prefs.plain) { renderPlain(); return; }
-  renderFilters(); renderQueue(); renderWindowScene(); renderYard(); if (keepDesk) renderTray(byId[S.current]); else renderDesk(); renderRail();
+  renderFilters(); renderQueue(); renderParked(); renderWindowScene(); renderYard(); if (keepDesk) renderTray(byId[S.current]); else renderDesk(); renderRail();
   if ($('#orders').classList.contains('open')) renderOrders();
 }
 // ------------------------------------------------------------ live data: snapshots pushed by the main process on every change

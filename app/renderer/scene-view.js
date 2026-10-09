@@ -4,7 +4,7 @@
    Signpost Square (decisions) callers hold up their option letters, the Customs Shed (reviews) flies a red pennant
    over papers that break a standing order, Bottle Cove (research) bottles sink lower the longer they wait, and the
    Notice Board (to-dos) flutters notices due within a day and pins overdue ones red. The goal is zero everywhere.
-   The pure part (SCENES, group, tally, step, nextBusy, progress, leavers, line) is unit-tested in node; the factory draws
+   The pure part (SCENES, group, tally, step, nextBusy, progress, leavers, sill, zeroLine, line) is unit-tested in node; the factory draws
    into #scenes, the top window over the harbor sky, with helpers app.js passes in. Every name here is original. Loaded before app.js. */
 'use strict';
 const HarborScenes = (() => {
@@ -29,6 +29,10 @@ const HarborScenes = (() => {
   function nextBusy(kind, counts) { for (let d = 1; d <= KINDS.length; d++) { const k = step(kind, d); if (counts[k]) return k; } return null; }
   const progress = (left, cleared) => ({ left, cleared, pct: left + cleared ? Math.round(cleared * 100 / (left + cleared)) : 100, zero: left === 0 });
   const leavers = (before, after) => before.filter(id => !after.includes(id));
+  // the words on the sill and the all-clear card; items parked with Later are counted, never hidden behind a zero
+  const parkedNote = n => (n ? ` · ${n} parked` : '');
+  const sill = (left, { paused = 0, parked = 0 } = {}) => `${left ? `${left} to zero` : 'Zero waiting'}${paused ? ` · ${paused} crew paused` : ''}${parkedNote(parked)}`;
+  const zeroLine = parked => `⚑ Zero waiting anywhere${parkedNote(parked)}`;
   // The line at a scene, single file: priority first (P1 before P2), then oldest; anyone sent to the back of the line
   // stands behind them in the order they were sent; anyone away on an ask stands last. info(it) -> { prio, created, back, away }
   function line(list, info) {
@@ -71,7 +75,7 @@ const HarborScenes = (() => {
       if (!root) return;
       const sc = byKind[v.kind], list = [...v.groups[v.kind]].sort((a, b) => (b.id === deps.current()) - (a.id === deps.current())), n = list.length, figs = list.map(it => figure(it, v.kind, v.urgent));
       const prog = progress(v.counts.total, v.cleared);
-      const sig = JSON.stringify([v.kind, figs.map(f => [f.id, f.cls, f.label]), v.counts, v.cleared, v.paused, v.catBell]);
+      const sig = JSON.stringify([v.kind, figs.map(f => [f.id, f.cls, f.label]), v.counts, v.cleared, v.paused, v.parked, v.catBell]);
       if (sig === last.sig) return;
       // a figure that was here last time and is gone now leaves the scene (after its stamp; nothing waits on it)
       const ghosts = [];
@@ -87,19 +91,19 @@ const HarborScenes = (() => {
       const busy = nextBusy(v.kind, v.counts);
       const stage = h('div', { class: 'sc-stage', 'data-kind': v.kind, title: sc.quirk }, h('div', { class: 'sc-set', 'aria-hidden': 'true' }), crowd,
         n ? null : h('div', { class: 'sc-clear' }, deps.cat(v.catBell, true), h('b', null, 'All clear'), h('span', null, sc.clear),
-          busy ? h('button', { class: 'sc-go', onclick: () => deps.jump(busy) }, `${byKind[busy].name}: ${v.counts[busy]} waiting ›`) : h('span', { class: 'sc-zero' }, '⚑ Zero waiting anywhere')));
+          busy ? h('button', { class: 'sc-go', onclick: () => deps.jump(busy) }, `${byKind[busy].name}: ${v.counts[busy]} waiting ›`) : h('span', { class: 'sc-zero' }, zeroLine(v.parked))));
       const pips = h('div', { class: 'sc-pips', role: 'group', 'aria-label': 'Scenes' }, SCENES.map(s => h('button', { class: `sc-pip${v.counts[s.kind] ? '' : ' clear'}`, 'aria-current': String(s.kind === v.kind), title: `${s.name} (${s.many}): ${v.counts[s.kind]} waiting`, 'aria-label': `${s.name} (${s.many}): ${v.counts[s.kind]} waiting`, onclick: () => deps.jump(s.kind) }, v.counts[s.kind] ? String(v.counts[s.kind]) : '✓')));
       root.replaceChildren(
         stage,
         h('header', { class: 'sc-head' }, arrow(-1), h('div', { class: 'sc-title', title: `${sc.name}: ${sc.many}. ${sc.quirk}` }, h('b', { class: 'sc-name' }, sc.name), h('span', { class: 'sc-count', title: `${n} ${n === 1 ? sc.one : sc.many} waiting` }, String(n))), arrow(1)),
-        h('div', { class: `sc-progress${prog.zero ? ' zero' : ''}`, title: `${prog.cleared} cleared today, ${prog.left} still open` },
+        h('div', { class: `sc-progress${prog.zero ? ' zero' : ''}`, title: `${prog.cleared} cleared today, ${prog.left} still open${v.parked ? `, ${v.parked} parked for later` : ''}` },
           h('div', { class: 'meter' }, h('span', { style: `width:${prog.pct}%` })),
-          h('span', { class: 'sc-left' }, prog.zero ? 'Zero waiting' : `${prog.left} to zero`, v.paused ? ` · ${v.paused} crew paused` : ''), pips));
+          h('span', { class: 'sc-left' }, sill(prog.left, v)), pips));
       for (const g of ghosts) { g.el.classList.add('leaving'); g.el.removeAttribute('role'); g.el.tabIndex = -1; g.el.style.left = `${g.x}px`; g.el.style.top = `${g.y}px`; crowd.append(g.el); setTimeout(() => g.el.remove(), 1200); }
     }
     return { render, reset: () => { last = { kind: null, sig: '' }; } };
   }
 
-  return { SCENES, KINDS, byKind, group, tally, step, nextBusy, progress, leavers, line, view };
+  return { SCENES, KINDS, byKind, group, tally, step, nextBusy, progress, leavers, sill, zeroLine, line, view };
 })();
 if (typeof module === 'object') module.exports = HarborScenes;

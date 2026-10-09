@@ -1,7 +1,7 @@
 /* Quick calls: the pieces that make clearing the desk one keystroke per answer. Letter keys on decision options
    (A-E) with an optional grey "why" line, the question sheet (a bundle of papers as one stacked sheet: letter keys
-   per row, one stamp), weight icons and project lanes for the queue, the speech bubble's ask, the Later stamp's
-   return time, and "take all recommended" (Shift+A). Loaded before app.js; holds no desk state: app.js passes its
+   per row, one stamp), weight icons and project lanes for the queue, the speech bubble's ask, and "take all
+   recommended" (Shift+A). Loaded before app.js; holds no desk state: app.js passes its
    helpers and live accessors in. */
 'use strict';
 window.HarborQuickCall = deps => {
@@ -55,12 +55,6 @@ window.HarborQuickCall = deps => {
     return `${group.length} ${all ? 'quick calls' : 'papers'} on ${subject}`;
   }
 
-  // Later: tomorrow 9:00 local, or (toReset) just after the next known usage reset.
-  function laterUntil(toReset, { now, resets }) {
-    if (toReset) { const r = resets.filter(x => x > now).sort((a, b) => a - b)[0]; return r ? r + 60 : null; }
-    const d = new Date(now * 1000); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return Math.floor(d / 1000);
-  }
-
   // The question sheet: every paper of a bundle as a row. The row in focus is the item at the desk (its artifacts
   // fill the reading paper); letters pick on it and move to the next row; one stamp settles every ticked row.
   function sheet(it, group, { awaiting }) {
@@ -102,5 +96,5 @@ window.HarborQuickCall = deps => {
       [h('span', { class: 'legend' }, 'Shift+A again stamps'), h('button', { class: 'pbtn ghost', onclick: deps.closeModal }, 'Cancel'), go]);
   }
 
-  return { LETTERS, option, mark, weightIcons, weightsOf, laneSort, ask, laterUntil, sheet, sweepCandidates, openSweep, human };
+  return { LETTERS, option, mark, weightIcons, weightsOf, laneSort, ask, sheet, sweepCandidates, openSweep, human };
 };

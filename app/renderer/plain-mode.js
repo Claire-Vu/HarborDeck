@@ -4,8 +4,8 @@
 
 // ------------------------------------------------------------ plain mode
 function actionsFor(it) {
-  const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = v => { S.current = it.id; s.read = true; save(); stamp(v); };
-  for (const v of [...VERDICTS, 'later']) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, title: v === 'later' ? 'Park it until tomorrow 9:00' : null, onclick: () => run(v) }, cfg[v].label));
+  const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = (v, pick) => { S.current = it.id; s.read = true; save(); stamp(v, false, pick); };
+  for (const v of [...VERDICTS, 'later']) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, title: v === 'later' ? 'Park it: tomorrow 9:00, after the next usage reset, or a date you pick' : null, onclick: () => run(v, v === 'later') }, cfg[v].label));
   // the bundle stamp takes the ticked papers only: opening a card counts as opening it (topicView.ticked); any card
   // opening re-counts every bundle button (sync)
   const group = bundleOf(it); if (group.length > 1) {
@@ -36,7 +36,7 @@ function plainCard(it, openByDefault) {
 function renderPlain() {
   const root = $('#plain-mode'); root.replaceChildren();
   const open = ITEMS.filter(i => statusOf(i) === 'open'); const f = S.prefs.filter;
-  root.append(h('div', { class: 'plain-filters' }, ...['all', 'decision', 'review', 'answer', 'todo'].map(k => h('button', { class: 'chip', 'aria-pressed': String(f === k), onclick: () => { S.prefs.filter = k; save(); renderPlain(); } }, k === 'all' ? 'All' : KINDS[k])), h('span', { class: 'count' }, `${open.length} open · ${money(S.cash)} · ${S.answers.length} actions`)));
+  root.append(h('div', { class: 'plain-filters' }, ...['all', 'decision', 'review', 'answer', 'todo'].map(k => h('button', { class: 'chip', 'aria-pressed': String(f === k), onclick: () => { S.prefs.filter = k; save(); renderPlain(); } }, k === 'all' ? 'All' : KINDS[k])), h('span', { class: 'count' }, `${open.length} open${parkedItems().length ? ` · ${parkedItems().length} parked` : ''} · ${money(S.cash)} · ${S.answers.length} actions`)));
   const groups = [['decision', 'Needs your word'], ['review', 'Review the work'], ['answer', 'Research to read and file'], ['todo', 'Notices: only you']];
   for (const [k, label] of groups) {
     if (f !== 'all' && f !== k) continue;
@@ -48,8 +48,10 @@ function renderPlain() {
     const sel = h('select', { onchange: e => { to = e.target.value; } }, FLEET.firstmates.map(m => h('option', { value: m.id, selected: m.id === to }, m.label)));
     const send = () => { const v = ta.value.trim(); if (!v) return; const id = `req-${now()}-${hash(v) % 1000}`; emit({ id, action: 'request', note: v, to }); S.prefs.lastMate = to; save(); renderPlain(); };
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'New order'), h('div', { class: 'pcard order-plain' }, ta, h('div', { class: 'row' }, sel, h('button', { class: 'abtn file', onclick: send }, 'Hand it over')))));
-    root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), h('div', null, `${G.boats(open).length} boats moored in the harbor; ${G.town(S.fun.dayCount).length} buildings in town.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
+    root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Scene, in words'), h('div', { class: 'pcard scene-text' }, h('div', null, `${open.length} waiting outside the window${parkedItems().length ? ` (${parkedItems().length} more parked for later)` : ''}${open.filter(i => impatience(i) === 2).length ? `, ${open.filter(i => impatience(i) === 2).length} very impatient` : ''}.`), h('div', null, `${G.boats(open).length} boats moored in the harbor; ${G.town(S.fun.dayCount).length} buildings in town.`), ...FLEET.crew.map(c => h('div', null, `${crewName(c.id)}: ${{ working: 'cooking ' + (c.task_title || c.task), done: 'ready at the pass with ' + (c.task_title || c.task), waiting: 'waiting on you (' + (c.task_title || c.task) + ')', idle: hash(c.id) % 2 === 0 ? 'napping on the pier' : 'lounging on the pier' }[c.state] || c.state}${tired() ? ', yawning' : ''}`)))));
     root.append(h('section', { class: 'plain-group' }, h('h2', null, 'Topics'), h('div', { class: 'pcard topics-plain' }, topicView.list())));
+    const parked = parkedItems();
+    if (parked.length) root.append(h('section', { class: 'plain-group parked' }, h('h2', null, `Parked for later (${parked.length})`), h('div', { class: 'pcard' }, parked.map(i => h('div', { class: 'parked-row', dataset: { id: i.id } }, h('span', { class: `tag ${i.kind}` }, KIND[i.kind]), h('span', { class: 'pk-title' }, i.title), h('span', { class: 'pk-when' }, `back ${backAt(deferredUntil(i))}`), h('button', { class: 'abtn pk-back', onclick: () => unpark(i.id) }, 'Bring back now'))))));
     const done = ITEMS.filter(i => statusOf(i) === 'resolved');
     if (done.length) root.append(h('section', { class: 'plain-group' }, h('h2', null, `Resolved (${done.length})`), done.map(i => plainCard(i))));
   }

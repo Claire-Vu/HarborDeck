@@ -44,8 +44,12 @@ scenes = HS.view({ h, sprite: it => (w => spriteSVG(w.id, it.kind, { mate: w.mat
   age: it => age(now() - it.created), away: it => st(it.id).awaiting, impatience: it => impatience(it), flagged: it => flaggedCount(it), coat: it => G.regular(it.project).coat, now, current: () => S.current,
   open: id => stepUp(id), flip: d => setScene(HS.step(sceneKind(), d)), jump: k => setScene(k), cat: (bell, nap) => harborScene.cat(nap ? 'on-pier' : 'on-visitor', bell, nap) });
 $('#stow-box').addEventListener('click', () => { if ($('#stow-view').hidden) openStowView(); else closeStowView(); });
-document.addEventListener('pointerdown', e => { if (!$('#stow-view').hidden && !e.target.closest('#stow-view, #stow-box')) closeStowView(); });
-window.addEventListener('resize', () => { if (!$('#stow-view').hidden) placeStowView(); });
+$('#parked-btn').addEventListener('click', () => { if ($('#parked-view').hidden) openParkedView(); else closeParkedView(); });
+document.addEventListener('pointerdown', e => {
+  if (!$('#stow-view').hidden && !e.target.closest('#stow-view, #stow-box')) closeStowView();
+  if (!$('#parked-view').hidden && !e.target.closest('#parked-view, #parked-btn')) closeParkedView();
+});
+window.addEventListener('resize', () => { if (!$('#stow-view').hidden) placeStowView(); if (!$('#parked-view').hidden) placeParkedView(); });
 // Note slips (needs-work, ask, mismatch) with their image tray live in attach-view.js (attachView.slip).
 attachView = window.HarborAttach({ h, bridge, toast, modal, closeModal, fileFor: p => fileFor(p), openViewer: a => openViewer(a), markup: window.HarborMarkup({ h, bridge, toast }) });
 bridge.onUpdate(snap => { if (typing()) { deferred = snap; return; } applySnapshot(snap); });
@@ -119,7 +123,7 @@ $('#tray-handle').onclick = () => toggleTray();
 $('#rail').addEventListener('wheel', e => { const rail = e.currentTarget; if (rail.scrollWidth <= rail.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; e.preventDefault(); rail.scrollLeft += e.deltaY; }, { passive: false });
 $('#rail').addEventListener('scroll', railCues);
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers);
-document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey));
+document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(b.dataset.verdict, e.shiftKey, b.dataset.verdict === 'later' && !e.shiftKey)); // the Later stamp opens the Later slip
 document.addEventListener('keydown', deskKeys);
 window.addEventListener('beforeunload', commitPending);
 window.addEventListener('resize', () => { renderStaminaMini(); if (!S.prefs.plain) { renderDesk(); railCues(); } });
