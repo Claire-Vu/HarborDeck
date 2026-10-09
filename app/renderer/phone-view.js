@@ -77,7 +77,7 @@ else window.HarborPhone = deps => {
     at = h('input', { type: 'time', class: 'phone-at', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
     atBtn = h('button', { class: 'phone-q', disabled: true, onclick: () => { if (at.value) queue(deps.clockEpoch(at.value)); } }, 'Queue at time');
     at.addEventListener('input', () => { atBtn.disabled = !at.value; });
-    rule = h('input', { type: 'checkbox', id: 'phone-rule' });
+    rule = h('input', { type: 'checkbox', id: 'phone-rule', onchange: () => pad.focus() }); // back to the pad, so Enter still sends
     el = h('div', { class: 'phone', id: 'phone', onclick: e => { if (e.target === el) close(); } },
       h('div', { class: 'phone-box', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Ship phone' },
         h('div', { class: 'phone-art', html: ART }),

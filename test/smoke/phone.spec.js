@@ -148,7 +148,7 @@ test('Remember this: the toggle makes the request a standing order (rule: true),
   const box = page.getByLabel('Remember this');
   await expect(box).not.toBeChecked(); // off by default: most messages are one-offs
   await box.check();
-  await page.locator('.phone-pad').focus();
+  await expect(page.locator('.phone-pad')).toBeFocused(); // a click on the box hands focus back, so Enter still sends
   await page.keyboard.press('Enter');
   await expect(page.locator('#phone')).toHaveCount(0);
   const line = answers().at(-1);
