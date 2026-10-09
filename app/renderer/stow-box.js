@@ -6,13 +6,15 @@
 // A stowed paper keeps its dragged position, so it comes back where it was (clamped by layoutPapers).
 // The box shows its papers as a stack of sheets; clicking it opens a view of mini copies of each stowed paper.
 let stowLabels = {}, stowEls = {};
+// the decision slip (the stamp lands on it) and the manifest (the title of what is at the desk) always stay out
+const canStow = pid => pid !== 'ask' && pid !== 'm';
 const STOW_KINDS = ['manifest', 'report', 'photo', 'monitor', 'prcard', 'thread'];
 const kindOf = p => STOW_KINDS.find(c => p?.classList.contains(c)) || 'report';
 const stowedOf = id => S.stowed[id] || {};
 const overStow = e => { const r = $('#stow-box').getBoundingClientRect(); return r.width > 0 && e.clientX >= r.left - 10 && e.clientX <= r.right + 10 && e.clientY >= r.top - 10 && e.clientY <= r.bottom + 10; };
-function addStowBtn(p, id) { if (p.dataset.pid === 'ask') return; p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
+function addStowBtn(p, id) { if (!canStow(p.dataset.pid)) return; p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
 function stow(id, pid) {
-  const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || pid === 'ask' || id !== S.current || stowedOf(id)[pid]) return; // the decision slip stays: the stamp lands on it
+  const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || !canStow(pid) || id !== S.current || stowedOf(id)[pid]) return;
   (S.stowed[id] ||= {})[pid] = stowLabels[pid] || 'Paper'; stowEls[pid] = p; save(); snd('flip');
   const b = $('#stow-box').getBoundingClientRect(), r = p.getBoundingClientRect(); p.style.pointerEvents = 'none';
   if (b.width) { p.style.animation = 'none'; p.style.transformOrigin = '0 0'; p.style.transition = 'transform .35s ease-in, opacity .35s'; void p.offsetWidth; p.style.transform = `translate(${b.left + b.width / 2 - r.left}px, ${b.top + b.height / 2 - r.top}px) scale(.05)`; p.style.opacity = '0'; }
@@ -21,7 +23,7 @@ function stow(id, pid) {
 function unstow(id, pid) { const m = S.stowed[id]; if (!m?.[pid]) return; delete m[pid]; if (!Object.keys(m).length) delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
 function unstowAll(id) { if (!S.stowed[id]) return; delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
 function stowKey() { // X: the paper last raised, else the reading paper, else any but the ask
-  const ps = [...document.querySelectorAll('#desk-surface .paper:not([data-pid="ask"])')]; if (!ps.length) { toast('No papers on the desk.'); return; }
+  const ps = [...document.querySelectorAll('#desk-surface .paper')].filter(p => canStow(p.dataset.pid)); if (!ps.length) { toast('No papers on the desk.'); return; }
   const p = ps.find(q => q.style.zIndex === '89') || ps.find(q => q.classList.contains('reading')) || ps[ps.length - 1];
   stow(S.current, p.dataset.pid);
 }

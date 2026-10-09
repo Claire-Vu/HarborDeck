@@ -72,3 +72,9 @@ export function parseFlags(argv, spec) {
   }
   return { pos, flags };
 }
+
+// `hd <command> --help` (or -h, before any `--`) asks for the help instead of running the command.
+export function wantsHelp(argv) {
+  const end = argv.indexOf('--');
+  return (end < 0 ? argv : argv.slice(0, end)).some((a) => a === '--help' || a === '-h');
+}

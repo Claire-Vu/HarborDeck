@@ -159,7 +159,7 @@ test('queue for after reset: countdown ticket, delivered by tick, then replied',
   expect(line).toMatchObject({ action: 'request' });
   const sent = page.locator('#rail .ticket.waiting', { hasText: 'Write the weekly digest' });
   await expect(sent).toBeVisible({ timeout: 8000 });
-  await expect(sent.locator('.tk-foot')).toContainText('sent');
+  await expect(sent.locator('.tk-foot')).toContainText('awaiting reply');
   await expect(page.locator('#rail .ticket.queued')).toHaveCount(0);
   // the agent replies with an item carrying the request id
   fs.writeFileSync(path.join(home, 'items', `${line.id}.json`), JSON.stringify({ id: line.id, kind: 'answer', project: 'x', title: 'Weekly digest', summary: 'Drafted.', created: Math.floor(Date.now() / 1000), status: 'open' }));

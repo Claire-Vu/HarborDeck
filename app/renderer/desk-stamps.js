@@ -56,7 +56,7 @@ function stamp(verdict, toReset) {
   }
   if (verdict === 'reject') return finishStamp(it, 'REJECTED', 'reject', { id: it.id, action: 'reject' });
   const action = verdict === 'ask' ? 'ask' : 'needs-work';
-  attachView.slip({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…', attach: true, rule: true }, (note, attachments, rule) => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note, attachments, ...(rule ? { rule: true } : {}) }, true));
+  attachView.slip({ title: verdict === 'ask' ? 'Ask a follow-up' : 'What needs work?', to: `to ${mateFor(it).label}, about: ${it.title}`, placeholder: verdict === 'ask' ? 'Your question…' : 'What to change…', draft: `${action}:${it.id}`, attach: true, rule: true }, (note, attachments, rule) => finishStamp(it, verdict === 'ask' ? 'FOLLOW-UP' : 'NEEDS WORK', verdict === 'ask' ? 'ask' : 'needswork', { id: it.id, action, note, attachments, ...(rule ? { rule: true } : {}) }, true));
 }
 // Later (S): park the item (and the rest of its ticked sheet) until tomorrow 9:00, or with Shift+S until just
 // after the next usage reset. Writes a defer line; firstmate turns it into a hold --until.
@@ -70,9 +70,11 @@ function later(it, toReset) {
 // A stamp is applied at once, but its JSONL line is held for UNDO_MS. Undo restores the item and writes nothing.
 // The hold starts at the key press, not when the stamp lands: an undo during the flight cancels it too; the flight
 // is only the picture. extra: [{ it, line }] for the other papers of a bundle, held, written and undone with this one.
+// The desk moves on at once, so the next key press lands on the next visitor; the stamped papers stay behind as a
+// ghost the stamp flies onto, then leave.
 function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
   commitPending();
-  const s = st(it.id); const src = document.querySelector(`#stamps .stamp.${ink}`) || document.querySelector('#stamps .stamp'); const zone = $('#stamp-zone');
+  const s = st(it.id); const src = document.querySelector(`#stamps .stamp.${ink}`) || document.querySelector('#stamps .stamp');
   const snap = { item: JSON.parse(JSON.stringify(s)), cash: S.cash, current: S.current, extra: extra.map(e => [e.it.id, JSON.parse(JSON.stringify(st(e.it.id)))]) };
   line.at = now();
   // tidy run (F4): resolving stamps close together; a bulk stamp (bundle, take all recommended) never counts and
@@ -83,25 +85,34 @@ function finishStamp(it, text, ink, line, stays, extra = [], bulk = false) {
   // a defer leaves the item open; the held line itself parks it (statusOf)
   if (stays) s.awaiting = true; else if (!parks) { s.status = 'resolved'; s.verdict = line; }
   for (const e of extra) { e.line.at = line.at; if (e.line.action !== 'defer') Object.assign(st(e.it.id), { status: 'resolved', verdict: e.line }); }
-  save();
-  const p = pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: null };
+  save(); $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length;
+  const p = pending = { line, extra, itemId: it.id, snap, stays, run: runN, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoChip() };
   const held = () => pending === p;
+  if ($('#agentlog').classList.contains('open')) renderLog();
+  setTimeout(() => {
+    if (!held()) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
+    const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); popCash(bonus); }
+  }, 300);
+  const ghost = S.current === it.id ? ghostDesk() : null;
+  if (S.current === it.id) { if (!stays) S.current = null; next(); } else renderAll();
+  const zone = ghost?.querySelector('.stamp-zone');
   flyStamp(src, zone, ink, () => {
-    if (!held()) return; // undone in flight (a commit by the next stamp has already moved the desk on)
+    if (!held()) return; // undone in flight: undoPending already dropped the ghost and brought the item back
     if (zone) { zone.textContent = ''; zone.append(h('div', { class: `impression ink-${ink}`, style: `--rot:${(hash(it.id) % 14) - 7}deg` }, text, h('small', null, `${fmtDate(line.at)} ${fmtTime(line.at)}`))); }
     if (!stays && !parks) harborScene.showRun(run.n);
     $('#desk').classList.remove('shake'); void $('#desk').offsetWidth; $('#desk').classList.add('shake'); snd('thud', pitch);
-    $('#vault-count').textContent = ITEMS.filter(i => statusOf(i) === 'resolved').length; if (!stays) renderHarbor();
-    p.toastEl = undoChip();
-    if ($('#agentlog').classList.contains('open')) renderLog();
-    setTimeout(() => {
-      if (!held()) return; [{ it, line }, ...extra].forEach(e => earn(e.it, e.line.action, pitch));
-      const bonus = G.comboBonus(runN); if (bonus) { S.cash += bonus; save(); $('#cash-n').textContent = money(S.cash); popCash(bonus); }
-    }, 300);
-    // a pick made during the hold wins: only move on while the stamped item is still the one on the desk
-    const here = () => held() && S.current === it.id;
-    setTimeout(() => { if (!here()) return; document.querySelectorAll('#desk-surface .paper').forEach(p => p.classList.add('leaving')); setTimeout(() => { if (!here()) return; if (!stays) S.current = null; next(); }, 480); }, stays ? 1100 : 900);
+    if (!ghost) return;
+    setTimeout(() => ghost.querySelectorAll('.paper').forEach(p => p.classList.add('leaving')), 220);
+    setTimeout(() => ghost.remove(), 720);
   });
+}
+// A still copy of the papers on the desk, laid over it; the desk underneath is free to show the next visitor.
+function ghostDesk() {
+  const surf = $('#desk-surface'); if (!surf || S.prefs.plain || window.innerWidth <= 860 || !surf.querySelector('.paper')) return null;
+  const g = surf.cloneNode(true); g.removeAttribute('id'); g.classList.add('desk-ghost'); g.inert = true; g.setAttribute('aria-hidden', 'true');
+  g.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); g.querySelectorAll('video, audio, iframe').forEach(e => e.remove());
+  g.querySelectorAll('.paper').forEach(p => { p.style.animation = 'none'; });
+  surf.after(g); return g;
 }
 // After a clearing stamp is written (the undo hold is over): the tide goal (F7) and the stamp book (F6).
 let run = { n: 0, at: 0 };
@@ -147,6 +158,7 @@ function commitPending() {
 }
 function undoPending() {
   if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p.toastEl?.remove();
+  document.querySelectorAll('.desk-ghost').forEach(g => g.remove());
   S.items[p.itemId] = p.snap.item; for (const [id, x] of p.snap.extra || []) S.items[id] = x; S.cash = p.snap.cash; S.current = p.itemId; save();
   run = { n: 0, at: 0 }; harborScene.showRun(0); // undo breaks the tidy run
   snd('flip'); renderAll();

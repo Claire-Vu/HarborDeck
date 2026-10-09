@@ -43,9 +43,16 @@ const dueChip = it => { if (!it.due) return null; const d = it.due - now(); retu
 const bundleOf = it => topicView.groups(queueItems().filter(i => !st(i.id).awaiting)).get(it.id) || [it];
 const choiceOf = it => st(it.id).choice || it.options?.find(o => o.recommended)?.key || null;
 const HS = HarborScenes;
-const sceneKind = () => (HS.byKind[S.prefs.scene] ? S.prefs.scene : HS.byKind[S.prefs.filter] ? S.prefs.filter : HS.KINDS[0]);
-// switching scenes calls the front of that scene's line to the desk; an empty scene leaves the desk empty (all clear)
-function setScene(k) { S.prefs.scene = k; S.prefs.filter = k; const f = sceneLine(k).find(i => !st(i.id).awaiting); S.current = f ? f.id : null; if (f) st(f.id).read = true; save(); snd('flip'); renderAll(); }
+// the window shows the scene of the item at the desk; with nobody there, the scene last shown
+function sceneKind() {
+  const it = byId[S.current]; if (it && HS.byKind[it.kind] && statusOf(it) === 'open') return it.kind;
+  return HS.byKind[S.prefs.scene] ? S.prefs.scene : HS.byKind[S.prefs.filter] ? S.prefs.filter : HS.KINDS[0];
+}
+// The window follows the item at the desk. All stays All; a kind filter (a chip the captain pressed) moves with it.
+function follow(it) { if (!HS.byKind[it?.kind]) return; S.prefs.scene = it.kind; if (S.prefs.filter !== 'all') S.prefs.filter = it.kind; }
+// switching scenes calls the front of that scene's line to the desk; an empty scene leaves the desk empty (all clear).
+// Arrows, pips and Next change the window only; `filter` (a kind chip) also narrows the list to that kind.
+function setScene(k, filter = S.prefs.filter !== 'all') { S.prefs.scene = k; if (filter) S.prefs.filter = k; const f = sceneLine(k).find(i => !st(i.id).awaiting); S.current = f ? f.id : null; if (f) st(f.id).read = true; save(); snd('flip'); renderAll(); }
 // the line at a scene (HS.line); `back` is when the item was sent to the back of the line: view state, never written out
 const sceneLine = k => HS.line(queueItems(k), it => ({ prio: prio(it), created: it.created, back: st(it.id).back, away: !!st(it.id).awaiting }));
 // the top window: the current kind's scene over the harbor sky; the ship cat (F8) sits by its most urgent figure
@@ -60,7 +67,7 @@ function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (
 function renderFilters() {
   const counts = { all: 0 }; for (const i of ITEMS) if (statusOf(i) === 'open') { counts.all++; counts[i.kind] = (counts[i.kind] || 0) + 1; }
   $('#filters').replaceChildren(...['all', 'decision', 'review', 'answer', 'todo'].filter(k => k === 'all' || counts[k] || S.prefs.filter === k).map(k =>
-    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { if (k !== 'all') return setScene(k); S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
+    h('button', { class: 'chip', 'aria-pressed': String(S.prefs.filter === k), onclick: () => { if (k !== 'all') return setScene(k, true); S.prefs.filter = k; save(); renderAll(); } }, k === 'all' ? 'All' : KINDS[k], ` ${counts[k] || 0}`)));
 }
 function renderQueue() {
   const kindShown = !!HS.byKind[S.prefs.filter]; const list = kindShown ? sceneLine(S.prefs.filter) : queueItems(); const ul = $('#queue'); ul.replaceChildren(); const groups = topicView.groups(list.filter(i => !st(i.id).awaiting));
@@ -132,10 +139,10 @@ function renderYard() {
 function stepUp(id) {
   const it = byId[id]; if (!it) return;
   if (st(id).awaiting) { toast(`${it.title}: away, waiting on ${mateFor(it).label}`); return; }
-  S.current = id; st(id).read = true; save(); snd('slide'); renderAll();
+  S.current = id; st(id).read = true; follow(it); save(); snd('slide'); renderAll();
 }
 // The sheet's row in focus is the item at the desk; moving rows keeps the papers still (renderDesk 'calm').
-function focusRow(id) { const it = byId[id]; if (!it || st(id).awaiting) return; S.current = id; st(id).read = true; save(); renderAll(); }
+function focusRow(id) { const it = byId[id]; if (!it || st(id).awaiting) return; S.current = id; st(id).read = true; follow(it); save(); renderAll(); }
 function unpark(id) { const s = st(id); s.undeferAt = now(); save(); snd('slide'); stepUp(id); }
 // A letter (or click) picked an option on `id`: on a sheet move to the next row, else just mark it on the slip.
 function afterPick(id) {

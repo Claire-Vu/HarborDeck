@@ -299,6 +299,19 @@ test('keep awake: one assertion, extended, replaced only when stale, released wh
   assert.equal(S.syncKeepAwake(home, data([T + 900]), process.env, T + 400, ops), null);
 });
 
+test('keep awake: an order queued for a far time holds it only in the last hour before it', () => {
+  const { home } = setup({ keepAwake: true });
+  const started = [];
+  const ops = { bin: 'caffeinate', alive: () => true, start: (bin, secs) => { started.push(secs); return 500 + started.length; }, stop: () => {} };
+  const at = (due) => ({ enabled: true, pending: [{ kind: 'at', due }] });
+  assert.equal(S.syncKeepAwake(home, at(T + 13 * 3600), process.env, T, ops), null); // 13 h away: the Mac may sleep
+  assert.deepEqual(started, []);
+  assert.deepEqual(S.syncKeepAwake(home, at(T + 13 * 3600), process.env, T + 12 * 3600, ops), { pid: 501, until: T + 13 * 3600 + 300 });
+  // a reset order still holds it all the way (idle sleep must not skip the reset)
+  const r = S.syncKeepAwake(home, { enabled: true, pending: [{ kind: 'reset', due: T + 5 * 3600 }, { kind: 'at', due: T + 9 * 3600 }] }, process.env, T, ops);
+  assert.equal(r.until, T + 5 * 3600 + 300);
+});
+
 test('keep awake: CLI starts and releases a real (stub) caffeinate process', async () => {
   const { home, env, hd } = setup({ keepAwake: true, wake: 'true' });
   const stub = path.join(home, 'caffeinate-stub');

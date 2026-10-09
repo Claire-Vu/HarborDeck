@@ -40,6 +40,7 @@ function loadState() {
   S.fun = Object.assign(freshFun(), S.fun);
   S.answers = (SNAP.answers || []).slice();
   for (const x of Object.values(S.items)) delete x.shown; // highlights last one look
+  for (const [id, m] of Object.entries(S.stowed)) { delete m.m; if (!Object.keys(m).length) delete S.stowed[id]; } // the manifest is never stowed (an older desk could)
 }
 const save = () => { try { const { answers, prefs, ...desk } = S; localStorage.setItem(deskKey(), JSON.stringify(desk)); localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
 const now = () => Math.floor(Date.now() / 1000);

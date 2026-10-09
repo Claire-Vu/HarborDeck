@@ -8,7 +8,8 @@
 # failure retries from that line on the next run) and routes each:
 #   decide, approve, reject  -> bin/fm-captain-hold.sh answers (keyed answer, closes the hold)
 #   needs-work               -> keyed answer with mode release (held work resumes) + inbox note
-#   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent); a line with
+#   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent); an Inspect "match:"
+#                               comment (a positive confirmation) is skipped, not inbox noise; a line with
 #                               rule: true ("Remember this") adds "Standing order:" so it gets filed as a preference
 #   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <local date of until>
 #                               (a <task>.qN question defers its held task), else an inbox note
@@ -127,7 +128,9 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
     needs-work)
       keyed "$id" "needs-work: $note" "" release || true
       note "$rid" "$text: $note.$so $reply" || return 1 ;;
-    ask|comment)
+    comment) if [[ $note == match:* ]]; then log "skipping match confirmation on $id"; return 0; fi
+      note "$rid" "$text: $note${anchor:+ (anchor $anchor)}.$so $reply" || return 1 ;;
+    ask)
       note "$rid" "$text: $note${anchor:+ (anchor $anchor)}.$so $reply" || return 1 ;;
     request)
       note "$id" "HarborDeck request for $to: $note.$so $reply" || return 1 ;;

@@ -25,7 +25,7 @@ function renderAll(keepDesk) {
 // Waiting on a reply = the latest ask/needs-work for the item has no non-captain thread entry after it.
 function computeAwaiting(it) {
   const asks = S.answers.filter(a => a.id === it.id && (a.action === 'ask' || a.action === 'needs-work'));
-  if (pending && pending.stays && pending.itemId === it.id) asks.push(pending.line);
+  if (pending && pending.stays && !pending.comment && pending.itemId === it.id) asks.push(pending.line);
   const last = asks.sort((a, b) => a.at - b.at).pop(); if (!last) return false;
   return !(it.thread || []).some(m => m.at >= last.at && m.from !== 'captain');
 }

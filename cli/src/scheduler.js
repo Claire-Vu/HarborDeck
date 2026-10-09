@@ -20,7 +20,7 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { writeAtomic, SLUG } from './store.js';
 import { parseWhen, parseResetText, fmtTime } from './when.js';
-import { awakeOps, holdAwake, AWAKE_SLACK } from './keep-awake.js';
+import { awakeOps, holdAwake, awakeUntil } from './keep-awake.js';
 
 export { parseWhen, parseResetText, fmtTime } from './when.js';
 export { launchdLabel, launchdPlist, systemdUnits, hookSnippet } from './install.js';
@@ -451,11 +451,11 @@ export function writeStatus(home, t = now(), env = process.env, syncAwake = true
   return data;
 }
 
-// While anything is pending, keep the Mac awake until the last due item (+ slack); release otherwise.
+// While anything is pending, keep the Mac awake until the last due item (+ slack; a far clock-time order only in its
+// last hour, see awakeUntil); release otherwise.
 // `ops` is injectable for tests.
 export function syncKeepAwake(home, data, env = process.env, t = now(), ops = awakeOps(env)) {
   const cfg = loadConfig(home, env);
-  const want = cfg.keep_awake && data.enabled && data.pending.length > 0;
-  const until = want ? Math.min(Math.max(t, ...data.pending.map((i) => i.due || t)) + AWAKE_SLACK, t + MAX_HORIZON) : null;
-  return holdAwake(paths(home).awake, until, t, ops, (m) => log(home, m));
+  const until = cfg.keep_awake && data.enabled ? awakeUntil(data.pending, t) : null;
+  return holdAwake(paths(home).awake, until && Math.min(until, t + MAX_HORIZON), t, ops, (m) => log(home, m));
 }

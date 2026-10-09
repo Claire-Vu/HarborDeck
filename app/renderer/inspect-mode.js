@@ -20,10 +20,19 @@ function showPairPopover(claim, point, nearEl) {
   const it = byId[S.current]; const anchor = Object.assign({}, claim.anchor, point.anchor);
   const pop = h('div', { class: 'popover' }, h('div', null, 'Cross-check'), h('div', { class: 'pair' }, 'Claim: ', claim.label), h('div', { class: 'pair' }, 'Evidence: ', point.label),
     h('div', { class: 'row' },
-      h('button', { class: 'pbtn', onclick: () => { emit({ id: it.id, action: 'comment', note: `match: ${claim.label}`, anchor }); if (claim.idx != null) st(it.id).flags[claim.idx] = 'match'; save(); snd('tick'); earn(it, 'comment'); clearPick(); renderDesk(); } }, 'Match'),
-      h('button', { class: 'pbtn danger', onclick: () => { pop.remove(); attachView.slip({ title: 'Mismatch: what is off?', to: `comment on ${it.title}`, prefill: `mismatch: "${claim.label}" vs ${point.label}: `, attach: true, rule: true }, (note, attachments, rule) => { emit({ id: it.id, action: 'comment', note, anchor, attachments, ...(rule ? { rule: true } : {}) }); if (claim.idx != null) st(it.id).flags[claim.idx] = 'flag'; save(); snd('thud'); earn(it, 'comment'); clearPick(); renderDesk(); }); } }, 'Mismatch'),
+      h('button', { class: 'pbtn', onclick: () => { holdComment(it, { id: it.id, action: 'comment', note: `match: ${claim.label}`, anchor }, claim.idx, 'match'); snd('tick'); } }, 'Match'),
+      h('button', { class: 'pbtn danger', onclick: () => { pop.remove(); attachView.slip({ title: 'Mismatch: what is off?', to: `comment on ${it.title}`, prefill: `mismatch: "${claim.label}" vs ${point.label}: `, attach: true, rule: true }, (note, attachments, rule) => { holdComment(it, { id: it.id, action: 'comment', note, anchor, attachments, ...(rule ? { rule: true } : {}) }, claim.idx, 'flag'); snd('thud'); }); } }, 'Mismatch'),
       h('button', { class: 'pbtn ghost', onclick: clearPick }, 'Cancel')));
   document.body.append(pop);
   const r = nearEl?.getBoundingClientRect(); const x = r ? Math.min(window.innerWidth - 320, r.left) : window.innerWidth / 2 - 150, y = r ? Math.min(window.innerHeight - 180, r.bottom + 8) : 120;
   pop.style.left = Math.max(8, x) + 'px'; pop.style.top = Math.max(8, y) + 'px';
+}
+// A match or mismatch is held for undo like a stamp (the undo chip, U); the item stays at the desk.
+function holdComment(it, line, idx, flag) {
+  commitPending();
+  const snap = { item: JSON.parse(JSON.stringify(st(it.id))), cash: S.cash, current: S.current, extra: [] };
+  line.note ??= ''; line.at = now(); if (idx != null) st(it.id).flags[idx] = flag; save(); earn(it, 'comment');
+  pending = { line, extra: [], itemId: it.id, snap, stays: true, comment: true, timer: setTimeout(commitPending, UNDO_MS), toastEl: undoChip() };
+  if ($('#agentlog').classList.contains('open')) renderLog();
+  clearPick(); renderDesk();
 }

@@ -49,6 +49,8 @@ export function attachOptArt(options, specs, ctx, who, fail) {
     if (o.artifact) fail(`${who}: option ${o.key} already has an --opt-art`);
     const ref = v.slice(i + 1).trim();
     if (!ref) fail(`${who}: --opt-art "${v}" is missing the path or URL`);
-    try { o.artifact = parseArt(ref, ctx); } catch (e) { fail(`${who}: ${e.message}`); }
+    // a sample that is not there would only show "not available" on the desk: refuse it (nothing is written)
+    try { o.artifact = parseArt(ref, { ...ctx, warn: (m) => /artifact not found/.test(m) || ctx.warn(m) }); } catch (e) { fail(`${who}: ${e.message}`); }
+    if (o.artifact.path && !fs.existsSync(o.artifact.path)) fail(`${who}: --opt-art ${o.key}: file not found: ${o.artifact.path}`);
   }
 }

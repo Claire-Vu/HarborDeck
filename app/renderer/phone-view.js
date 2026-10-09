@@ -103,7 +103,8 @@ else window.HarborPhone = deps => {
   function open() {
     if (el) { pad.focus(); return; }
     back = document.activeElement;
-    dialed = deps.lastMate() || mates()[0]?.id;
+    // an unsent draft keeps the mate it was dialed to; a clean pad dials the last mate sent to
+    if (!((deps.draft.get() || tray.has()) && mates().some(m => m.id === dialed))) dialed = deps.lastMate() || mates()[0]?.id;
     pad = h('textarea', { class: 'phone-pad', rows: 3, value: deps.draft.get(), oninput: () => deps.draft.set(pad.value) });
     dial = h('div', { class: 'dial', role: 'radiogroup', 'aria-label': 'Dial a first mate' });
     resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset');

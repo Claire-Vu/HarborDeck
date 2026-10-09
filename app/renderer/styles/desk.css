@@ -73,6 +73,7 @@
 .paper.web .web-open { margin-top: 8px; }
 .paper .meta.path { cursor: help; }
 .desk-surface.calm .paper { animation: none; }
+.desk-surface.desk-ghost { background: none; pointer-events: none; overflow: hidden; } .desk-surface.desk-ghost::before { display: none; }
 .paper.report .excerpt::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(transparent, var(--paper)); }
 .paper.thread { width: 280px; background: #fff8e8; }
 .paper.thread .msg { padding: 6px 0; border-bottom: 1px dashed var(--paper-line); }

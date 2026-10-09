@@ -39,7 +39,7 @@ test('one figure per open decision; arrows and the on-screen arrows flip scenes'
   await expect(scenes()).toHaveAttribute('data-scene', 'review');
   await expect(scenes().locator('.sc-name')).toHaveText('Customs Shed');
   await expect(figs()).toHaveCount(await chipCount('Reviews'));
-  await expect(page.locator('#filters .chip[aria-pressed="true"]')).toContainText('Reviews'); // the chips are the scene index
+  await expect(page.locator('#filters .chip[aria-pressed="true"]')).toContainText('All'); // arrows flip the window; All stays All
   expect(await title().textContent()).not.toBe(before); // flipping calls the front of that scene's line to the desk
   await expect(title()).toHaveText((await figs().first().getAttribute('aria-label')).split(' · ')[1]);
   await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft'); // wraps around

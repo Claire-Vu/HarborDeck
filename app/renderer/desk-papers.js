@@ -199,7 +199,7 @@ function clampToDesk(p, x, y) {
 function makeDraggable(p, itemId) {
   const grip = p.querySelector('.grip'); let sx, sy, ox, oy, dragging = false;
   grip.addEventListener('pointerdown', e => { if (window.innerWidth <= 860 || e.target.closest('button,a')) return; dragging = true; grip.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = p.offsetLeft; oy = p.offsetTop; p.style.zIndex = 90; p.style.animation = 'none'; });
-  grip.addEventListener('pointermove', e => { if (!dragging) return; const c = clampToDesk(p, ox + e.clientX - sx, oy + e.clientY - sy); p.style.left = c.x + 'px'; p.style.top = c.y + 'px'; $('#stow-box').classList.toggle('drop', p.dataset.pid !== 'ask' && overStow(e)); });
-  grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (p.dataset.pid !== 'ask' && overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
+  grip.addEventListener('pointermove', e => { if (!dragging) return; const c = clampToDesk(p, ox + e.clientX - sx, oy + e.clientY - sy); p.style.left = c.x + 'px'; p.style.top = c.y + 'px'; $('#stow-box').classList.toggle('drop', canStow(p.dataset.pid) && overStow(e)); });
+  grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (canStow(p.dataset.pid) && overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
   p.addEventListener('pointerdown', () => { document.querySelectorAll('.paper').forEach(q => { if (q.style.zIndex === '90') q.style.zIndex = 40; }); if (!dragging) p.style.zIndex = 89; });
 }

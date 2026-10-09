@@ -26,14 +26,14 @@ function deskKeys(e) {
   if (S.prefs.plain) return;
   if (tgt.closest('#rail')) { railKeys(e); if (e.key.startsWith('Arrow')) return; }
   if (e.key === 'Tab' && !tgt.closest('.modal,.drawer')) { e.preventDefault(); toggleTray(); return; }
-  if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
+  if (k === 't') { e.preventDefault(); const b = document.querySelector('#rail .ticket.new') || document.querySelector('#rail .ticket'); /* newest reply first (tickets()) */ if (b) { railFocus = +b.dataset.i; b.focus(); } else toast('No tickets on the rail.'); }
   else if (k === 'n') walk(); else if (k === 'w') backOfLine(); else if (k === 'b' && e.shiftKey) $('#btn-shop').click(); /* plain B picks option B (quick calls) */ else if (k === 'i') setInspect(!document.body.classList.contains('inspect')); else if (k === 'r') $('#btn-orders').click(); else if (k === 'l') openLedger();
   else if (k === 'o') { const it = byId[S.current]; if (it?.topic) topicView.open(it.topic); else toast(it ? 'No topic on this item.' : 'Nobody at the desk.'); }
   else if ('1234'.includes(k) && k) { e.preventDefault(); if (!document.querySelector('.modal')) stamp(VERDICTS[+k - 1]); }
   else if (box) return;
   else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !tgt.matches('input')) { e.preventDefault(); setScene(HS.step(sceneKind(), e.key === 'ArrowRight' ? 1 : -1)); }
   // quick calls: Space stamps (never Enter), A-E pick, J/K move on a sheet, S later, Shift+A take all recommended
-  else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); stamp('approve'); }
+  else if (e.key === ' ') { e.preventDefault(); if (document.activeElement?.matches('button,a,[tabindex]')) document.activeElement.blur(); if (!openUnreadReply()) stamp('approve'); } // an unread reply is read first
   else if (e.shiftKey && k === 'a') { e.preventDefault(); quick.openSweep(queueItems().filter(i => !st(i.id).awaiting), sweep); }
   else if (!e.shiftKey && 'abcde'.includes(k) && k) { e.preventDefault(); pickLetter('abcde'.indexOf(k)); }
   else if (k === 'x') { e.preventDefault(); if (e.shiftKey) unstowAll(S.current); else stowKey(); }

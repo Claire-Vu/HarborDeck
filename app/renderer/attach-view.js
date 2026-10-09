@@ -98,11 +98,13 @@ window.HarborAttach = deps => {
   })) : null;
   const badge = atts => atts?.length ? h('span', { class: 'tk-att', title: 'Images sent with it' }, `🖼 ${atts.length}`) : null;
 
-  // A note slip (needs-work, ask, mismatch). opts: { title, to, placeholder?, prefill?, attach?, rule? }; with attach it
+  // A note slip (needs-work, ask, mismatch). opts: { title, to, placeholder?, prefill?, draft?, attach?, rule? }; with attach it
   // takes images too, with rule it offers "Remember this" (a standing order). onSubmit(note, attachments?, rule) once
   // sent; an image alone is enough to send.
+  // opts.draft: a key; the unsent text is kept under it when the slip is closed (Esc, Cancel), like the phone's pad
+  const drafts = new Map();
   function slip(opts, onSubmit) {
-    const ta = h('textarea', { placeholder: opts.placeholder || '', value: opts.prefill || '' });
+    const ta = h('textarea', { placeholder: opts.placeholder || '', value: drafts.get(opts.draft) ?? opts.prefill ?? '', oninput: () => { if (opts.draft) drafts.set(opts.draft, ta.value); } });
     const t = opts.attach ? tray({ snap: true }) : null;
     const rule = opts.rule ? h('input', { type: 'checkbox', id: 'note-rule' }) : null;
     const body = h('div', null, h('div', { class: 'to' }, opts.to), ta, t?.el, rule && h('label', { class: 'remember', title: 'A standing order: filed with your preferences and followed from now on' }, rule, ' Remember this'));
@@ -112,7 +114,7 @@ window.HarborAttach = deps => {
     ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit(); });
     function submit() {
       const v = ta.value.trim(); if (!v && !t?.has()) { ta.focus(); return; }
-      const note = t ? t.note(v) : v, atts = t?.payload(), r = !!rule?.checked; deps.closeModal(); onSubmit(note, atts, r);
+      const note = t ? t.note(v) : v, atts = t?.payload(), r = !!rule?.checked; drafts.delete(opts.draft); deps.closeModal(); onSubmit(note, atts, r);
     }
   }
   return { tray, snapDesk, thumbs, badge, slip };

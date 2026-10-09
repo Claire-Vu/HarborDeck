@@ -33,7 +33,8 @@ const frontFig = async () => (await figs().first().getAttribute('aria-label')).s
 const answers = () => { try { return fs.readFileSync(path.join(home, 'answers.jsonl'), 'utf8'); } catch { return ''; } };
 
 test('switching scenes puts the front of the line on the desk: P1 first, then oldest', async () => {
-  for (const go of [() => page.keyboard.press('ArrowRight'), () => page.locator('#filters .chip', { hasText: 'Notices' }).click(), () => page.locator('#scenes .sc-pip').first().click()]) {
+  // a kind chip narrows the list to that scene's line; arrows and pips then move that filter along
+  for (const go of [() => page.locator('#filters .chip', { hasText: 'Notices' }).click(), () => page.keyboard.press('ArrowRight'), () => page.locator('#scenes .sc-pip').nth(1).click()]) {
     const was = await scenes().getAttribute('data-scene'); await go(); await expect(scenes()).not.toHaveAttribute('data-scene', was);
     const line = (await rows()).filter(r => !r[2]); expect(line.length).toBeGreaterThan(0);
     for (let i = 1; i < line.length; i++) expect(line[i - 1][1] < line[i][1] || (line[i - 1][1] === line[i][1] && created(line[i - 1][0]) <= created(line[i][0]))).toBe(true);
