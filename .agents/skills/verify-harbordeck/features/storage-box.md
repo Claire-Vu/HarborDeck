@@ -1,6 +1,6 @@
 # Storage box
 
-A small crate at the foot of the stamp tray holds papers stowed off the desk, to declutter it. Stowed papers leave the desk (the rest close up), the box shows a count, and they come back from the box. Per item, kept in desk state across reloads.
+The decision slip (`data-pid="ask"`) is never stowable: no stow button, drag onto the box is ignored, `x` skips it, the list never holds it. A small crate at the foot of the stamp tray holds papers stowed off the desk, to declutter it. Stowed papers leave the desk (the rest close up), the box shows a count, and they come back from the box. Per item, kept in desk state across reloads.
 
 ## Sub-features
 
