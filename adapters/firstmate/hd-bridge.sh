@@ -49,6 +49,8 @@ CURSOR="$HD_HOME/cursors/firstmate-bridge"
 [ "$echo_mode" = 0 ] || CURSOR="$CURSOR.echo"
 SOURCE=harbordeck
 
+log() { printf '%s hd-bridge: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }  # stderr: the service log
+
 would() {  # prefix for a command that is printed instead of run
   [ "$echo_mode" = 0 ] || printf '%s ' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'would run:'
@@ -111,7 +113,7 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       note "$id" "HarborDeck request for $to: $note. $reply" || return 1 ;;
     file)
       [ "$kind" != todo ] || note "$rid" "$text: done${note:+ - $note}" || return 1 ;;
-    *) echo "hd-bridge: skipping unknown action $action on $id" >&2 ;;
+    *) log "skipping unknown action $action on $id" ;;
   esac
   case "$action" in
     decide|approve|reject|file) [ -z "$kind" ] || run "$HD" resolve "$id" || return 1 ;;
@@ -127,9 +129,10 @@ once() {
     end=$(jq -r '.end' <<<"$line")
     a=$(jq -c '.answer // empty' <<<"$line")
     if [ -n "$a" ]; then
-      route "$a" || { echo "hd-bridge: routing failed at offset $off; will retry" >&2; return 1; }
+      route "$a" || { log "routing failed at offset $off: $a; will retry"; return 1; }
+      [ "$dry" = 1 ] || log "routed $(jq -r '"\(.action) \(.id)"' <<<"$a")"
     else
-      echo "hd-bridge: skipping unparseable line ending at $end" >&2
+      log "skipping unparseable line ending at $end"
     fi
     off=$end
     if [ "$dry" = 0 ]; then mkdir -p "$(dirname "$CURSOR")"; printf '%s\n' "$off" > "$CURSOR"; fi
@@ -137,6 +140,7 @@ once() {
 }
 
 if [ "$follow" = 1 ]; then
+  log "following $HD_HOME/answers.jsonl from byte $(cat "$CURSOR" 2>/dev/null || echo 0) into $FM_HOME$([ "$echo_mode" = 0 ] || echo ' (echo)')"
   waiter=''
   trap '[ -z "$waiter" ] || kill "$waiter" 2>/dev/null; exit 0' INT TERM
   while :; do
