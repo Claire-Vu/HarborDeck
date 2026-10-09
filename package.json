@@ -41,11 +41,14 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "1.55.0",
-    "electron": "38.2.0",
-    "electron-builder": "26.0.12"
+    "@playwright/test": "1.64.0",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
   },
   "allowScripts": {
-    "electron@38.2.0": true
+    "electron@44.7.0": true
+  },
+  "overrides": {
+    "global-agent": "4.1.3"
   }
 }
