@@ -1,0 +1,33 @@
+PASS  boot: morning manifest shows
+PASS  day-cycle: Open the office fills the desk
+PASS  window-queue: click queue item puts it on the desk
+PASS  stamps: key 1 shows undo chip, nothing written yet
+PASS  stamps: after hold one decide line for pr-142-checkout
+PASS  stamps: undo (u) during hold writes nothing
+PASS  quick call: letter c picks option C on the logo slip
+PASS  ask slip + ticket rail: 4, note, Send -> waiting ticket
+PASS  ask: ask line in answers.jsonl
+PASS  live sync: agent reply (hd reply) flips ticket to replied
+PASS  stow box: x stows a paper (count 1)
+PASS  stow box: click box opens view with a card
+PASS  stow box: Shift+X brings all back
+PASS  inspect: i shows banner, claim + order -> popover
+PASS  inspect: Match writes a comment line
+PASS  drawers: Escape closes, menu -> Agent log shows lines
+PASS  drawers: menu -> Archive lists the stamped PR
+PASS  search: Cmd+K 'newsletter' Enter opens it on the desk
+PASS  scenes: ArrowRight flips the scene
+PASS  keys: n walks to the next visitor
+PASS  later: s writes a defer line after the hold
+PASS  plain mode: p shows cards, p returns to desk
+PASS  plain mode: back to desk
+PASS  chandlery: Shift+B opens chandlery + stamp book
+PASS  day-cycle: l opens Ships out recap
+PASS  settings: menu -> Settings shows data dir; Cancel closes
+PASS  console: no page errors so far
+PASS  phone: header icon opens the ship phone; Escape hangs up
+PASS  orders: phone order sends a request line
+PASS  menu: theme toggles to light
+PASS  persistence: reload keeps the office open and the stamped PR filed
+PASS  layout: narrow window flows papers
+PASS  console: no page errors since reload
