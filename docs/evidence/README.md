@@ -25,7 +25,6 @@ Video: [live-feed.mp4](live-feed.mp4)
 
 `docs/evidence/megaphone/` are headless captures (`HARBORDECK_HEADLESS=1`, `test/smoke/launch.js`, seeded demo data) of the top-bar megaphone in light and dark, magnified 6x: `before` is the pre-stamp-art icon (monochrome), `current` the red/cream drawing that was replaced, `after` the original shape with colour (brown handle, red horn, brass bell rim).
 
-
 ## Paper tray
 
 `docs/evidence/paper-tray/` are headless captures (`HARBORDECK_SHOTS=docs/evidence/paper-tray npx playwright test test/smoke/stow.spec.js`, seeded demo data) of the storage box empty, holding three stowed papers, and its open view of mini paper cards.
