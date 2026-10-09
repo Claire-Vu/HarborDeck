@@ -35,14 +35,14 @@ Preconditions:
 
 - **Before.** Run `$H capture quick-call before`.
 - **Manifest.** Run `$U press ' '`. The manifest closes; `$U text --css '#desk-surface .paper.manifest h3'` prints a title.
-- **Letters + Space.** Run `$U click --css '#queue li' --text 'Quarantine the flaky'`, `$U press b`, `$U text --css '#desk-surface .paper.ask label.opt.on'` prints `Keep it blocking`; `$U press ' '`; after 5 s the last `answers.jsonl` line is `{"id":"flaky-e2e","action":"decide","key":"keep",...}`.
+- **Letters + Space.** Run `$U click --css '#queue li' --text 'Quarantine the flaky'`, `$U press b`, `$U text --css '#desk-surface .paper.ask label.opt.on'` prints `B Keep it blocking`; `$U press ' '`; after 5 s the last `answers.jsonl` line is `{"id":"flaky-e2e","action":"decide","key":"keep",...}`.
 - **Sheet.** Run `$U click --css '#queue li' --text 'Beta invites'`; `$U text --css '#at-window .speech'` starts `3 quick calls on Beta invites`; `$U press b`, `$U press a`, `$U press c` (each moves `.b-row.cur` down); `$U press ' '`; after 5 s three `decide` lines for `beta-invites.q1`-`q3` with keys `two-hundred`, `waitlist`, `both`.
 - **Why.** `$H hd decision hdv-host.q1 "Host?" --opt edge+ --opt mac --why edge="free tier"`; `jq .options "$HDV_HOME/items/hdv-host.q1.json"` shows `why`, and `.topic` is `hdv-host`.
 - **Later.** Select `Renew the domain`, `$U press s`, `$U wait --css '#queue li.q-later' --text 'Renew the domain'`; after 5 s the last line is `{"id":"todo-domain","action":"defer","until":<tomorrow 09:00 local epoch>,...}`.
-- **Sweep.** `$U press Shift+A`, `$U wait --css '.modal.sweep .sw-row'`, `$U press Shift+A`; after 5 s one `decide` line per listed row with the recommended key.
+- **Sweep.** `$U press Shift+A`, `$U wait --css '.modal.sweep .sw-row'`, `$U text --css '.modal.sweep .sw-row'` (rows depend on what the steps above left open), `$U press Shift+A`; after 5 s one `decide` line per listed row with the recommended key.
 - **Local HTML.** `$H hd answer hdv-html "Invite waves" -p 1 -a report:"$HDV_HOME/assets/beta/waves.html"`, select it, `$U click --role button --name 'Open in the desk browser'`, `$U text --pane --css '#state'` prints `script loaded from the same folder`; `$U click --css '.modal.web [aria-label=Close]'`.
 - **Layout + paths.** `$U eval` a pairwise rectangle check over `#desk-surface .paper` returns no overlaps; `$U text --css '#desk-surface'` contains no `$HDV_HOME` path.
-- **Rail + tray.** Append 9 `request` lines with `$H hd`-free JSON to `answers.jsonl` (ids `hdv-req-N`); `$U wait --css '#rail-right'`; `$U shot` at a 960x600 window shows five separate stamps.
+- **Rail + tray.** Append 9 `request` lines with `$H hd`-free JSON to `answers.jsonl` (ids `hdv-req-N`); `$U wait --css '#rail-right'` (reads `<n> more ›`); `$U shot tray.png --size 960x600` shows five separate stamps.
 - **Proof.** Run `$H capture quick-call after`; save the `answers.jsonl` diff in `proof.md`.
 
 ## Gotchas

@@ -10,17 +10,17 @@ The window scene carries desk status with no extra keys: one boat per open task 
 - `harbor-regulars` with no crew on the item, the visitor is the project's regular; `#at-window .speech small.memory` reads `<Trade Name>: <memory>`.
 - `harbor-cat` `#scenes .sc-fig.urgent .ship-cat` by the most urgent figure in the shown scene (not the one at the desk); `.sc-clear .ship-cat.on-pier.nap` when the scene is clear.
 - `harbor-run` `#run` shows `×N tidy run` for resolving stamps within 8 s; `u` hides it; bundle stamps never count.
-- `harbor-book-shop` cash chip or `b` opens `.modal.chandlery-modal`: `.sb-stamp` (`.got` when earned), `.shop-row` buy buttons; badge toast `New stamp in your book: …` (small corner chip).
+- `harbor-book-shop` cash chip or `Shift+B` opens `.modal.chandlery-modal`: `.sb-stamp` (`.got` when earned), `.shop-row` buy buttons; badge toast `New stamp in your book: …` (small corner chip).
 - `harbor-tide-goal` clearing every present item before the shortest window's refill pays a `.cash-pop` (+$50) once per tide, no toast.
-- `harbor-recap` `l` opens the `Ships out` modal: `.recap-boat` per task cleared today, `.recap-tally`, `details.logbook` with the full report; `Close the day` as before.
+- `harbor-recap` `l` (or menu `Ships out`) opens the `Ships out` modal: `.recap-boat` per task cleared today, `.recap-tally`, `details.logbook` with the full report; `Close the day` as before.
 - `harbor-town` `#sc-town .bldg` count = floor(days the office opened / 2).
 - `harbor-music` with music on, layers follow items cleared today; a rising chime when the harbor clears (listen; no DOM handle).
 
 ## How to get to it (user POV)
 
 - Open the office and look at the window; stamp items with `1`-`4` as usual.
-- Click the cash chip in the top bar, or press `b`.
-- Press `l` (or the Ships out top bar button).
+- Click the cash chip in the top bar, or press `Shift+B` (plain `b` picks option B).
+- Press `l`, or open the menu (`M`) and pick `Ships out`.
 
 ## Driving it with hdv + ui.mjs
 
@@ -31,9 +31,9 @@ Preconditions:
 - **Before.** Run `$H capture harbor before`. `$U eval "document.querySelector('.window-frame').dataset.boats"` prints the boat count; `$U eval "document.querySelector('.window-frame').dataset.phase"` matches the local hour.
 - **Regular and cat.** `$U text --css '#at-window .speech small.memory'` prints `…: First time at your window.`; `$U wait --css '#scenes .sc-fig.urgent .ship-cat'` succeeds.
 - **Sail out + run.** `$U press 1`, then `$U wait --css '#sc-boats .hb.sailing'`; data-boats drops by one when that task had one item. Press `1` again within 8 s after the next item reaches the desk: `$U wait --css '#run' --text '×2 tidy run'` (the badge appears after the stamp lands, ~0.4 s). `$U press u`: `#run` loses `show`.
-- **Book and shop.** After the hold, `$U wait --css '.toast' --text 'First stamp'`. `$U press b`; `$U text --css '.modal.chandlery-modal .sb-stamp.got'` lists `First stamp`. Buy with `$U click --css '.modal.chandlery-modal .shop-row' --text 'Dock lamp'` only via its button: `$U click --role button --name '$40'`; the row then reads `owned` and `#sc-lamp rect` exists.
+- **Book and shop.** After the hold, `$U wait --css '.toast' --text 'First stamp'`. `$U press Shift+B`; `$U text --css '.modal.chandlery-modal .sb-stamp.got'` lists `First stamp`. Buy with `$U click --css '.modal.chandlery-modal .shop-row' --text 'Dock lamp'` only via its button: `$U click --role button --name '$40'`; the row then reads `owned` and `#sc-lamp rect` exists.
 - **Recap.** `$U press Escape`, `$U press l`; `$U wait --css '.modal.ledger .recap-boat'`; `$U text --css '.recap-tally'`.
-- **Weather.** `echo '[{"name":"Solo","window":"5h","used_pct":95,"resets_at":'$(( $(date +%s)+3600 ))'}]' | $H hd quota -`; `.window-frame[data-weather]` becomes `rain` and `#sc-tide text` shows `high tide 1h …`.
+- **Weather.** `echo '[{"name":"Solo","window":"5h","used_pct":95,"resets_at":'$(( $(date +%s)+3600 ))'}]' | $H hd quota -`; `.window-frame[data-weather]` becomes `rain` and `$U text --css '#sc-tide text'` shows `high tide 59m · <n> to clear` (or `1h 0m`, by rounding).
 - **After.** Run `$H capture harbor after`. Proof of a stamp stays the `answers.jsonl` line; the harbor writes nothing to the data dir (its state is local desk storage).
 
 ## Gotchas
