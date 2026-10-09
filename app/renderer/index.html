@@ -43,7 +43,7 @@
     <span class="clock" id="clock" title="Local time">--:--</span>
     <button class="stat" id="cash" title="Cash earned by clearing the desk: spend it at the chandlery (Shift+B)" aria-label="Cash: chandlery and stamp book"><svg class="ic"><use href="#i-cash"/></svg><span id="cash-n">$0</span></button>
     <button class="sched-chip" id="sched-chip" hidden aria-label="Scheduler: queued work and next usage reset"></button>
-    <button class="stamina-cluster" id="stamina-cluster" title="Subscription stamina: left and time to refill" aria-label="Stamina per subscription window"></button>
+    <button class="stamina-cluster" id="stamina-cluster" title="Usage left per subscription window, and time to reset" aria-label="Usage left per subscription window"></button>
   </div>
   <nav class="tools" aria-label="Desk tools">
     <button class="ibtn-top" id="btn-phone" aria-expanded="false" aria-label="Ship phone" title="Ship phone: a quick order to a first mate"><svg class="ic"><use href="#i-phone"/></svg></button>
@@ -170,6 +170,7 @@
 <div id="toasts" aria-live="polite"></div>
 
 <script src="schedule-view.js"></script>
+<script src="stamina.js"></script>
 <script src="web-pane.js"></script>
 <script src="topic-view.js"></script>
 <script src="harbor-game.js"></script>

@@ -5,7 +5,9 @@
 #
 # One entry per independent window that has a reset time and a length
 # (windowSeconds, else inferred: five_hour/session 5h, seven_day/weekly 7d, model:* weekly 7d):
-# {name, window: "<n>h|<n>d", used_pct, resets_at}. Shared sub-windows
+# {name, model?, window: "<n>h|<n>d", used_pct, resets_at, at?, runs_out_at?}: name is the provider,
+# model is set on per-model windows, at is when quota-axi read it, runs_out_at is quota-axi's projected
+# exhaustion when it comes before that window's reset. Shared sub-windows
 # (shareOf) and windows without a percentage are skipped. Reads are cached by
 # quota-axi for HD_QUOTA_MAX_AGE (default 5m), so frequent runs stay cheap.
 # Set-up providers with no reading are reported on stderr with quota-axi's fix.
@@ -44,14 +46,24 @@ quota=$(jq '
     else null end;
   def model_name: ((.id // "") | sub("^model:"; "")) as $m
     | if $m != "" and $m != .id then ($m[:1] | ascii_upcase) + $m[1:] else (.label // .id) end;
-  [.providers[] | .provider as $p | (.windows // [])[]
+  (.generatedAt // null) as $gen
+  | [.providers[] | .provider as $p | (.state.refreshedAt // $gen) as $at
+   # projected exhaustion per limiting window, from the provider runway (quota-axi schema 5+)
+   | ([.quotaSemantics.effectiveAvailability[]? | .runway // empty
+       | select(.status == "projected_exhaustion" and .projectedExhaustedAt != null and .limitingWindowId != null)
+       | {key: .limitingWindowId, value: (.projectedExhaustedAt | epoch)}] | from_entries) as $out
+   | (.windows // [])[]
    | (.windowSeconds // length_of) as $len
    | select(.shareOf == null and .resetsAt != null and ($len // 0) > 0)
    | select(.percentUsed != null or .percentRemaining != null)
-   | {name: ((names[$p] // $p) + (if .kind == "model" then " \(model_name)" else "" end)),
-      window: ($len | window),
-      used_pct: ((.percentUsed // (100 - .percentRemaining)) | if . < 0 then 0 elif . > 100 then 100 else . end),
-      resets_at: (.resetsAt | epoch)}]
+   | (.resetsAt | epoch) as $reset
+   | {name: (names[$p] // $p)}
+     + (if .kind == "model" then {model: model_name} else {} end)
+     + {window: ($len | window),
+        used_pct: ((.percentUsed // (100 - .percentRemaining)) | if . < 0 then 0 elif . > 100 then 100 else . end),
+        resets_at: $reset}
+     + (if $at then {at: ($at | epoch)} else {} end)
+     + (if $out[.id] and $out[.id] < $reset then {runs_out_at: $out[.id]} else {} end)]
 ' <<<"$raw")
 
 # Say why a set-up provider has no bars (e.g. Claude needs a one-time keychain grant).

@@ -199,10 +199,12 @@ function payFor(it, action) {
   if (action === 'request' || action === 'defer') return 0;
   return Math.round(basePay * mult * (1 + bonus));
 }
-// quota: roll a stale reset forward by its window so the mock stays plausible on any day
-const winSecs = w => { const m = String(w).match(/^(\d+)\s*([hdw])$/i); return m ? +m[1] * { h: 3600, d: 86400, w: 604800 }[m[2].toLowerCase()] : 86400; };
-function quotaView(q) { const w = winSecs(q.window); let r = q.resets_at; const t = now(); if (r < t) r += Math.ceil((t - r) / w) * w; return { ...q, left: Math.max(0, 100 - (q.used_pct || 0)), resets: r, in: r - t }; }
-const staminaMin = () => QUOTA.length ? Math.min(...QUOTA.map(q => quotaView(q).left)) : null;
+// stamina: one view per usage window from quota.json and the Claude Code status line, fresher reading wins (stamina.js)
+const ST = window.HarborStamina;
+const staminaViews = () => ST.views(QUOTA, { quotaAt: SNAP.quota_at, rates: SNAP.rates, t: now() });
+const staminaMin = () => ST.lowest(staminaViews());
+const staminaTitle = v => ST.title(v, { fmtTime, fmtDate });
+const staminaWhen = ts => `${ts - now() > 20 * 3600 ? fmtDate(ts) + ' ' : ''}${fmtTime(ts)}`; // a time, dated when not today-ish
 const tired = () => { const m = staminaMin(); return m != null && m < 20; };
 
 // scheduler: requests queued for after the usage-limit reset or a time (scheduler.json via the main process)
@@ -386,7 +388,7 @@ const face = who => (who.mood === 'cheerful' ? { happy: true } : who.mood === 'g
 const present = () => ITEMS.filter(i => statusOf(i) === 'open' && !st(i.id).awaiting);
 const harborClear = () => ITEMS.length > 0 && !present().length;
 const clearedToday = () => Object.values(S.items).filter(s => s.status === 'resolved' && s.verdict && s.verdict.at >= S.dayStart).length;
-const tideNow = () => G.tide(QUOTA.map(q => ({ ...quotaView(q), secs: winSecs(q.window) })));
+const tideNow = () => G.tide(staminaViews().filter(v => !v.reset));
 function renderHarbor() {
   const t = now(); const goal = G.tideGoal(S.fun.tide, t, tideNow()); if (JSON.stringify(goal) !== JSON.stringify(S.fun.tide)) { S.fun.tide = goal; save(); }
   harbor.render({ t, open: ITEMS.filter(i => statusOf(i) === 'open'), stamina: staminaMin(), tide: tideNow(), goal, owned: S.fun.owned, days: S.fun.dayCount });
@@ -672,7 +674,7 @@ function stamp(verdict, toReset) {
 // Later (S): park the item (and the rest of its ticked sheet) until tomorrow 9:00, or with Shift+S until just
 // after the next usage reset. Writes a defer line; firstmate turns it into a hold --until.
 function later(it, toReset) {
-  const resets = [SCHED?.next_reset, SCHED?.reset_due, ...QUOTA.map(q => quotaView(q).resets)].filter(Boolean);
+  const resets = [SCHED?.next_reset, SCHED?.reset_due, ...staminaViews().filter(v => !v.reset).map(v => v.resets)].filter(Boolean);
   const until = quick.laterUntil(toReset, { now: now(), resets });
   if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
   const others = bundleOf(it).filter(m => m !== it && !st(m.id).skipBundle);
@@ -964,12 +966,17 @@ function renderCrewPane() {
 }
 function staminaPanel() {
   const box = h('div', { class: 'stamina' }, h('h3', { class: 'oh' }, 'Stamina'));
-  if (!QUOTA.length) { box.append(h('p', { class: 'legend' }, 'No subscriptions configured (quota.json).')); return box; }
-  for (const q0 of QUOTA) {
-    const q = quotaView(q0); const lvl = q.left < 10 ? 'empty' : q.left < 25 ? 'low' : q.left < 50 ? 'mid' : 'ok';
-    box.append(h('div', { class: `sub ${lvl}` }, h('div', { class: 'sub-head' }, h('span', null, q.name, ' ', h('span', { class: 'win' }, q.window)), h('span', { class: 'left' }, `${q.left}%`)),
-      h('div', { class: 'meter' }, h('span', { style: `width:${q.left}%` })),
-      h('div', { class: 'sub-foot' }, `refills in ${age(q.in)} (${fmtTime(q.resets)}${q.in > 86400 ? ' ' + fmtDate(q.resets) : ''})`, q.left < 10 ? ' · nearly empty, crew will stall' : q.left < 25 ? ' · running low, crew yawning' : '')));
+  const views = staminaViews();
+  if (!views.length) { box.append(h('p', { class: 'legend' }, 'No usage readings yet (quota.json or the Claude Code status line).')); return box; }
+  for (const v of views) {
+    const left = v.left == null ? '?' : `${v.left}% left`;
+    const when = `${fmtTime(v.resets)}${v.in > 20 * 3600 ? ' ' + fmtDate(v.resets) : ''}`;
+    box.append(h('div', { class: `sub ${v.level}${v.model ? ' model' : ''}${v.stale ? ' stale' : ''}`, title: staminaTitle(v) }, h('div', { class: 'sub-head' }, h('span', null, v.label), h('span', { class: 'left' }, left)),
+      h('div', { class: 'meter' }, h('span', { style: `width:${v.left || 0}%` })),
+      h('div', { class: 'sub-foot' }, v.reset ? `reset at ${when}, no reading since` : `resets in ${ST.dur(v.in)} (${when})`,
+        v.runsOut ? h('span', { class: 'warn' }, ` · runs out ~${staminaWhen(v.runsOut)} at this pace`) : null,
+        ` · ${v.source === 'statusline' ? 'status line' : 'quota.json'}, ${v.age == null ? 'time unknown' : ST.ago(v.age)}`, v.stale ? h('span', { class: 'warn' }, ' (stale)') : null,
+        v.left != null && v.left < 10 ? ' · nearly empty, crew will stall' : v.left != null && v.left < 25 ? ' · running low, crew yawning' : '')));
   }
   return box;
 }
@@ -978,17 +985,24 @@ function renderSchedChip() {
   c.hidden = !v; if (!v) return;
   c.classList.toggle('off', v.off); c.replaceChildren(h('span', null, v.text)); c.title = v.title;
 }
-// the scene's tide line carries the level (F3); the top bar keeps a wave per window, coloured by what is left, and its refill time
-const TIDE_GLYPH = '<svg viewBox="0 0 12 8" shape-rendering="crispEdges" aria-hidden="true"><rect x="0" y="2" width="3" height="1"/><rect x="3" y="1" width="3" height="1"/><rect x="6" y="2" width="3" height="1"/><rect x="9" y="1" width="3" height="1"/><rect x="0" y="5" width="3" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="6" y="5" width="3" height="1"/><rect x="9" y="4" width="3" height="1"/></svg>';
+// top bar, readable on its own: per provider ("Claude") one chip per window ("5h", "week", then per-model windows such
+// as "Fable · week" set apart), each with a bar and % LEFT, countdown to reset, a run-out warning when the pace would
+// empty it first, and "stale" for an old reading; the hover spells out every number
 function renderStaminaMini() {
   renderSchedChip();
-  const m = staminaMin(); const box = $('#stamina-cluster'); box.replaceChildren();
-  if (m == null) { box.append(h('span', { class: 'dim' }, 'no quota')); return; }
-  const views = QUOTA.map(quotaView); const shortest = views.reduce((a, b) => a.in < b.in ? a : b);
-  for (const q of views) { const lvl = q.left < 10 ? 'empty' : q.left < 25 ? 'low' : q.left < 50 ? 'mid' : 'ok'; box.append(h('span', { class: `mini-sub ${lvl}`, title: `${q.name} ${q.window}: ${q.left}% left, refills ${fmtTime(q.resets)}${q.in > 86400 ? ' ' + fmtDate(q.resets) : ''}` }, h('span', { class: 'ms-name' }, h('span', { class: 'ms-full' }, q.name.split(' ')[0]), h('span', { class: 'ms-abbr' }, q.name.slice(0, 1)), ' ', h('b', null, q.window)), h('span', { class: 'tg', html: TIDE_GLYPH }), h('span', { class: 'ms-time' }, `↻ ${age(q.in)}`))); }
-  box.append(h('span', { class: 'ms-short' }, `↻ ${age(shortest.in)}`));
-  $('#stamina-cluster').className = `stamina-cluster ${m < 10 ? 'empty' : m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
-  $('#tab-crew-flag').hidden = m >= 25; document.body.classList.toggle('tired', m < 20);
+  const views = staminaViews(); const m = ST.lowest(views); const box = $('#stamina-cluster'); box.replaceChildren();
+  if (!views.length) { box.append(h('span', { class: 'dim' }, 'no usage data')); box.className = 'stamina-cluster'; $('#tab-crew-flag').hidden = true; document.body.classList.remove('tired'); return; }
+  const groups = new Map(); for (const v of views) { if (!groups.has(v.name)) groups.set(v.name, []); groups.get(v.name).push(v); }
+  for (const [name, vs] of groups) box.append(h('span', { class: 'ms-group' }, h('span', { class: 'ms-prov' }, name),
+    vs.map(v => h('span', { class: `mini-sub ${v.level}${v.model ? ' model' : ''}${v.secs >= 86400 ? ' long' : ''}${v.stale ? ' stale' : ''}`, title: staminaTitle(v), 'aria-label': `${v.label}: ${v.left == null ? 'unknown' : v.left + '% left'}` },
+      h('span', { class: 'ms-name' }, v.model ? `${v.model} · ${v.win}` : v.win),
+      h('span', { class: 'ms-bar', 'aria-hidden': 'true' }, h('i', { style: `width:${v.left || 0}%` })),
+      h('span', { class: 'ms-pct' }, v.left == null ? '?' : `${v.left}%`),
+      h('span', { class: 'ms-time' }, v.reset ? 'reset' : `↻ ${ST.dur(v.in)}`),
+      v.runsOut ? h('span', { class: 'ms-warn' }, `⚠ out ~${staminaWhen(v.runsOut)}`) : null,
+      v.stale ? h('span', { class: 'ms-stale' }, 'stale') : null))));
+  box.className = `stamina-cluster ${m != null && m < 10 ? 'empty' : m != null && m < 25 ? 'low' : ''}${S.prefs.staminaOpen ? ' expanded' : ''}`;
+  $('#tab-crew-flag').hidden = m == null || m >= 25; document.body.classList.toggle('tired', m != null && m < 20);
 }
 function selectTab(name) { S.prefs.tab = name; save(); document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name))); document.querySelectorAll('.tabpane').forEach(p => p.hidden = p.dataset.pane !== name); if (name === 'crew') renderCrewPane(); if (name === 'requests') renderRequests(); if (name === 'topics') $('#topics-pane').replaceChildren(topicView.list()); }
 
@@ -1006,7 +1020,7 @@ function openManifest() {
     h('div', { class: 'ms-grid' },
       h('section', null, h('h3', null, 'At the window'), h('ul', null, Object.entries(KIND).map(([k, l]) => counts[k] ? h('li', null, `${counts[k]} ${(counts[k] > 1 ? KINDS[k] : l).toLowerCase()}`) : null), !open.length && h('li', null, 'nobody waiting')), open.length ? [h('h3', null, 'First up'), h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title)))] : null),
       cooking.length ? h('section', null, h('h3', null, 'Galley'), h('ul', null, cooking.map(c => h('li', null, `${crewName(c.id)}: ${c.task_title || c.task || ''} (${{ working: 'cooking', waiting: 'at the window', done: 'ready' }[c.state] || c.state})`)))) : null,
-      QUOTA.length ? h('section', null, staminaPanel()) : null,
+      staminaViews().length ? h('section', null, staminaPanel()) : null,
       FLEET.regulars.length ? h('section', null, h('h3', null, 'Regulars'), regularsBoard()) : null),
     week.length ? h('p', { class: 'ms-foot' }, `Last 7 days: ${week.map(([n, w]) => `${n} ${w}`).join(', ')}.`) : null);
   modal('ledger manifest', 'Morning manifest', content, [h('span', { class: 'legend' }, 'Space'), h('button', { class: 'pbtn', onclick: () => openOffice() }, 'Open the office')]);
@@ -1031,7 +1045,7 @@ function openLedger() {
     sec('Decided', resolved.length ? h('ul', null, resolved.map(a => { const it = byId[a.id]; const u = it ? unblocks(it) : []; return h('li', null, h('b', null, consequence(a)), u.length ? h('div', { class: 'sub-line' }, '↳ ', u.join('; ')) : h('div', { class: 'sub-line dim' }, '↳ nothing was waiting on it')); })) : h('p', { class: 'dim' }, 'Nothing cleared yet.')),
     A.filter(a => ['ask', 'needs-work', 'request'].includes(a.action)).length ? sec('Sent across the counter', h('ul', null, A.filter(a => ['ask', 'needs-work', 'request'].includes(a.action)).map(a => h('li', null, consequence(a))))) : null,
     sec('Still waiting on you', waiting.length ? h('ul', null, waiting.map(i => h('li', null, prioChip(i), ' ', i.title, h('span', { class: 'dim' }, ` · waiting ${age(t0 - i.created)}`), i.due ? [' · ', dueChip(i)] : null))) : h('p', { class: 'dim' }, 'Nothing. Clear pier.')),
-    sec('Galley', h('ul', null, finished.map(c => h('li', null, `✓ ${crewName(c.id)} finished "${c.task_title || c.task}"`)), cooking.map(c => h('li', null, `… ${crewName(c.id)} still cooking "${c.task_title || c.task}"`)), h('li', null, `Cash earned today: ${money(cashToday)} (till: ${money(S.cash)})`), QUOTA.length ? h('li', null, 'Stamina left: ', QUOTA.map(quotaView).map(q => `${q.name} ${q.window} ${q.left}%`).join(' · ')) : null)),
+    sec('Galley', h('ul', null, finished.map(c => h('li', null, `✓ ${crewName(c.id)} finished "${c.task_title || c.task}"`)), cooking.map(c => h('li', null, `… ${crewName(c.id)} still cooking "${c.task_title || c.task}"`)), h('li', null, `Cash earned today: ${money(cashToday)} (till: ${money(S.cash)})`), staminaViews().length ? h('li', null, 'Stamina left: ', staminaViews().map(v => `${v.label} ${v.left == null ? '?' : v.left + '%'}`).join(' · ')) : null)),
     sec("Tomorrow's top 3", h('ol', null, topItems(3).map(i => h('li', null, prioChip(i), ' ', i.title, i.due ? h('span', { class: 'dim' }, ` · due ${fmtDate(i.due)}`) : null)))));
   const doneToday = Object.entries(S.items).filter(([, s]) => s.status === 'resolved' && s.verdict && s.verdict.at >= S.dayStart).map(([id]) => byId[id] || { id, title: id, project: 'desk' });
   const recap = harbor.recap({ day: S.day, cleared: G.boats(doneToday), earned: cashToday, waiting: waiting.length, tide: S.fun.tide, run: S.fun.bestRun || 0,

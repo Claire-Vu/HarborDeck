@@ -123,7 +123,7 @@ export function quotaLimits(home, t = now()) {
   const q = readJson(paths(home).quota, []);
   if (!Array.isArray(q)) return [];
   return q.filter((w) => w && Number(w.used_pct) >= 100 && Number(w.resets_at) > t && Number(w.resets_at) <= t + MAX_HORIZON)
-    .map((w) => ({ reset: Number(w.resets_at), window: `${w.name} ${w.window}`, source: 'quota' }));
+    .map((w) => ({ reset: Number(w.resets_at), window: `${w.name}${w.model ? ` ${w.model}` : ''} ${w.window}`, source: 'quota' }));
 }
 
 // When "reset" items go: after every known exhausted window has reset (pending limit

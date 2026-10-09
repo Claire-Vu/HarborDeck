@@ -2,16 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Claire-Vu/HarborDeck/schema/quota.schema.json",
   "title": "HarborDeck quota snapshot",
-  "description": "<HARBORDECK_HOME>/quota.json. Optional. One stamina bar per subscription window.",
+  "description": "<HARBORDECK_HOME>/quota.json. Optional. One stamina bar per usage window: what is left (100 - used_pct) and when it resets.",
   "type": "array",
   "items": {
     "type": "object",
     "required": ["name", "window", "used_pct", "resets_at"],
     "properties": {
-      "name": { "type": "string", "minLength": 1 },
+      "name": { "type": "string", "minLength": 1, "description": "Provider or account, e.g. \"Claude\"." },
+      "model": { "type": "string", "minLength": 1, "description": "Set on a per-model window (only that model's usage counts); absent on account windows." },
       "window": { "type": "string", "pattern": "^[1-9][0-9]*[hdw]$" },
       "used_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-      "resets_at": { "type": "integer", "minimum": 0 }
+      "resets_at": { "type": "integer", "minimum": 0 },
+      "at": { "type": "integer", "minimum": 0, "description": "When this reading was taken (epoch seconds). Default: the file's modification time." },
+      "runs_out_at": { "type": "integer", "minimum": 0, "description": "Projected exhaustion at the current pace (epoch seconds), when it comes before resets_at." }
     }
   }
 }

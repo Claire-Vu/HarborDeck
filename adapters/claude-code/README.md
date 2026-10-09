@@ -13,7 +13,7 @@ Lets the [limit-reset scheduler](../../docs/SCHEDULER.md) know when a Claude Cod
 2. Merge `settings.snippet.json` into `~/.claude/settings.json` (fix the status line path; keep your own status line via `HD_STATUSLINE`, e.g. `"command": "HD_STATUSLINE=~/.claude/statusline.sh /path/to/statusline-tee.sh"`).
 3. Set a wake command, e.g. `hd scheduler config --wake-command 'tmux send-keys -t claude "continue" Enter'`.
 
-The status line step is optional: without it, `limit record` reads the reset from the limit message (`resets 3pm (Europe/Paris)`) or `quota.json`. With it, the exact window that is at 100 % is used. Several accounts (`CLAUDE_CONFIG_DIR`) are kept apart.
+The status line step is optional: without it, `limit record` reads the reset from the limit message (`resets 3pm (Europe/Paris)`) or `quota.json`. With it, the exact window that is at 100 % is used. Several accounts (`CLAUDE_CONFIG_DIR`) are kept apart. The desk also shows the status line reading in its top bar when it is fresher than `quota.json` (default account, else the freshest).
 
 `limit record` stores who stalled (`cwd`, session id, and the pane from `HARBORDECK_PANE`, `HERDR_PANE_ID` or `TMUX_PANE`) and puts that list in the wake message. Several sessions hitting the same reset share one wake. Hooks always exit 0, so a scheduler problem never breaks a session; see `schedule/scheduler.log`.
 

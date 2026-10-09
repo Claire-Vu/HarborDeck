@@ -1,5 +1,6 @@
 'use strict';
-// Data directory: items/*.json, optional fleet.json / quota.json / rules.json, append-only answers.jsonl, gaps.jsonl, notes.jsonl.
+// Data directory: items/*.json, optional fleet.json / quota.json / rules.json, append-only answers.jsonl, gaps.jsonl, notes.jsonl;
+// schedule/rate-limits.json (Claude Code status line usage) is read too, for the stamina bars.
 // Pure Node (no Electron) so it is unit-testable.
 const fs = require('fs');
 const path = require('path');
@@ -133,6 +134,8 @@ const pathFromPageUrl = url => { let u; try { u = new URL(String(url)); } catch 
 // Folders whose files a local page may load: the folder of every existing local .html file an item references.
 const pageDirs = files => [...new Set(Object.values(files).filter(f => f && f.page).map(f => path.dirname(f.abs)))];
 
+// seconds since the epoch a file was last written (null when missing): the reading time of a snapshot without its own
+const mtime = file => { try { return Math.floor(fs.statSync(file).mtimeMs / 1000); } catch (e) { return null; } };
 function snapshot(home, opts = {}) {
   const { items, errors } = loadItems(home);
   const ro = { home, artifactRoot: opts.artifactRoot };
@@ -144,6 +147,8 @@ function snapshot(home, opts = {}) {
     rules: readJson(path.join(home, 'rules.json'), {}),
     fleet: readJson(path.join(home, 'fleet.json'), null),
     quota: readJson(path.join(home, 'quota.json'), []),
+    quota_at: mtime(path.join(home, 'quota.json')),
+    rates: readJson(path.join(home, 'schedule', 'rate-limits.json'), null),
     answers: readAnswers(home),
     gaps: readJsonl(path.join(home, 'gaps.jsonl')).filter(g => g && g.text),
     notes,
