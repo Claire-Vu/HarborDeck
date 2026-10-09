@@ -37,14 +37,38 @@ Schemas live in [`schema/`](../schema); change a field there and in CONTRACT.md 
 
 ## Renderer layout: where a new feature goes
 
-`app/renderer/app.js` is the desk shell and is **frozen**: it is grandfathered at its current size and must not grow. A new feature is a new module:
+The desk is split by area. The desk scripts are classic scripts loaded in order by `index.html` and share one script scope (no IIFE): a function in one is callable from another. `app.js` loads last and boots the desk.
 
-1. Create `app/renderer/<feature>-view.js` (specific name; no `utils`/`helpers`). Expose one object on `window` (`window.harborFeature = (() => {...})()`), take what it needs from `app.js` as arguments (`h`, `modal`, `toast`, the snapshot) instead of reaching into desk state.
-2. Add a `<script>` tag before `app.js` in `index.html`, and the file to `npm run check`.
-3. Call it from `app.js` with a one-line hook. Style goes in `styles.css` (a split is planned; keep new rules grouped under a comment header).
+| file | holds |
+|---|---|
+| `app.js` | boot: first snapshot, builds the views (topics, harbor scene, quick calls, scenes, phone, search), buttons, menu, intervals, key registration |
+| `desk-state.js` | snapshot data, desk state per data dir, Later parking, derived data (crew, changes, pay, stamina, scheduler) |
+| `desk-dom.js` | `h()`, icons, formatting, toasts, cash pop, markdown |
+| `desk-audio.js` | desk sounds, generated music |
+| `desk-stamps.js` | `emit()` to answers.jsonl, stamps, undo hold, tidy runs, stamp book, chandlery buys |
+| `window-queue.js` | the queue, scenes, yard, who steps up next |
+| `desk-papers.js` | desk papers: manifest, artifacts, correspondence, the ask, layout, drag |
+| `stow-box.js` | storage box |
+| `ticket-rail.js` | ticket rail |
+| `inspect-mode.js` | inspect claim/evidence pairing |
+| `desk-drawers.js` | drawers, `modal()`, reader, note slip |
+| `desk-orders.js` | orders to first mates, stamina panel, top-bar usage chips |
+| `day-cycle.js` | morning manifest, ships-out report |
+| `plain-mode.js` | plain mode |
+| `desk-sync.js` | `renderAll()`, applying pushed snapshots |
+| `desk-settings.js` | settings modal |
+| `desk-keys.js` | keyboard shortcuts |
+
+Feature modules (`*-view.js`, `quick-call.js`, `harbor-scene.js`, ...) keep their own scope and are built by `app.js` with what they need. Styles live in `styles/<area>.css`, linked from `index.html` in cascade order.
+
+A new feature:
+
+1. Create `app/renderer/<feature>-view.js` (specific name; no `utils`/`helpers`). Expose one object on `window` (`window.harborFeature = (() => {...})()`), take what it needs from the desk as arguments (`h`, `modal`, `toast`, the snapshot) instead of reaching into desk state.
+2. Add a `<script>` tag before the desk scripts in `index.html` (`npm run check` covers every renderer file).
+3. Call it from the desk area it belongs to with a one-line hook. Style goes in its own `styles/<feature>.css`, linked after the files it overrides.
 4. Pure logic with no DOM goes in a unit-testable file with a `test/unit/` test (see `stamina.js`, `harbor-game.js`).
 
-Source files must stay under 400 non-blank lines (`test/unit/file-size.test.js`, mirroring the garden rule); the grandfathered ceilings can only go down.
+Source and stylesheet files must stay under 400 non-blank lines (`test/unit/file-size.test.js`, mirroring the garden rule); the grandfathered ceilings (`cli/src/main.js`, `cli/src/scheduler.js`) can only go down. Grow a desk area past the limit by splitting it, not by raising a ceiling.
 
 ## Security rules
 

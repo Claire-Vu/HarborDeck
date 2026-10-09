@@ -1,0 +1,5 @@
+/* Remember this: a standing order. The pin marks it on the ticket and in the Standing orders list. */
+.remember { display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--font-ui); color: #f1e4c0; cursor: pointer; justify-self: start; }
+.noteslip .remember { color: var(--paper-ink); margin-top: 8px; }
+.ticket .tk-pin { font-size: 10px; line-height: 1; }
+.orders .rule.sent { border-left-color: var(--ui-accent); }

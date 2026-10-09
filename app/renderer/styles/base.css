@@ -1,0 +1,36 @@
+/* Harbor Desk - prototype D (iteration 2). Original pixel-flavoured desk scene drawn with CSS + SVG. */
+
+:root {
+  --sky-1: #a9d6ee; --sky-2: #cfe8f5; --sea-1: #3f7fa6; --sea-2: #2c6a8f; --sea-foam: #cfe9f3;
+  --wood-1: #8a5a33; --wood-2: #74482a; --wood-edge: #4d2e18; --blotter: #2f5d4e; --blotter-edge: #244a3e;
+  --paper: #f6efdc; --paper-2: #efe4c6; --paper-ink: #2b2318; --paper-faint: #7a6a50; --paper-line: #d9cba6;
+  --px-clip: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 2px 4px, 2px 2px, 4px 2px);
+  --px-holes: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath fill-rule='evenodd' d='M0 0h14v14H0z M3 2h2v2H3z M9 7h2v2H9z M5 11h2v2H5z M12 1h2v2h-2z'/%3E%3C/svg%3E");
+  --slip: #f1d9d6; --slip-ink: #4a2a28;
+  --ui-bg: #1d2a38; --ui-fg: #e9eef5; --ui-muted: #9fb0c4; --ui-edge: #34475e; --ui-accent: #f2b544;
+  --approve: #1f7a4a; --reject: #a3302c; --needs: #b7791f; --ask: #2f5fa8; --file: #4a4f8a; --warn: #d9822b;
+  --p1: #c0392b; --p2: #d98c1f; --p3: #3b6f9e; --p4: #6b7785;
+  --chg: rgba(255, 208, 40, .42); --chg-edge: #d9a300;
+  --shadow: 0 10px 24px rgba(0,0,0,.28), 0 2px 4px rgba(0,0,0,.2);
+  --radius: 6px;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-paper: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --bg-page: #112030; --fg-page: #e9eef5; --plain-card: #1a2838; --plain-edge: #2c3f55;
+  color-scheme: dark;
+}
+:root[data-theme="light"] { --ui-bg: #eef3f8; --ui-fg: #1b2633; --ui-muted: #5b6b7d; --ui-edge: #c9d4e0; --ui-accent: #b86a0a; --bg-page: #dde8ef; --fg-page: #1b2633; --plain-card: #fff; --plain-edge: #cdd8e3; color-scheme: light; }
+:root[data-theme="dark"] { --sky-1: #0d1a33; --sky-2: #1c2f52; --sea-1: #0f3350; --sea-2: #0a2740; --sea-foam: #4d7a99; --wood-1: #5e3b21; --wood-2: #4a2d18; --wood-edge: #2b1a0d; --blotter: #1f3d33; --blotter-edge: #162c25; --paper: #e8dfc7; --paper-2: #ddd1b1; color-scheme: dark; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --ui-bg: #eef3f8; --ui-fg: #1b2633; --ui-muted: #5b6b7d; --ui-edge: #c9d4e0; --ui-accent: #b86a0a; --bg-page: #dde8ef; --fg-page: #1b2633; --plain-card: #fff; --plain-edge: #cdd8e3; color-scheme: light; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sky-1: #0d1a33; --sky-2: #1c2f52; --sea-1: #0f3350; --sea-2: #0a2740; --sea-foam: #4d7a99; --wood-1: #5e3b21; --wood-2: #4a2d18; --wood-edge: #2b1a0d; --blotter: #1f3d33; --blotter-edge: #162c25; --paper: #e8dfc7; --paper-2: #ddd1b1; } }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font-ui); font-size: 14px; line-height: 1.4; background: var(--bg-page); color: var(--fg-page); display: flex; flex-direction: column; min-height: 100vh; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.ic { width: 20px; height: 20px; display: inline-block; vertical-align: middle; flex: none; }
+.spacer { flex: 1; }
+.legend { font-size: 12px; color: var(--ui-muted); margin: 6px 0 10px; }
+.dim { color: var(--ui-muted); }

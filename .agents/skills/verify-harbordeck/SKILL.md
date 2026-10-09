@@ -68,7 +68,7 @@ $U reload                                            # reload the desk page (per
 $U text --pane --css h1 ; $U click --pane --css '#s2' ; $U shot --pane p.png   # inside the open browser pane (http or local harbor:// page)
 ```
 
-Stable handles (from `app/renderer/index.html` and `app.js`):
+Stable handles (from `app/renderer/index.html` and the desk scripts; see docs/ARCHITECTURE.md):
 
 | Handle | What |
 |---|---|

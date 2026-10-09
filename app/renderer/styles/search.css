@@ -1,0 +1,14 @@
+/* search palette (search-view.js) */
+.modal.search { place-items: start center; padding-top: 12vh; }
+.modal.search .box { width: min(640px, 100%); max-height: 70vh; overflow: hidden; }
+.sr-in { width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--ui-edge); background: transparent; color: var(--ui-fg); outline: none; }
+.sr-list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
+.sr-row { display: flex; gap: 10px; align-items: baseline; padding: 6px 14px; cursor: pointer; min-width: 0; }
+.sr-row[aria-selected="true"] { background: var(--ui-edge); }
+.sr-kind { flex: 0 0 64px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ui-muted); }
+.sr-main { display: flex; flex-direction: column; min-width: 0; }
+.sr-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-sub { font-size: 11px; color: var(--ui-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-empty { padding: 12px 14px; color: var(--ui-muted); }
+.sr-foot { display: flex; gap: 14px; padding: 6px 14px; border-top: 1px solid var(--ui-edge); font-size: 11px; color: var(--ui-muted); }
+.sr-foot .sr-count { margin-left: auto; }

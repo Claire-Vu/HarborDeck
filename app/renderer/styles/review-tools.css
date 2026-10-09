@@ -1,0 +1,54 @@
+/* topics (topic-view.js): chip on every item, topic page sheet, topics list, bundles */
+.topic-chip { border: 1px solid currentColor; background: transparent; color: var(--ui-accent); border-radius: 10px; padding: 0 6px; font-size: 10.5px; line-height: 15px; font-family: inherit; cursor: pointer; white-space: nowrap; max-width: 14em; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.topic-chip:hover { background: rgba(127,127,127,.15); }
+.paper .topic-chip, .ledger .topic-chip { color: #8a5a14; }
+.bundle-n { margin-left: 6px; font-size: 10px; font-weight: 800; padding: 0 5px; border-radius: 8px; background: var(--ui-accent); color: #fff; line-height: 15px; flex: none; }
+/* question sheet (quick-call.js): a bundle as one stacked sheet; the row in focus is the item at the desk */
+.paper.qsheet { border-top-color: var(--ui-accent); }
+.paper.qsheet .b-row { display: grid; grid-template-columns: auto 16px minmax(0, 1fr); gap: 6px; align-items: start; padding: 7px 4px; border-bottom: 1px dashed rgba(0,0,0,.15); border-left: 3px solid transparent; cursor: pointer; }
+.paper.qsheet .b-row.cur { background: rgba(255,247,224,.85); border-left-color: var(--ui-accent); cursor: default; }
+.paper.qsheet .b-row.skip { opacity: .45; }
+.paper.qsheet .b-row input[type=checkbox] { margin-top: 3px; }
+.paper.qsheet .qnum { font-weight: 700; color: var(--paper-faint); }
+.paper.qsheet .b-title { font-weight: 700; text-align: left; display: block; margin-bottom: 4px; }
+.paper.qsheet .opts { display: flex; flex-wrap: wrap; gap: 4px; }
+.paper.qsheet .b-verb { font-size: 11px; color: var(--paper-faint); }
+.paper.qsheet .b-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+.paper.qsheet .b-foot .pbtn { background: var(--wood-1); color: #fff; }
+.tp-link { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+.tp-rel { font-size: 12px; color: var(--paper-faint); margin: -2px 0 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tp-timeline { list-style: none; padding: 0 !important; margin: 0; }
+.tp-timeline .tp-ev { display: grid; grid-template-columns: 92px 130px minmax(0, 1fr); gap: 8px; padding: 5px 0 5px 10px; border-left: 2px solid var(--paper-line); margin: 0 !important; font-size: 12.5px; }
+.tp-timeline .tp-ev.note { border-left-color: var(--ui-accent); background: rgba(184,106,10,.06); }
+.tp-timeline .tp-ev.answer { border-left-color: var(--approve); }
+.tp-timeline .tp-ev.reply { border-left-color: var(--ask); }
+.tp-when { color: var(--paper-faint); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+.tp-what { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--paper-faint); }
+.tp-body { min-width: 0; overflow-wrap: anywhere; }
+.tp-arts { display: inline-flex; gap: 4px; flex-wrap: wrap; margin-left: 6px; }
+.topic-list { display: grid; gap: 6px; }
+.tp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; text-align: left; border: 1px solid var(--ui-edge); border-left: 3px solid var(--ui-accent); border-radius: 4px; padding: 6px 8px; background: transparent; color: var(--ui-fg); font: inherit; font-size: 12.5px; cursor: pointer; }
+.tp-row.settled { border-left-color: var(--ui-edge); opacity: .8; }
+.tp-row .tp-slug { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.tp-row .tp-count { font-size: 11px; color: var(--ui-accent); } .tp-row.settled .tp-count { color: var(--ui-muted); }
+.tp-row .si-meta { grid-column: 1 / -1; }
+.topics-plain { padding: 10px 12px; }
+@media (max-width: 860px) { .tp-timeline .tp-ev { grid-template-columns: minmax(0, 1fr); gap: 0; } .paper.qsheet { order: 2; } }
+
+/* take all recommended (Shift+A) */
+.modal.sweep .box { max-width: 560px; }
+.modal.sweep .sw-row { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--ui-edge); cursor: pointer; }
+.modal.sweep footer .legend { margin-right: auto; }
+
+/* what changed (changes.js): only the parts new since the captain last looked are lit, like a highlighter */
+.chg { background: var(--chg); box-shadow: 0 0 0 2px var(--chg); border-radius: 2px; }
+.paper.chg { box-shadow: 0 0 0 3px var(--chg-edge), var(--shadow); background: var(--paper); }
+.paper .msg.chg, .pcard .msg.chg { box-shadow: inset 3px 0 0 var(--chg-edge); padding-left: 8px; }
+.md .chg, .md pre.chg { box-shadow: -6px 0 0 var(--chg-edge); }
+.fact.chg, .opt .chg { text-decoration: none; }
+.chg-note { font-size: 10.5px; color: var(--paper-ink); background: var(--chg); border-left: 3px solid var(--chg-edge); padding: 2px 6px; margin: 4px 0 6px; }
+.upd { display: inline-block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; line-height: 14px; padding: 0 5px; margin-left: 6px; border-radius: 3px; background: var(--chg-edge); color: #241a00; vertical-align: middle; white-space: nowrap; }
+.ev-thumb.chg { outline: 3px solid var(--chg-edge); }
+/* who's waiting: workers paused until the captain answers */
+.waitn .wi { margin-right: 3px; font-size: 9px; }
+.waitn { display: inline-block; font-size: 10px; font-weight: 800; line-height: 15px; padding: 0 5px; border-radius: 3px; background: var(--warn); color: #1d1206; white-space: nowrap; }
