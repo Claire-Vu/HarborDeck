@@ -49,6 +49,17 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ui-acc
 .ibtn-top[aria-pressed="true"] { background: var(--ui-accent); color: #1b1b1b; }
 .ibtn-top:disabled { opacity: .35; cursor: not-allowed; }
 .ibtn-top .badge { position: absolute; top: -4px; right: -4px; }
+.menu { position: fixed; right: 10px; z-index: 60; width: min(280px, calc(100vw - 20px)); max-height: calc(100vh - 60px); overflow-y: auto; background: var(--ui-bg); color: var(--ui-fg); border: 1px solid var(--ui-edge); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.35); padding: 4px 0; }
+.menu[hidden] { display: none; }
+.mg { padding: 4px 6px; } .mg + .mg { border-top: 1px solid var(--ui-edge); }
+.mg-h { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-muted); padding: 2px 8px; }
+.mi { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 8px; background: transparent; color: var(--ui-fg); border: 1px solid transparent; border-radius: var(--radius); font: inherit; text-align: left; }
+.mi:hover, .mi:focus-visible { background: rgba(127,127,127,.14); border-color: var(--ui-edge); }
+.mi:disabled { opacity: .35; cursor: not-allowed; }
+.mi[aria-pressed="true"] { background: var(--ui-accent); color: #1b1b1b; }
+.mi-l { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi .kbd { flex: none; } .mi .badge { flex: none; }
+.mi-vol .vol { flex: 0 1 110px; width: auto; min-width: 0; }
 .vol { width: 64px; accent-color: var(--ui-accent); }
 .tbtn { background: transparent; color: var(--ui-fg); border: 1px solid var(--ui-edge); border-radius: var(--radius); padding: 5px 10px; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
 .tbtn:hover { border-color: var(--ui-accent); }
@@ -297,7 +308,7 @@ body.inspect .fact:hover { background: rgba(242,181,68,.5); }
 }
 @media (min-width: 861px) and (max-width: 1120px) {
   .stamina-cluster .mini-sub { grid-template-columns: 14px; }
-  .stamina-cluster .ms-name { display: none; } .brand .shift { display: none; } .vol { width: 60px; }
+  .stamina-cluster .ms-name { display: none; } .brand .shift { display: none; }
 }
 
 /* ---------- requests, crew, stamina ---------- */
@@ -508,7 +519,7 @@ body.tired .cook span { animation-duration: 4s; opacity: .6; }
   .rail { position: sticky; top: 0; height: 70px; padding: 8px 8px 0; } .desk-surface { top: 0; }
   .ticket { flex-basis: 170px; }
   .at-window .speech { font-size: 10px; padding: 3px 5px; }
-  .topbar { padding: 6px 10px; gap: 6px; } .tools { margin-left: 0; } .brand .shift { display: none; } .vol { display: none; }
+  .topbar { padding: 6px 10px; gap: 6px; } .tools { margin-left: 0; } .brand .shift { display: none; }
   .sheet { padding: 20px 18px; margin: 8px; }
 }
 @keyframes fade { from { opacity: 0; } }

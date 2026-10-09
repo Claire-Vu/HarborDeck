@@ -28,6 +28,7 @@
     <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5l10 7-10 7zM18 5v14" fill="currentColor"/></symbol>
     <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 22v-7a6 6 0 0 1 6-6h2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M13 6.5l5-3.5v12l-5-3.5z" fill="currentColor"/><ellipse cx="18.6" cy="9" rx="1.6" ry="6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </defs>
 </svg>
@@ -42,20 +43,38 @@
   </div>
   <nav class="tools" aria-label="Desk tools">
     <button class="ibtn-top" id="btn-phone" aria-expanded="false" aria-label="Ship phone" title="Ship phone: a quick order to a first mate"><svg class="ic"><use href="#i-phone"/></svg></button>
-    <button class="ibtn-top" id="btn-inspect" aria-pressed="false" aria-label="Inspect mode (I)" title="Inspect: pair a claim with evidence (I)"><svg class="ic"><use href="#i-inspect"/></svg></button>
-    <button class="ibtn-top" id="btn-orders" aria-label="Standing orders (R)" title="Standing orders: your saved preferences (R)"><svg class="ic"><use href="#i-orders"/></svg><span class="badge warn" id="orders-flag" hidden>0</span></button>
-    <button class="ibtn-top" id="btn-vault" aria-label="Archive" title="Archive: stamped and filed items"><svg class="ic"><use href="#i-archive"/></svg><span class="badge" id="vault-count">0</span></button>
-    <button class="ibtn-top" id="btn-ledger" aria-label="Ships out (L)" title="Ships out: today's recap, close the day (L)"><svg class="ic"><use href="#i-ledger"/></svg></button>
-    <button class="ibtn-top" id="btn-log" aria-label="Agent log" title="Agent log: the JSONL lines sent to firstmate"><svg class="ic"><use href="#i-log"/></svg><span class="badge" id="log-count">0</span></button>
-    <button class="ibtn-top" id="btn-plain" aria-pressed="false" aria-label="Plain mode (P)" title="Plain mode: flat list (P)"><svg class="ic"><use href="#i-plain"/></svg></button>
-    <span class="sep"></span>
-    <button class="ibtn-top" id="btn-sound" aria-pressed="false" aria-label="Desk sounds" title="Desk sounds (stamps, paper, bell)"><svg class="ic"><use href="#i-sound"/></svg></button>
-    <button class="ibtn-top" id="btn-music" aria-pressed="false" aria-label="Harbor music" title="Calm harbor music, generated on the spot"><svg class="ic"><use href="#i-music"/></svg></button>
-    <input type="range" id="music-vol" class="vol" min="0" max="100" value="40" aria-label="Music volume" title="Music volume">
-    <button class="ibtn-top" id="btn-theme" aria-label="Theme" title="Theme: auto / light / dark"><svg class="ic"><use href="#i-auto"/></svg></button>
-    <button class="ibtn-top" id="btn-settings" aria-label="Settings" title="Settings: data directory, artifact root, on-answer hook, demo (⌘,)"><svg class="ic"><use href="#i-gear"/></svg></button>
+    <button class="ibtn-top" id="btn-menu" aria-expanded="false" aria-haspopup="menu" aria-controls="menu" aria-keyshortcuts="M" aria-label="Menu (M)" title="Menu: records, sound, look, settings (M)"><svg class="ic"><use href="#i-menu"/></svg><span class="badge warn" id="orders-flag" hidden>0</span></button>
   </nav>
 </header>
+
+<div class="menu" id="menu" role="menu" aria-label="Menu" hidden>
+  <div class="mg" role="group" aria-label="Desk">
+    <div class="mg-h">Desk</div>
+      <button class="mi" role="menuitem" id="btn-inspect" title="Inspect"><svg class="ic"><use href="#i-inspect"/></svg><span class="mi-l">Inspect</span><span class="kbd">I</span></button>
+      <button class="mi" role="menuitem" id="btn-plain" title="Plain mode"><svg class="ic"><use href="#i-plain"/></svg><span class="mi-l">Plain mode</span><span class="kbd">P</span></button>
+      <button class="mi" role="menuitem" id="btn-shop" title="Chandlery &amp; stamp book"><svg class="ic"><use href="#i-cash"/></svg><span class="mi-l">Chandlery &amp; stamp book</span><span class="kbd">B</span></button>
+  </div>
+  <div class="mg" role="group" aria-label="Records">
+    <div class="mg-h">Records</div>
+      <button class="mi" role="menuitem" id="btn-orders" title="Standing orders"><svg class="ic"><use href="#i-orders"/></svg><span class="mi-l">Standing orders</span><span class="badge warn" id="orders-flag2" hidden>0</span><span class="kbd">R</span></button>
+      <button class="mi" role="menuitem" id="btn-vault" title="Archive"><svg class="ic"><use href="#i-archive"/></svg><span class="mi-l">Archive</span><span class="badge" id="vault-count">0</span></button>
+      <button class="mi" role="menuitem" id="btn-ledger" title="Ships out"><svg class="ic"><use href="#i-ledger"/></svg><span class="mi-l">Ships out</span><span class="kbd">L</span></button>
+      <button class="mi" role="menuitem" id="btn-log" title="Agent log"><svg class="ic"><use href="#i-log"/></svg><span class="mi-l">Agent log</span><span class="badge" id="log-count">0</span></button>
+  </div>
+  <div class="mg" role="group" aria-label="Sound">
+    <div class="mg-h">Sound</div>
+      <button class="mi" role="menuitem" id="btn-sound" title="Desk sounds"><svg class="ic"><use href="#i-sound"/></svg><span class="mi-l">Desk sounds</span></button>
+      <button class="mi" role="menuitem" id="btn-music" title="Harbor music"><svg class="ic"><use href="#i-music"/></svg><span class="mi-l">Harbor music</span></button>
+      <label class="mi mi-vol"><svg class="ic"><use href="#i-music"/></svg><span class="mi-l">Volume</span><input type="range" id="music-vol" class="vol" min="0" max="100" value="40" aria-label="Music volume"></label>
+  </div>
+  <div class="mg" role="group" aria-label="Look">
+    <div class="mg-h">Look</div>
+      <button class="mi" role="menuitem" id="btn-theme" title="Theme: auto"><svg class="ic"><use href="#i-auto"/></svg><span class="mi-l">Theme: auto</span></button>
+  </div>
+  <div class="mg" role="group" aria-label="App">
+      <button class="mi" role="menuitem" id="btn-settings" title="Settings"><svg class="ic"><use href="#i-gear"/></svg><span class="mi-l">Settings</span><span class="kbd">⌘,</span></button>
+  </div>
+</div>
 
 <main id="desk-mode">
   <aside class="window-col">
@@ -115,7 +134,7 @@
       <button class="stamp reject" data-verdict="reject" aria-label="Reject"><span class="handle"></span><span class="base"><span class="lbl">Reject</span></span></button>
       <button class="stamp needswork" data-verdict="needswork" aria-label="Needs work"><span class="handle"></span><span class="base"><span class="lbl">Needs work</span></span></button>
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
-      <div class="keys">1-4 stamp · U undo · B book · T tickets · N next · O topic · I inspect · R orders · Esc</div>
+      <div class="keys">1-4 stamp · U undo · B book · T tickets · N next · O topic · I inspect · R orders · M menu · Esc</div>
     </div>
   </aside>
 </main>
