@@ -26,6 +26,7 @@ PASS  day-cycle: l opens Ships out recap
 PASS  settings: menu -> Settings shows data dir; Cancel closes
 PASS  console: no page errors so far
 PASS  phone: header icon opens the ship phone; Escape hangs up
+PASS  phone: quota lands while typing; Alt+Enter queues for reset and the ticket stays
 PASS  orders: phone order sends a request line
 PASS  menu: theme toggles to light
 PASS  persistence: reload keeps the office open and the stamped PR filed
