@@ -31,9 +31,10 @@ Once per worktree: `npm install` (if Electron reports `failed to install correct
 H=.agents/skills/verify-harbordeck/scripts/hdv
 $H launch            # seeded synthetic data dir (17 items, fleet, quota, rules, 2 answers) + the demo web page on loopback; no pretend agent
 $H launch --demo     # the app's own demo mode instead: same seed in the private profile, plus the pretend agent
+$H launch --visible  # show the window (default is headless)
 ```
 
-Ready when it prints `ready  pid=<pid>  site=http://127.0.0.1:<port>/  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). It opens a visible window; CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
+Ready when it prints `ready  pid=<pid>  site=http://127.0.0.1:<port>/  cdp=http://127.0.0.1:<port>  home=<dir>  run=<run-id>` (it waits for the renderer on CDP and the data dir). The app runs headless (`HARBORDECK_HEADLESS=1`): no window on screen, no Dock icon, never takes focus, yet it paints, so `ui.mjs` drives and screenshots it as usual. Pass `--visible` when a human wants to watch. CDP picks the first free port from 9340 (`--port N` to choose). `launch` also writes the scheduler config into the synthetic data dir: wake command = stub, `margin` 0, keep-awake on (stub). Use the default mode for verification: the `--demo` pretend agent writes replies and resolves items on its own, which races your assertions. Use `--demo` only to verify demo mode itself.
 
 ## Doctor
 
