@@ -9,7 +9,7 @@ Agents write items and snapshots into the data directory at any time, and the ru
 - `live-rewrite` writing an existing id updates it in place and reopens it.
 - `live-resolve` `hd resolve <id>` takes it out of the queue into the Archive.
 - `live-file` a raw `items/<id>.json` written by any process appears too.
-- `live-snapshots` `hd quota -` and `hd fleet -` update stamina bars and crew sprites.
+- `live-snapshots` `hd quota -` and `hd fleet -` update stamina chips (features/stamina.md) and crew sprites.
 - `live-invalid` an unreadable item file is skipped and listed in Settings; the desk keeps working.
 
 ## How to get to it (user POV)

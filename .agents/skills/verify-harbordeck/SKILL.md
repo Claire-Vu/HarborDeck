@@ -86,7 +86,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#btn-phone`, keys `Meta+Shift+Space`; `#phone .phone-box`, `.dial-pos[data-mate=<id>][aria-checked]`, `.phone-pad`; `#btn-phone.sent` | ship phone: header icon / shortcut, dial positions, pad, sent cue |
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>` |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
-| `#stamina-cluster .mini-sub` (`.ms-time` = `↻ <refill>`), `#yard .yc.cook` | stamina per window (wave glyph + refill time), crew sprites (from quota.json / fleet.json) |
+| `#stamina-cluster .ms-group` (`.ms-prov`), `.mini-sub[.model][.stale]` (`.ms-name`, `.ms-pct`, `.ms-time` = `↻ <countdown>`, `.ms-warn`, `.ms-stale`, `[title]`), `#yard .yc.cook` | usage left per window (features/stamina.md; from quota.json + `schedule/rate-limits.json`), crew sprites (fleet.json) |
 | `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#pier-queue .pq.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
 | cash chip / key `b` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
 | `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
@@ -100,6 +100,7 @@ $H hd decision hdv-palette "Which palette?" -s "Warm tested better." --opt warm+
 $H hd batch < items.txt ; $H hd reply <id> "<text>" ; $H hd resolve <id>
 $H hd answers --cursor verify ; $H hd ls ; $H hd validate
 echo '[{"name":"Solo","window":"5h","used_pct":100,"resets_at":'$(( $(date +%s)+20 ))'}]' | $H hd quota -
+echo '{"rate_limits":{"five_hour":{"used_percentage":18,"resets_at":'$(( $(date +%s)+9000 ))'}}}' | $H hd limit snapshot   # status line tee
 $H hd schedule list ; $H tick ; $H wake-log
 ```
 

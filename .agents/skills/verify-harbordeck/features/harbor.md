@@ -6,7 +6,7 @@ The window scene carries desk status with no extra keys: one boat per open task 
 
 - `harbor-boats` one `#sc-boats .hb` per open task (topic, else id without `.qN`), up to 8; `.window-frame[data-boats]` holds the full count; a settled task leaves a `.hb.sailing` ghost that sails out.
 - `harbor-sky` `.window-frame[data-phase=night|dawn|day|dusk]` from the local hour; `[data-weather=fair|cloudy|rain]` from the lowest stamina (rain below 20 %).
-- `harbor-tide` `#sc-tide text` reads `high tide <time>` (or `⚑ beat the tide`); the top bar `#stamina-cluster .mini-sub` shows a wave glyph and `↻ <refill>` per window, no bars.
+- `harbor-tide` `#sc-tide text` reads `high tide <time>` (or `⚑ beat the tide`); the top bar keeps its own readable usage chips (features/stamina.md).
 - `harbor-regulars` with no crew on the item, the visitor is the project's regular; `#at-window .speech small.memory` reads `<Trade Name>: <memory>`.
 - `harbor-cat` `#pier-queue .pq.urgent .ship-cat` on the most urgent waiting visitor; `.ship-cat.on-pier.nap` when nobody waits.
 - `harbor-run` `#run` shows `×N tidy run` for resolving stamps within 8 s; `u` hides it; bundle stamps never count.

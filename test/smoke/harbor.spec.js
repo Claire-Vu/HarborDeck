@@ -30,9 +30,17 @@ test('the window shows the harbor: boats per task, real-clock sky, tide line, re
   expect(boats).toBeGreaterThan(1);
   await expect(page.locator('#sc-boats .hb:not(.sailing)')).toHaveCount(Math.min(8, boats));
   await expect(page.locator('#sc-tide text')).toContainText('high tide');
-  // the top bar keeps refill times but no stamina bars
-  await expect(page.locator('#stamina-cluster .meter')).toHaveCount(0);
-  await expect(page.locator('#stamina-cluster .ms-time').first()).toContainText('↻');
+  // the top bar reads on its own: plain window names, % left, countdown, a run-out warning; per-model windows set apart
+  const first = page.locator('#stamina-cluster .mini-sub').first();
+  await expect(page.locator('#stamina-cluster .ms-prov')).toHaveText(['Primary', 'Backup']);
+  await expect(first.locator('.ms-name')).toHaveText('5h');
+  await expect(first.locator('.ms-pct')).toHaveText('38%');
+  await expect(first.locator('.ms-time')).toHaveText(/^↻ 2h (9|10)m$/);
+  await expect(first.locator('.ms-warn')).toContainText('⚠ out ~');
+  await expect(first).toHaveAttribute('title', /Primary · 5h: 38% left \(62% used\)\. Resets .+, in 2h (9|10)m\./);
+  await expect(page.locator('#stamina-cluster .mini-sub.model .ms-name')).toHaveText('Opal · week');
+  await expect(page.locator('#stamina-cluster .ms-stale')).toHaveCount(0);
+  await page.locator('#stamina-cluster').screenshot({ path: path.join(SHOTS, 'harbordeck-stamina.png') });
   await expect(page.locator('#pier-queue .pq.urgent .ship-cat')).toHaveCount(1);
   await page.locator('#queue li', { hasText: 'Sign the app store' }).click(); // a project regular brings this one
   await expect(page.locator('#at-window .speech small.memory')).toContainText('First time at your window.');

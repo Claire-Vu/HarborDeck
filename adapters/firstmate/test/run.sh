@@ -84,7 +84,22 @@ cat > "$tmp/quota-new.json" <<'EOF'
  {"provider":"codex","windows":[]}]}
 EOF
 check "quota: windows without windowSeconds" test "$("$here/hd-quota.sh" --print --from-json "$tmp/quota-new.json" 2>/dev/null | jq -c '.')" = \
-  '[{"name":"Claude","window":"5h","used_pct":20,"resets_at":1791464999},{"name":"Claude","window":"7d","used_pct":16,"resets_at":1791460799},{"name":"Claude Fable","window":"7d","used_pct":25,"resets_at":1791460799}]'
+  '[{"name":"Claude","window":"5h","used_pct":20,"resets_at":1791464999},{"name":"Claude","window":"7d","used_pct":16,"resets_at":1791460799},{"name":"Claude","model":"Fable","window":"7d","used_pct":25,"resets_at":1791460799}]'
+# reading time and projected run-out (quota-axi schema 5): at from the provider refresh, runs_out_at only on the
+# limiting window and only when it comes before that window's reset; other providers pass through
+cat > "$tmp/quota-runway.json" <<'EOF'
+{"generatedAt":"2026-10-08T09:00:00Z","providers":[
+ {"provider":"claude","state":{"refreshedAt":"2026-10-08T08:58:00.123Z"},
+  "quotaSemantics":{"effectiveAvailability":[
+   {"scope":"all_models","runway":{"status":"projected_exhaustion","projectedExhaustedAt":"2026-10-08T12:30:00Z","limitingWindowId":"five_hour"}},
+   {"scope":"model:fable","runway":{"status":"projected_exhaustion","projectedExhaustedAt":"2026-10-20T00:00:00Z","limitingWindowId":"model:fable"}}]},
+  "windows":[
+   {"id":"five_hour","kind":"session","resetsAt":"2026-10-08T13:00:00Z","percentRemaining":40},
+   {"id":"model:fable","label":"Fable week","kind":"model","resetsAt":"2026-10-12T00:00:00Z","percentRemaining":90}]},
+ {"provider":"acme","windows":[{"id":"day","resetsAt":"2026-10-09T00:00:00Z","percentUsed":5,"windowSeconds":86400}]}]}
+EOF
+check "quota: reading time, run-out before reset, any provider" test "$("$here/hd-quota.sh" --print --from-json "$tmp/quota-runway.json" 2>/dev/null | jq -c '.')" = \
+  '[{"name":"Claude","window":"5h","used_pct":60,"resets_at":1791464400,"at":1791449880,"runs_out_at":1791462600},{"name":"Claude","model":"Fable","window":"7d","used_pct":10,"resets_at":1791763200,"at":1791449880},{"name":"acme","window":"1d","used_pct":5,"resets_at":1791504000,"at":1791450000}]'
 
 # rules
 printf '# Prefs\n\n- Never ship a release on Fridays.\n- Keep infra under $30/mo. {#budget-30}\n  - nested detail is ignored\n* Never ship a release on Fridays, holidays too.\n' > "$tmp/prefs.md"

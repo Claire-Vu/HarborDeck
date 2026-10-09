@@ -207,11 +207,14 @@ Keys are the strings items use in `rules` and `checks[].rule`.
 ### `quota.json`: stamina
 
 ```json
-[{"name": "Agent plan A", "window": "5h", "used_pct": 62, "resets_at": 1791440000},
- {"name": "Agent plan A", "window": "7d", "used_pct": 41, "resets_at": 1791720000}]
+[{"name": "Agent plan A", "window": "5h", "used_pct": 62, "resets_at": 1791440000, "at": 1791430000, "runs_out_at": 1791436000},
+ {"name": "Agent plan A", "window": "7d", "used_pct": 41, "resets_at": 1791720000, "at": 1791430000},
+ {"name": "Agent plan A", "model": "Opal", "window": "7d", "used_pct": 12, "resets_at": 1791720000, "at": 1791430000}]
 ```
 
-One bar per entry: `100 - used_pct` left, countdown to `resets_at`. `window` is `<n>h`, `<n>d` or `<n>w`. When `resets_at` is in the past the app rolls it forward by whole windows.
+One chip per entry, grouped by `name` (the provider): `100 - used_pct` left, countdown to `resets_at` (local time on hover). `window` is `<n>h`, `<n>d` or `<n>w`; `7d`/`1w` read as `week`, `1d`/`24h` as `day`. Optional: `model` marks a per-model window (shown after the account windows), `at` is when the reading was taken (default: the file's mtime; over 30 min old shows `stale`), `runs_out_at` is the projected exhaustion when it comes before the reset (without it the app projects linearly from the window start). When `resets_at` has passed, what is left is unknown until a new reading.
+
+The app also reads `schedule/rate-limits.json` (Claude Code status line, `hd limit snapshot`): its `five_hour`/`seven_day` windows are `Claude` 5h/7d and replace a staler quota.json reading of the same window.
 
 ### `fleet.json`: who is working
 

@@ -155,11 +155,13 @@ function fleet(t) {
   };
 }
 
+// Primary's 5h pace (62% in 2h50m) empties it before the reset, so the top bar warns; Opal is a per-model window.
 const quota = t => [
-  { name: 'Primary', window: '5h', used_pct: 62, resets_at: t + 2 * H + 10 * 60 },
-  { name: 'Primary', window: '7d', used_pct: 41, resets_at: t + 3 * D + 5 * H },
-  { name: 'Backup', window: '5h', used_pct: 18, resets_at: t + 4 * H },
-  { name: 'Backup', window: '7d', used_pct: 88, resets_at: t + 1 * D + 7 * H }
+  { name: 'Primary', window: '5h', used_pct: 62, resets_at: t + 2 * H + 10 * 60, at: t },
+  { name: 'Primary', window: '7d', used_pct: 41, resets_at: t + 3 * D + 5 * H, at: t },
+  { name: 'Primary', model: 'Opal', window: '7d', used_pct: 20, resets_at: t + 3 * D + 5 * H, at: t },
+  { name: 'Backup', window: '5h', used_pct: 18, resets_at: t + 4 * H, at: t },
+  { name: 'Backup', window: '7d', used_pct: 88, resets_at: t + 1 * D + 7 * H, at: t }
 ];
 
 // An ask with its reply already in the thread (green ticket) and an order still waiting.

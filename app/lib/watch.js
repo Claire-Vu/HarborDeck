@@ -1,5 +1,5 @@
 'use strict';
-// Watches a data directory (top level + items/) and calls onChange once per burst of writes.
+// Watches a data directory (top level + items/ + the status line usage snapshot) and calls onChange once per burst of writes.
 // fs.watch misses events on some filesystems, so a slow stat poll backs it up.
 const fs = require('fs');
 const path = require('path');
@@ -13,6 +13,8 @@ function signature(home) {
       try { const s = fs.statSync(path.join(dir, n)); if (s.isFile()) parts.push(`${dir}/${n}:${s.size}:${s.mtimeMs}`); } catch (e) { /* raced */ }
     }
   }
+  const rates = path.join(home, 'schedule', 'rate-limits.json');
+  try { const s = fs.statSync(rates); parts.push(`${rates}:${s.size}:${s.mtimeMs}`); } catch (e) { /* no status line tee */ }
   return parts.join('|');
 }
 
