@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validate } from '../src/schema.js';
 
 const BIN = fileURLToPath(new URL('../bin/harbordeck.js', import.meta.url));
 const SAMPLE = fileURLToPath(new URL('../../docs/sample-data', import.meta.url));
@@ -295,6 +296,31 @@ test('decision options carry an optional why line; --why needs a known key', () 
   ]);
   assert.match(hd(['decision', 'h2', 'H?', '--opt', 'a', '--why', 'b=nope']).err, /--why "b=nope" needs <option key>=<text>/);
   assert.match(hd(['review', 'r2', 'R', '--why', 'a=x']).err, /--why is for decision options only/);
+});
+
+test('--opt-art attaches a sample to an option; unknown key, repeats, non-decisions fail', () => {
+  const { hd, item, cwd: c } = setup();
+  const cwd = fs.realpathSync(c);
+  fs.writeFileSync(path.join(cwd, 'a.wav'), 'x');
+  const r = hd(['decision', 'voice', 'Which voice?', '--opt', 'amy+=Amy', '--opt', 'bo', '--opt', 'cy', '--opt-art', 'amy=a.wav', '--opt-art', 'bo=image:shot.png', '--opt-art', 'cy=http://localhost:3000/v.html']);
+  assert.equal(r.code, 0, r.err);
+  const o = item('voice').options;
+  assert.deepEqual(o[0].artifact, { type: 'audio', path: path.join(cwd, 'a.wav') });
+  assert.deepEqual(o[1].artifact, { type: 'image', path: path.join(cwd, 'shot.png') });
+  assert.deepEqual(o[2].artifact, { type: 'link', url: 'http://localhost:3000/v.html' });
+  assert.match(hd(['decision', 'v2', 'V?', '--opt', 'a', '--opt-art', 'b=a.wav']).err, /--opt-art "b=a.wav" needs <option key>=/);
+  assert.match(hd(['decision', 'v3', 'V?', '--opt', 'a', '--opt-art', 'a=x.png', '--opt-art', 'a=y.png']).err, /already has an --opt-art/);
+  assert.match(hd(['decision', 'v4', 'V?', '--opt', 'a', '--opt-art', 'a=']).err, /missing the path or URL/);
+  assert.match(hd(['review', 'r3', 'R', '--opt-art', 'a=x.png']).err, /--opt-art is for decision options only/);
+  assert.match(hd(['decision', 'v5', 'V?', '--opt', 'a', '--opt-art', 'a=web:nofile.html']).err, /web needs a URL/);
+});
+
+test('item schema: an option artifact needs type and url or path', () => {
+  const base = { id: 'x', kind: 'decision', title: 'X', created: 1, status: 'open' };
+  const mk = (artifact) => ({ ...base, options: [{ key: 'a', label: 'A', artifact }] });
+  assert.deepEqual(validate('item', mk({ type: 'audio', path: '/p/a.wav' })), []);
+  assert.ok(validate('item', mk({ type: 'audio' })).length);
+  assert.ok(validate('item', mk({ path: '/p/a.wav' })).length);
 });
 
 test('question ids <task>.qN default their topic to the task; an explicit or kept topic wins', () => {

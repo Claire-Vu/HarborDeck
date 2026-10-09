@@ -333,6 +333,7 @@ const choiceOf = it => st(it.id).choice || it.options?.find(o => o.recommended)?
 // quick calls: letter keys, question sheet, lanes, weights, Later, take-all-recommended (quick-call.js)
 const quick = window.HarborQuickCall({ h, icon, KIND, st, save, paper, toast, modal, closeModal, prioChip, choiceOf, artType: a => artType(a), bodyArtifact: b => bodyArtifact(b),
   inspectOption: (e, it, o) => { if (document.body.classList.contains('inspect')) { e.preventDefault(); pickFact({ type: 'claim', label: o.label, anchor: { claim: o.label, option: o.key } }, e.currentTarget); } },
+  preview: window.HarborOptionPreview({ h, modal, base: p => base(p), artType: a => artType(a), srcFor: a => srcFor(a), openArtifact: a => ['pr', 'link'].includes(artType(a)) ? openUrl(a.url) : openViewer(a) }),
   focusRow: id => focusRow(id), pick: id => afterPick(id), stampSheet: () => stamp('approve'), sheetCount: () => sheetCount() });
 // scenes (scene-view.js): one per kind, a figure per open item; the filter chips are the scene index
 const HS = HarborScenes;

@@ -16,7 +16,8 @@ window.HarborQuickCall = deps => {
       h('input', { type: 'radio', name, value: o.key, checked: chosen, onchange: () => onPick(o.key) }),
       k ? h('span', { class: 'k', 'aria-hidden': 'true' }, k) : null,
       h('span', { class: 'o-text fact', onclick: e => deps.inspectOption(e, it, o) }, o.label, o.recommended ? h('span', { class: 'rec' }, 'rec.') : null,
-        o.why ? h('span', { class: 'why' }, o.why) : null));
+        o.why ? h('span', { class: 'why' }, o.why) : null),
+      deps.preview(o.artifact));
   }
   // Re-mark the chosen option in place (no re-render, so nothing jumps under the captain's eyes).
   function mark(root, key) { root?.querySelectorAll('label.opt').forEach(l => { const on = l.dataset.key === key; l.classList.toggle('on', on); const r = l.querySelector('input'); if (r) r.checked = on; }); }

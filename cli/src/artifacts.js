@@ -34,3 +34,17 @@ export function parseArt(v, ctx) {
   }
   return { type: type || (EXT_TYPES.find(([re]) => re.test(p)) || [null, 'file'])[1], path: p };
 }
+
+// --opt-art key=[type:]<path|url>: a sample of one decision option. `fail` throws the CLI's usage error.
+export function attachOptArt(options, specs, ctx, who, fail) {
+  const keys = options.map((o) => o.key);
+  for (const v of specs) {
+    const i = v.indexOf('=');
+    const o = i > 0 && options.find((x) => x.key === v.slice(0, i).trim());
+    if (!o) fail(`${who}: --opt-art "${v}" needs <option key>=<[type:]path|url> for one of ${keys.join(', ')}`);
+    if (o.artifact) fail(`${who}: option ${o.key} already has an --opt-art`);
+    const ref = v.slice(i + 1).trim();
+    if (!ref) fail(`${who}: --opt-art "${v}" is missing the path or URL`);
+    try { o.artifact = parseArt(ref, ctx); } catch (e) { fail(`${who}: ${e.message}`); }
+  }
+}
