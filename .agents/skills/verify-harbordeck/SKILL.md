@@ -73,7 +73,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | button `Open the office` | closes the Morning manifest shown on a fresh profile; every drive starts here |
 | `#queue li` + item title | an item in the window queue; click selects it onto the desk |
 | `#desk-surface .paper.manifest h3` | title of the item on the desk |
-| `.tab[data-tab="window"\|"crew"\|"topics"]` | left tabs |
+| `.window-frame #scenes`, `#yard`, `#filters .chip`, `#queue`, `#btn-next` | left column, top to bottom: the scene window, the crew at work (galley, pier), kind chips, list, Next. No tabs |
 | `#stamps .stamp[data-verdict=approve\|reject\|needswork\|ask]`, keys `1`-`4` | stamps |
 | `#desk-surface .paper.ask label.opt[.on] .k`, `.paper.qsheet .b-row[.cur]`, button `Stamp the sheet`, `#queue li.q-lane`, `#queue li.q-later`, `.wt[data-weight]`, `.modal.sweep .sw-row`, `.paper.web` + button `Open in the desk browser`, `#rail-left`/`#rail-right`, `#stamps .stamp[data-verdict=later]` | quick calls (features/quick-call.md) |
 | `.waitn`, `.upd`, `.chg`, `.chg-note`, `.modal.search .sr-in` / `.sr-row[aria-selected=true]`, `#btn-search`, key `Meta+k` | review tools (features/review-tools.md) |
@@ -88,7 +88,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <reset> · ☕ <awake until>`; click opens the phone |
 | button `Agent log` → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .ms-group` (`.ms-prov`), `.mini-sub[.model][.stale]` (`.ms-name`, `.ms-pct`, `.ms-time` = `↻ <countdown>`, `.ms-warn`, `.ms-stale`, `[title]`), `#yard .yc.cook` | usage left per window (features/stamina.md; from quota.json + `schedule/rate-limits.json`), crew sprites (fleet.json) |
-| `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#pier-queue .pq.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
+| `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#scenes .sc-fig.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
 | cash chip / key `b` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
 | `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
 

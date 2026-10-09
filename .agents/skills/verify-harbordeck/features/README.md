@@ -14,7 +14,7 @@ This directory is the maintained source for verifying Harbor Deck's user-facing 
 
 - UI actions go through `ui.mjs` with an ARIA role + name or the app's ids/classes listed in the skill. Never click chrome-devtools-axi `@uid` refs (the desk re-renders every second).
 - Agent actions go through `$H hd`, scheduler delivery through `$H tick`. Wait on visible state (`$U wait ...`) and on files, never on a fixed sleep, except the 4 s undo hold.
-- The queue lives in the `Window` tab; after using `Crew` or `Topics`, click `.tab[data-tab="window"]` before selecting an item.
+- The left column has no tabs: the scene window, the crew yard, the kind chips and the queue are always there. A kind chip filters the queue; click `All` to see every item.
 - Select the item you mean (`$U click --css '#queue li' --text '<title>'`) before every stamp key; the desk moves on after a stamp.
 - Use ids prefixed `hdv-` for anything you create, so it never collides with seed ids.
 - Restart from baseline (`$H cleanup && $H launch`) instead of undoing mutations by hand.

@@ -1,6 +1,6 @@
 # Stamina (usage left)
 
-The top bar shows how much of each subscription usage window is left, readable without the scene: per provider (`Claude`), one chip per window (`5h`, `week`, then per-model windows such as `Fable · week` set apart by a dashed rule), each with a filled bar and **% left**, `↻ <countdown>` to the reset, `⚠ out ~<time>` when the pace so far empties it before the reset, and `STALE` when the reading is over 30 min old. Hovering a chip spells out left/used, the reset in local time, the source (`quota.json` or `Claude Code status line`) and its age. The same window from both sources shows the fresher reading. The Crew tab lists the same windows in long form.
+The top bar shows how much of each subscription usage window is left, readable without the scene: per provider (`Claude`), one chip per window (`5h`, `week`, then per-model windows such as `Fable · week` set apart by a dashed rule), each with a filled bar and **% left**, `↻ <countdown>` to the reset, `⚠ out ~<time>` when the pace so far empties it before the reset, and `STALE` when the reading is over 30 min old. Hovering a chip spells out left/used, the reset in local time, the source (`quota.json` or `Claude Code status line`) and its age. The same window from both sources shows the fresher reading. Clicking the chips opens the same windows in long form.
 
 ## Sub-features
 
@@ -10,12 +10,12 @@ The top bar shows how much of each subscription usage window is left, readable w
 - `stamina-fresh` `schedule/rate-limits.json` (Claude Code status line via `hd limit snapshot`) replaces a staler quota.json reading of `Claude` 5h/7d, and adds windows quota.json lacks.
 - `stamina-stale` `.ms-stale` `STALE` when the reading (quota.json `at`, else the file's mtime; the status line's `at`) is over 30 min old.
 - `stamina-title` each `.mini-sub[title]` reads `<Provider[ Model]> · <window>: N% left (M% used). Resets <local time>, in <countdown>.` plus run-out, per-model and `Reading: <source>, <age>` lines.
-- `stamina-crew` `.tab[data-tab="crew"]` → `#crew-pane .stamina .sub` per window with the long form.
+- `stamina-long` click `#stamina-cluster` (wider than 860 px) → `.modal.stamina-modal .stamina .sub` per window with the long form; at 860 px or less the click expands the chips in place.
 
 ## How to get to it (user POV)
 
 - Look at the top bar; hover a chip for the details.
-- Click the cluster (or the Crew tab) for the long form.
+- Click the cluster for the long form.
 - Narrower windows drop the bars and day-plus countdowns first (≤1360 px), then all countdowns (≤1120 px); names and % left stay.
 
 ## Driving it with hdv + ui.mjs

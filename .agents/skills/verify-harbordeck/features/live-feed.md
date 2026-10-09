@@ -15,7 +15,7 @@ Agents write items and snapshots into the data directory at any time, and the ru
 ## How to get to it (user POV)
 
 - Nothing to do: keep the desk open while the agent writes.
-- The `Window` tab badge and the queue update; the Archive (top bar) lists resolved items.
+- The `All` chip count and the queue update; the Archive (top bar) lists resolved items.
 - Stamina bars sit in the top bar; crew sprites in the galley/pier.
 
 ## Driving it with hdv + ui.mjs

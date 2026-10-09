@@ -1,5 +1,5 @@
 /* Topics on the desk: the topic chip on every item, the topic page (a ledger sheet: what is still open, then the
-   timeline of items, stamps, replies and notes, oldest first), the Topics list, and bundles: open items that share
+   timeline of items, stamps, replies and notes, oldest first), the topic list (plain mode), and bundles: open items that share
    a topic or a rel link arrive together as one visitor (quick-call.js draws their question sheet) and are stamped in one go. Topics arrive derived in every
    snapshot (cli/src/topics.js, the same code as `harbordeck topic`). Loaded before app.js; holds no desk state:
    app.js passes its helpers and live accessors in. */
@@ -104,7 +104,6 @@ window.HarborTopicView = deps => {
         h('span', { class: 'tp-slug' }, `#${t.slug}`), h('span', { class: 'tp-count' }, k ? `${k} open` : 'settled'),
         h('span', { class: 'si-meta' }, `${n(t.items.length, 'item')} · ${n(t.notes, 'note')}${t.last ? ` · ${when(t.last)}` : ''}${t.related.length ? ` · related ${t.related.map(r => '#' + r).join(' ')}` : ''}`))));
   }
-  const openCount = () => Object.values(deps.data().topics).filter(t => openItems(t).length).length;
 
-  return { chip, groups, stampBundle, open: openTopic, update, list, openCount };
+  return { chip, groups, stampBundle, open: openTopic, update, list };
 };

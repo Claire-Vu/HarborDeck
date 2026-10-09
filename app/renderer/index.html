@@ -84,8 +84,8 @@
 
 <main id="desk-mode">
   <aside class="window-col">
-    <div class="window-frame" aria-hidden="true">
-      <svg class="scene" id="harbor" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+    <div class="window-frame">
+      <svg class="scene" id="harbor" aria-hidden="true" viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
         <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky-1)"/><stop offset="1" stop-color="var(--sky-2)"/></linearGradient></defs>
         <rect width="320" height="240" fill="url(#sky)"/>
         <g id="sc-stars"></g>
@@ -104,26 +104,18 @@
         <g id="sc-lamp"></g>
         <g id="sc-rain"></g>
       </svg>
+      <section class="scenes" id="scenes" aria-label="Scene"></section>
       <div class="sc-more" id="sc-more"></div>
       <div class="run" id="run"></div>
-      <div class="pier-queue" id="pier-queue" role="list" aria-label="Waiting outside the window"></div>
       <div class="at-window" id="at-window"></div>
     </div>
     <div class="yard" id="yard" aria-label="Galley and pier"></div>
 
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="window" aria-selected="true">Window <span class="badge" id="tab-window-count">0</span></button>
-      <button class="tab" role="tab" data-tab="crew" aria-selected="false">Crew <span class="badge warn" id="tab-crew-flag" hidden>!</span></button>
-      <button class="tab" role="tab" data-tab="topics" aria-selected="false" title="Topics: everything said about one subject">Topics <span class="badge" id="tab-topics-count">0</span></button>
-    </div>
-    <section class="tabpane" data-pane="window">
+    <section class="window-pane" aria-label="Window">
       <div class="filters" id="filters" role="group" aria-label="Scenes by kind"></div>
-      <section class="scenes" id="scenes" aria-label="Scene"></section>
       <ul class="queue" id="queue" aria-label="Waiting at the window"></ul>
       <div class="queue-actions"><button class="tbtn" id="btn-next" title="Next at the window (N)"><svg class="ic"><use href="#i-next"/></svg> Next <span class="kbd">N</span></button></div>
     </section>
-    <section class="tabpane" data-pane="crew" hidden><div class="pane-scroll" id="crew-pane"></div></section>
-    <section class="tabpane" data-pane="topics" hidden><div class="pane-scroll" id="topics-pane"></div></section>
   </aside>
 
   <section class="desk" id="desk" aria-label="Desk">

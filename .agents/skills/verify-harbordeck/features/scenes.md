@@ -1,6 +1,6 @@
 # Scenes
 
-The Window tab shows one scene per item kind under the kind chips: Signpost Square (decisions), Customs Shed (reviews), Bottle Cove (dispatches) and Notice Board (to-dos). Every open item of the kind is one figure (one waiting person per open decision); a figure opens its item at the desk, and a settled one leaves the scene. Each scene has one quirk, an empty scene says all clear, and a meter with per-scene pips shows how far the desk is from zero. Left/Right arrows or the on-screen arrows flip scenes; the kind chips jump to theirs.
+The big top window shows one scene per item kind, over the harbor sky: Signpost Square (decisions), Customs Shed (reviews), Bottle Cove (dispatches) and Notice Board (to-dos). Every open item of the kind is one figure (one waiting person per open decision); a figure opens its item at the desk, and a settled one leaves the scene. Each scene has one quirk (hover the name), an empty scene says all clear, and a meter with per-scene pips along the window sill shows how far the desk is from zero. The arrows and the scene name + count sit on the glass; Left/Right arrows or the on-screen arrows flip scenes; the kind chips below the crew yard jump to theirs. The visitor at the desk speaks in a bubble under the name.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@ The Window tab shows one scene per item kind under the kind chips: Signpost Squa
 
 ## How to get to it (user POV)
 
-- Open the office; the scene sits under the kind chips in the `Window` tab.
+- Open the office; the scene fills the window at the top of the left column.
 - Press `←`/`→` (not while typing, not on a desk radio) or click the arrows beside the scene name.
 - Click a kind chip or a pip under the meter.
 
@@ -22,7 +22,7 @@ The Window tab shows one scene per item kind under the kind chips: Signpost Squa
 
 Preconditions:
 
-- Baseline instance, office opened, doctor `ok`, `Window` tab selected.
+- Baseline instance, office opened, doctor `ok`.
 
 - **Before.** Run `$H capture scenes before`. `$U eval "document.querySelector('#scenes').dataset.scene + ' ' + document.querySelectorAll('#scenes .sc-fig').length"` prints `decision <n>` with `<n>` equal to the `Decisions` chip count.
 - **Flip.** `$U press ArrowRight`; `#scenes[data-scene=review]` and `.sc-name` reads `Customs Shed`. `$U click --css '#scenes .sc-arrow.prev'` returns to `decision`.

@@ -22,7 +22,7 @@ Preconditions:
 
 - Baseline instance from `$H launch` (it serves `app/demo/assets/web` on a loopback port, `HDV_SITE`, and seeds `plan-offline` pointing at `${HDV_SITE}plan.html`), office opened, doctor `ok`.
 
-- **Select.** Run `$U click --css '.tab[data-tab="window"]'` and `$U click --css '#queue li' --text 'offline-mode plan'`. `$U text --css '#desk-surface .paper.prcard'` shows `PLAN PAGE` and `127.0.0.1:<port>`.
+- **Select.** Run `$U click --css '#filters .chip' --text 'All'` and `$U click --css '#queue li' --text 'offline-mode plan'`. `$U text --css '#desk-surface .paper.prcard'` shows `PLAN PAGE` and `127.0.0.1:<port>`.
 - **Open.** Run `$U click --css '#desk-surface .paper.prcard button' --text View` and `$U wait --css '.modal.web'`. `$U text --css '.modal.web .web-addr'` prints `${HDV_SITE}plan.html`.
 - **Page renders.** Run `$U text --pane --css h1`. It prints `Plan: offline mode for boards`.
 - **Interact.** Run `$U click --pane --css '#s2'` and `$U text --pane --css '#count'`. It prints `1 notes pinned`.
