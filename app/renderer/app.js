@@ -16,8 +16,8 @@ function setData(snap) {
   FILES = snap.files || {}; SCHED = snap.scheduler || null; byId = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 }
 setData(SNAP);
-const KIND = { decision: 'Decision', review: 'Review', answer: 'Dispatch', todo: 'Notice' };
-const KINDS = { decision: 'Decisions', review: 'Reviews', answer: 'Dispatches', todo: 'Notices' };
+const KIND = { decision: 'Decision', review: 'Review', answer: 'Research', todo: 'Notice' };
+const KINDS = { decision: 'Decisions', review: 'Reviews', answer: 'Research', todo: 'Notices' };
 const ACTION_LABEL = { decide: 'decided', approve: 'approved', reject: 'rejected', 'needs-work': 'sent back', comment: 'noted', ask: 'asked', file: 'filed', request: 'ordered', defer: 'parked for later' };
 const NAMES = ['Bosun Ferris', 'Painter Mabs', 'Scout Quill', 'Deckhand Rook', 'Rigger Tansy', 'Lookout Pell', 'Purser Wren', 'Cooper Idris', 'Pilot Marlow', 'Chandler Vey'];
 const CAPS = ['#c8552d', '#e0b23a', '#4f8a5b', '#3b6f9e', '#8a3a7a', '#2d8a8a', '#a8632d', '#5a5fb0'];
@@ -408,7 +408,7 @@ function renderWindowScene() {
   if (!it || statusOf(it) !== 'open') return;
   const present = queueItems().filter(i => !st(i.id).awaiting); const mine = topicView.groups(present).get(S.current) || [];
   const m = mateFor(it); const who = whoBrings(it);
-  w.append(h('div', { class: 'speech', title: `${m.label} · ${KIND[it.kind].toLowerCase()}` }, quick.ask(it, mine.length > 1 ? mine : [it]), who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : h('small', null, who.mate ? m.label : `from ${who.name}`)));
+  w.append(h('div', { class: 'speech', title: `${m.label} · ${KIND[it.kind].toLowerCase()}` }, h('span', { class: 'say' }, quick.ask(it, mine.length > 1 ? mine : [it])), who.reg ? h('small', { class: 'memory', title: `${who.name}, ${who.mood}` }, `${who.name}: ${who.memory}`) : h('small', null, who.mate ? m.label : `from ${who.name}`)));
 }
 function renderYard() {
   const yard = $('#yard'); if (!yard) return; yard.replaceChildren(); const tz = tired();
@@ -623,7 +623,7 @@ const openUrl = url => bridge.openExternal(url);
 const webUrl = u => (/^https?:\/\//i.test(u || '') ? u : null);
 // local file (served via harbor://) or a web URL for media
 const srcFor = a => fileFor(a.path)?.url || webUrl(a.url);
-const bodyArtifact = (body, isBody) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(body) ? { type: 'link', url: body, label: 'Dispatch', isBody } : { type: artType({ path: body }) === 'pdf' ? 'pdf' : 'report', path: body, isBody });
+const bodyArtifact = (body, isBody) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(body) ? { type: 'link', url: body, label: 'Research', isBody } : { type: artType({ path: body }) === 'pdf' ? 'pdf' : 'report', path: body, isBody });
 function artifactPaper(it, a, i, ch) {
   const pid = `a${i}`; const f = fileFor(a.path); const type = artType(a);
   if (type === 'link') {
@@ -678,7 +678,7 @@ function artifactPaper(it, a, i, ch) {
   const ex = h('div', { class: 'excerpt md', html: text ? mdToHtml(text.split('\n').slice(0, 400).join('\n'), lit) : `<p class="meta" title="${esc(a.path)}">not available locally: ${esc(base(a.path))}</p>` });
   ex.querySelectorAll('.mdh').forEach(hd => hd.classList.add('fact'));
   ex.addEventListener('click', e => { const hd = e.target.closest('.mdh'); if (hd && document.body.classList.contains('inspect')) pickFact({ type: 'point', label: `${base(a.path)} § ${hd.dataset.heading}`, anchor: { artifact: a.path, heading: hd.dataset.heading } }, hd); });
-  return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Dispatch' : 'Report', [pathMeta(a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
+  return paper(a.isBody ? 'report dispatch' : 'report', a.isBody ? 'Research' : 'Report', [pathMeta(a.path), ex], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'Read'));
 }
 function diffView(text) {
   return h('pre', { class: 'diff' }, text.split('\n').map(l => h('span', { class: /^\+(?!\+\+)/.test(l) ? 'add' : /^-(?!--)/.test(l) ? 'del' : /^@@/.test(l) ? 'hunk' : '' }, l + '\n')));
@@ -947,7 +947,7 @@ function renderVault() {
 // gaps.jsonl: responses an agent could not fit into an item kind. Listed so HarborDeck can grow new shapes.
 function renderGaps() {
   const gaps = (SNAP.gaps || []).slice().reverse();
-  $('#gaps').replaceChildren(h('h3', { class: 'oh' }, `Gaps (${gaps.length})`), h('p', { class: 'legend' }, 'Responses an agent could not fit into a decision, review, dispatch or notice. Each one is a case for a new desk item.'),
+  $('#gaps').replaceChildren(h('h3', { class: 'oh' }, `Gaps (${gaps.length})`), h('p', { class: 'legend' }, 'Responses an agent could not fit into a decision, review, research note or notice. Each one is a case for a new desk item.'),
     ...(gaps.length ? gaps.map(g => h('div', { class: 'gap' }, h('div', null, g.text), h('div', { class: 'si-meta' }, [g.from && mateLabel(g.from), g.item && `squeezed into ${g.item}`, g.at && `${fmtDate(g.at)} ${fmtTime(g.at)}`].filter(Boolean).join(' · ')), g.sample ? h('div', { class: 'si-meta' }, 'sample: ', g.sample) : null)) : [h('p', { class: 'legend' }, 'None yet.')]));
 }
 function renderLog() { renderGaps(); $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${[pending.line, ...(pending.extra || []).map(e => e.line)].map(l => JSON.stringify(l)).join('\n')}` : ''); $('#log-count').textContent = S.answers.length; }
@@ -1116,7 +1116,7 @@ function renderPlain() {
   const root = $('#plain-mode'); root.replaceChildren();
   const open = ITEMS.filter(i => statusOf(i) === 'open'); const f = S.prefs.filter;
   root.append(h('div', { class: 'plain-filters' }, ...['all', 'decision', 'review', 'answer', 'todo'].map(k => h('button', { class: 'chip', 'aria-pressed': String(f === k), onclick: () => { S.prefs.filter = k; save(); renderPlain(); } }, k === 'all' ? 'All' : KINDS[k])), h('span', { class: 'count' }, `${open.length} open · ${money(S.cash)} · ${S.answers.length} actions`)));
-  const groups = [['decision', 'Needs your word'], ['review', 'Review the work'], ['answer', 'Dispatches to read and file'], ['todo', 'Notices: only you']];
+  const groups = [['decision', 'Needs your word'], ['review', 'Review the work'], ['answer', 'Research to read and file'], ['todo', 'Notices: only you']];
   for (const [k, label] of groups) {
     if (f !== 'all' && f !== k) continue;
     const rows = open.filter(i => i.kind === k).sort((a, b) => st(a.id).awaiting - st(b.id).awaiting || urgency(a, b)); if (!rows.length) continue;

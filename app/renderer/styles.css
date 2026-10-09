@@ -73,7 +73,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ui-acc
 /* ---------- desk mode layout ---------- */
 #desk-mode { flex: 1; display: grid; grid-template-columns: 300px minmax(0, 1fr) auto; min-height: 0; position: relative; overflow-x: clip; } /* clip: the closed stamp tray slides out of view and must never widen the page */
 .window-col { display: flex; flex-direction: column; background: var(--ui-bg); border-right: 1px solid var(--ui-edge); min-height: 0; min-width: 0; overflow-y: auto; }
-.window-frame { position: relative; margin: 12px; aspect-ratio: 4/3; border: 10px solid var(--wood-edge); border-radius: 4px; background: var(--sky-1); overflow: hidden; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), var(--shadow); }
+.window-frame { --sill: 32px; position: relative; margin: 12px; aspect-ratio: 4/3; border: 10px solid var(--wood-edge); border-radius: 4px; background: var(--sky-1); overflow: hidden; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), var(--shadow); }
 .scene { position: absolute; inset: 0; width: 100%; height: 100%; shape-rendering: crispEdges; }
 .waves { animation: drift 6s linear infinite; } .waves.slow { animation-duration: 9s; animation-direction: reverse; }
 @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-16px); } }
@@ -97,7 +97,7 @@ body.tired .steam { animation-duration: 3.5s; }
 @keyframes step-up { from { transform: translateY(30px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 .at-window .speech { pointer-events: auto; position: absolute; top: 30px; left: 8px; right: 8px; max-width: none; background: var(--paper); color: var(--paper-ink); font-size: 11px; line-height: 1.25; padding: 4px 7px; border-radius: 6px; border: 2px solid var(--wood-edge); font-family: var(--font-paper); z-index: 4; overflow: hidden; }
 .at-window .speech::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; background: var(--paper); border-right: 2px solid var(--wood-edge); border-bottom: 2px solid var(--wood-edge); transform: rotate(45deg); }
-.at-window .speech { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.at-window .speech .say { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .at-window .speech small { display: block; font-size: 9.5px; color: var(--paper-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .zz { animation: zz 1.6s ease-in-out infinite; } @keyframes zz { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
 
@@ -110,9 +110,9 @@ body.tired .steam { animation-duration: 3.5s; }
    with ←/→; name, count and arrows sit on the glass, the meter to zero along the sill; the sets are pixel scenery */
 .scenes { position: absolute; inset: 0; z-index: 2; }
 .sc-head { position: absolute; top: 4px; left: 4px; right: 4px; z-index: 4; display: flex; align-items: center; gap: 6px; }
-.sc-arrow { flex: none; width: 26px; height: 22px; padding: 0; border: 1px solid rgba(241,228,192,.55); border-radius: var(--radius); background: rgba(20,14,8,.55); color: #f1e4c0; font-size: 16px; line-height: 1; }
+.sc-arrow { flex: none; width: 26px; height: 22px; padding: 0; border: 1px solid rgba(241,228,192,.55); border-radius: var(--radius); background: rgba(20,14,8,.88); color: #f1e4c0; font-size: 16px; line-height: 1; }
 .sc-arrow:hover { border-color: var(--ui-accent); color: var(--ui-accent); }
-.sc-title { flex: 0 1 auto; min-width: 0; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 8px; border-radius: 11px; background: rgba(20,14,8,.6); color: #f1e4c0; }
+.sc-title { flex: 0 1 auto; min-width: 0; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 8px; border-radius: 11px; background: rgba(20,14,8,.88); color: #f1e4c0; }
 .sc-name { font: 600 12px var(--font-paper); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-count { font: 700 12px var(--font-paper); font-variant-numeric: tabular-nums; background: var(--ui-accent); color: #1b1b1b; border-radius: 9px; padding: 0 7px; }
 .scenes[data-count="0"] .sc-count { background: var(--approve); color: #fff; }
@@ -126,8 +126,8 @@ body.tired .steam { animation-duration: 3.5s; }
 .sc-stage[data-kind="review"] .sc-set { height: 46%; background: linear-gradient(180deg, transparent 0 66%, #5b3a22 66% 70%, #3f2716 70%), repeating-linear-gradient(90deg, #8a5a33 0 18px, #6f4626 18px 20px); }
 .sc-stage[data-kind="review"] .sc-set::after { content: ""; position: absolute; left: 10px; top: 10px; width: 46px; height: 26px; background: #cfe8f5; box-shadow: inset 0 0 0 3px #3f2716, inset 0 13px 0 -11px #3f2716; opacity: .9; }
 .sc-stage[data-kind="answer"] .sc-set { height: 22%; background: linear-gradient(180deg, #d9c48f 0 3px, #e8d7a8 3px); }
-.sc-stage[data-kind="todo"] .sc-set { left: 7%; right: 7%; bottom: 17px; height: auto; top: 40%; background: radial-gradient(circle at 30% 40%, rgba(0,0,0,.12) 0 1px, transparent 2px) 0 0 / 9px 7px, radial-gradient(circle at 70% 60%, rgba(255,255,255,.12) 0 1px, transparent 2px) 0 0 / 11px 9px, #c49a6c; box-shadow: inset 0 0 0 4px #6b4a2a, 0 2px 0 rgba(0,0,0,.35); }
-.sc-crowd { position: absolute; left: 0; right: 0; top: 34%; bottom: 17px; display: flex; flex-wrap: wrap; align-items: flex-end; align-content: flex-end; justify-content: center; gap: 2px 4px; padding: 12px 8px 4px; overflow: hidden; }
+.sc-stage[data-kind="todo"] .sc-set { left: 7%; right: 7%; bottom: var(--sill); height: auto; top: 40%; background: radial-gradient(circle at 30% 40%, rgba(0,0,0,.12) 0 1px, transparent 2px) 0 0 / 9px 7px, radial-gradient(circle at 70% 60%, rgba(255,255,255,.12) 0 1px, transparent 2px) 0 0 / 11px 9px, #c49a6c; box-shadow: inset 0 0 0 4px #6b4a2a, 0 2px 0 rgba(0,0,0,.35); }
+.sc-crowd { position: absolute; left: 0; right: 0; top: 34%; bottom: var(--sill); display: flex; flex-wrap: wrap; align-items: flex-end; align-content: flex-end; justify-content: center; gap: 2px 4px; padding: 12px 8px 4px; overflow: hidden; }
 .sc-stage[data-kind="answer"] .sc-crowd { top: 40%; bottom: 22%; align-content: center; align-items: center; padding: 6px 8px; gap: 2px 10px; }
 .sc-stage[data-kind="todo"] .sc-crowd { left: 7%; right: 7%; top: 40%; align-content: center; align-items: flex-start; padding: 8px; gap: 6px; }
 .sc-fig { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 1px 0 rgba(0,0,0,.4)); animation-fill-mode: both; }
@@ -155,11 +155,12 @@ body.tired .steam { animation-duration: 3.5s; }
 @keyframes sc-walk-off { 0% { transform: none; } 20% { transform: translateY(-6px); } 100% { transform: translateX(160px); opacity: 0; } }
 @keyframes sc-sink { to { transform: translate(40px, 30px) rotate(40deg); opacity: 0; } }
 @keyframes sc-tear { 0% { transform: rotate(var(--tilt, 0deg)); } 30% { transform: rotate(18deg) translateY(-3px); } 100% { transform: rotate(60deg) translateY(90px); opacity: 0; } }
-.sc-clear { position: absolute; left: 0; right: 0; top: 30%; bottom: 17px; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; color: #fff; text-shadow: 0 1px 2px #000; font-size: 11px; padding: 6px; }
+.sc-clear { position: absolute; left: 50%; bottom: calc(var(--sill) + 6px); transform: translateX(-50%); z-index: 1; width: max-content; max-width: calc(100% - 16px); display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; color: #f1e4c0; font-size: 11px; line-height: 1.3; padding: 5px 12px 7px; border: 1px solid rgba(241,228,192,.5); border-radius: 6px; background: rgba(20,14,8,.94); } /* a solid plate parked above the sill: the words never sit on the boats */
 .sc-clear b { font: 700 14px var(--font-paper); letter-spacing: .08em; text-transform: uppercase; color: #ffe08a; }
-.sc-go { margin-top: 2px; border: 1px solid #f1e4c0; background: rgba(0,0,0,.45); color: #fff; border-radius: 10px; padding: 1px 9px; font-size: 11px; text-shadow: none; }
+.sc-clear .ship-cat.on-pier { position: absolute; right: 8px; top: -13px; }
+.sc-go { margin-top: 2px; border: 1px solid #f1e4c0; background: rgba(241,228,192,.12); color: #fff; border-radius: 10px; padding: 1px 9px; font-size: 11px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-zero { color: #ffe08a; font-weight: 700; }
-.sc-progress { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 6px; height: 17px; padding: 0 4px 0 6px; background: rgba(20,14,8,.62); font-size: 10.5px; color: #f1e4c0; }
+.sc-progress { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 6px; height: 17px; padding: 0 4px 0 6px; background: rgb(20,14,8); font-size: 10.5px; color: #f1e4c0; }
 .sc-progress .meter { position: absolute; left: 0; right: 0; top: 0; height: 2px; margin: 0; border-radius: 0; background: rgba(255,255,255,.15); }
 .sc-progress .meter span { background: var(--approve); }
 .sc-left { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -552,7 +553,7 @@ body.tired .cook span { animation-duration: 4s; opacity: .6; }
   #desk-mode { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
   .window-col { flex: none; border-right: 0; border-bottom: 1px solid var(--ui-edge); }
   .window-frame { height: 150px; aspect-ratio: auto; margin: 8px 12px; }
-  .yard { height: 50px; margin-top: -2px; } .yc { width: 24px; height: 34px; } .at-window .speech { font-size: 11px; padding: 4px 6px; top: 28px; -webkit-line-clamp: 1; }
+  .yard { height: 50px; margin-top: -2px; } .yc { width: 24px; height: 34px; } .at-window .speech { font-size: 11px; padding: 4px 6px; top: 28px; } .at-window .speech .say { -webkit-line-clamp: 1; } .sc-clear > span:not(.sc-zero) { display: none; }
   .queue { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
   .queue li { flex: 0 0 220px; align-items: flex-start; }
   .queue-actions { display: none; }
@@ -593,8 +594,12 @@ body.tired .cook span { animation-duration: 4s; opacity: .6; }
 .window-frame[data-phase="night"] .hills { fill: #2a3d58; }
 .beam { animation: beam 4s ease-in-out infinite; transform-origin: 26px 63px; } @keyframes beam { 0%,100% { opacity: .08; } 50% { opacity: .3; } }
 .glow { animation: zz 3s ease-in-out infinite; }
-.sc-more { position: absolute; left: 6px; top: 40%; z-index: 2; font: 700 9px var(--font-paper); color: #fff; text-shadow: 0 1px 0 #000; pointer-events: none; }
-.run { position: absolute; left: 8px; top: 8px; z-index: 5; font: 800 15px var(--font-paper); color: var(--ui-accent); text-shadow: 0 2px 0 #000; opacity: 0; transform: scale(.8); transition: opacity .2s, transform .2s; pointer-events: none; }
+/* the tide bar: the tide line's words and the boat overflow, plated on the sill instead of over the water */
+.sc-tidebar { position: absolute; left: 0; right: 0; bottom: 17px; height: calc(var(--sill) - 17px); z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 6px; background: rgba(20,14,8,.92); border-top: 1px solid rgba(230,244,250,.35); color: #e6f4fa; font: 10px var(--font-paper); white-space: nowrap; }
+.sc-tidebar[hidden] { display: none; }
+.sc-tide-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sc-more { flex: none; font-weight: 700; color: #fff; }
+.run { position: absolute; left: 8px; top: 8px; z-index: 5; font: 800 15px var(--font-paper); color: var(--ui-accent); padding: 1px 8px; border-radius: 6px; background: rgba(20,14,8,.92); opacity: 0; transform: scale(.8); transition: opacity .2s, transform .2s; pointer-events: none; }
 .run.show { opacity: 1; transform: scale(1.08); }
 .ship-cat { position: absolute; width: 16px; height: 12px; pointer-events: none; z-index: 3; }
 .ship-cat .cat-svg { width: 100%; height: 100%; display: block; }

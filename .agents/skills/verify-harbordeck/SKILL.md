@@ -90,7 +90,7 @@ Stable handles (from `app/renderer/index.html` and `app.js`):
 | `#sched-chip` | scheduler chip: `⏳ N queued · ↻ <time to reset> · ☕ <awake until>`; click opens the phone |
 | `#btn-menu` → menuitem `Agent log` (`#btn-log`) → `#log-lines` | the exact answers.jsonl lines, plus a held line |
 | `#stamina-cluster .ms-group` (`.ms-prov`), `.mini-sub[.model][.stale]` (`.ms-name`, `.ms-pct`, `.ms-time` = `↻ <countdown>`, `.ms-warn`, `.ms-stale`, `[title]`), `#yard .yc.cook` | usage left per window (features/stamina.md; from quota.json + `schedule/rate-limits.json`), crew sprites (fleet.json) |
-| `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide text`, `#scenes .sc-fig.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
+| `.window-frame[data-phase\|data-weather\|data-boats]`, `#sc-boats .hb[.sailing]`, `#sc-tide-l`, `#sc-more` (the tide bar), `#scenes .sc-fig.urgent .ship-cat`, `#run`, `.speech small.memory` | living harbor: sky, weather, boats per task, tide line, ship cat, tidy run, the regular's memory |
 | cash chip / key `Shift+B` → `.modal.chandlery-modal` (`.sb-stamp.got`, `.shop-row`); key `l` or menu `#btn-ledger` → `Ships out` (`.recap-boat`, `details.logbook`) | chandlery + stamp book; ships-out recap |
 | `#desk-surface .paper.prcard` + button `View`, `.modal.web`, `.web-addr`, `.web-refused`, `.modal.web [aria-label=Close]` | browser pane frame for `web`/`lavish` artifacts; the page itself is `ui.mjs --pane` |
 

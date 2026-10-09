@@ -6,7 +6,7 @@ The window scene carries desk status with no extra keys: one boat per open task 
 
 - `harbor-boats` one `#sc-boats .hb` per open task (topic, else id without `.qN`), up to 8; `.window-frame[data-boats]` holds the full count; a settled task leaves a `.hb.sailing` ghost that sails out.
 - `harbor-sky` `.window-frame[data-phase=night|dawn|day|dusk]` from the local hour; `[data-weather=fair|cloudy|rain]` from the lowest stamina (rain below 20 %).
-- `harbor-tide` `#sc-tide text` reads `high tide <time>` (or `⚑ beat the tide`); the top bar keeps its own readable usage chips (features/stamina.md).
+- `harbor-tide` `#sc-tide-l` (the plated tide bar above the sill, with `#sc-more` for boats past the eighth) reads `high tide <time>` (or `⚑ beat the tide`); the top bar keeps its own readable usage chips (features/stamina.md).
 - `harbor-regulars` with no crew on the item, the visitor is the project's regular; `#at-window .speech small.memory` reads `<Trade Name>: <memory>`.
 - `harbor-cat` `#scenes .sc-fig.urgent .ship-cat` by the most urgent figure in the shown scene (not the one at the desk); `.sc-clear .ship-cat.on-pier.nap` when the scene is clear.
 - `harbor-run` `#run` shows `×N tidy run` for resolving stamps within 8 s; `u` hides it; bundle stamps never count.
@@ -33,7 +33,7 @@ Preconditions:
 - **Sail out + run.** `$U press 1`, then `$U wait --css '#sc-boats .hb.sailing'`; data-boats drops by one when that task had one item. Press `1` again within 8 s after the next item reaches the desk: `$U wait --css '#run' --text '×2 tidy run'` (the badge appears after the stamp lands, ~0.4 s). `$U press u`: `#run` loses `show`.
 - **Book and shop.** After the hold, `$U wait --css '.toast' --text 'First stamp'`. `$U press Shift+B`; `$U text --css '.modal.chandlery-modal .sb-stamp.got'` lists `First stamp`. Buy with `$U click --css '.modal.chandlery-modal .shop-row' --text 'Dock lamp'` only via its button: `$U click --role button --name '$40'`; the row then reads `owned` and `#sc-lamp rect` exists.
 - **Recap.** `$U press Escape`, `$U press l`; `$U wait --css '.modal.ledger .recap-boat'`; `$U text --css '.recap-tally'`.
-- **Weather.** `echo '[{"name":"Solo","window":"5h","used_pct":95,"resets_at":'$(( $(date +%s)+3600 ))'}]' | $H hd quota -`; `.window-frame[data-weather]` becomes `rain` and `$U text --css '#sc-tide text'` shows `high tide 59m · <n> to clear` (or `1h 0m`, by rounding).
+- **Weather.** `echo '[{"name":"Solo","window":"5h","used_pct":95,"resets_at":'$(( $(date +%s)+3600 ))'}]' | $H hd quota -`; `.window-frame[data-weather]` becomes `rain` and `$U text --css '#sc-tide-l'` shows `high tide 59m · <n> to clear` (or `1h 0m`, by rounding).
 - **After.** Run `$H capture harbor after`. Proof of a stamp stays the `answers.jsonl` line; the harbor writes nothing to the data dir (its state is local desk storage).
 
 ## Gotchas

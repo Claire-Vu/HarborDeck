@@ -1,6 +1,6 @@
 # Scenes
 
-The big top window shows one scene per item kind, over the harbor sky: Signpost Square (decisions), Customs Shed (reviews), Bottle Cove (dispatches) and Notice Board (to-dos). Every open item of the kind is one figure (one waiting person per open decision); a figure opens its item at the desk, and a settled one leaves the scene. Each scene has one quirk (hover the name), an empty scene says all clear, and a meter with per-scene pips along the window sill shows how far the desk is from zero. The arrows and the scene name + count sit on the glass; Left/Right arrows or the on-screen arrows flip scenes; the kind chips below the crew yard jump to theirs. The visitor at the desk speaks in a bubble under the name.
+The big top window shows one scene per item kind, over the harbor sky: Signpost Square (decisions), Customs Shed (reviews), Bottle Cove (research, kind `answer`) and Notice Board (to-dos). Every open item of the kind is one figure (one waiting person per open decision); a figure opens its item at the desk, and a settled one leaves the scene. Each scene has one quirk (hover the name), an empty scene says all clear, and a meter with per-scene pips along the window sill shows how far the desk is from zero. The arrows and the scene name + count sit on the glass; Left/Right arrows or the on-screen arrows flip scenes; the kind chips below the crew yard jump to theirs. The visitor at the desk speaks in a bubble under the name: the question clamps to two lines and the speaker line ellipsizes, full text on hover. Every word on the glass sits on a solid plate: title, arrows, the tide bar and the sill along the bottom, and the all-clear card parked just above them, so nothing reads over the boats.
 
 ## Sub-features
 
@@ -9,8 +9,8 @@ The big top window shows one scene per item kind, over the harbor sky: Signpost 
 - `scene-index` clicking a kind chip, a `.sc-pip` or `.sc-go` (shown when empty) jumps to that scene.
 - `scene-open` clicking `.sc-fig` puts its item on the desk (`.sc-fig.at-desk`); an item away on an ask is `.sc-fig.away`.
 - `scene-leave` a resolving stamp leaves a `.sc-fig.leaving` ghost for ~1 s; `u` brings the figure back.
-- `scene-quirks` decisions: `.placard` with option letters, `★` on the recommended one; reviews: `.sc-fig.flagged .pennant` when a standing order is flagged; dispatches: `.sink1`/`.sink2` with age; to-dos: `.soon` flutters within a day, `.overdue` pinned red.
-- `scene-zero` `.sc-clear` reads `All clear`; `.sc-left` reads `<n> to zero` (`Zero waiting` at zero) plus paused crew; `.sc-pip.clear` per empty scene.
+- `scene-quirks` decisions: `.placard` with option letters, `★` on the recommended one; reviews: `.sc-fig.flagged .pennant` when a standing order is flagged; research: `.sink1`/`.sink2` with age; to-dos: `.soon` flutters within a day, `.overdue` pinned red.
+- `scene-zero` `.sc-clear` (a solid plate above the tide bar) reads `All clear`; `.sc-left` reads `<n> to zero` (`Zero waiting` at zero) plus paused crew; `.sc-pip.clear` per empty scene.
 
 ## How to get to it (user POV)
 

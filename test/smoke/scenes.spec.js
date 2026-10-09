@@ -45,9 +45,9 @@ test('one figure per open decision; arrows and the on-screen arrows flip scenes'
   await expect(scenes()).toHaveAttribute('data-scene', 'todo');
   await scenes().locator('.sc-arrow.next').click();
   await expect(scenes()).toHaveAttribute('data-scene', 'decision');
-  await page.locator('#filters .chip', { hasText: 'Dispatches' }).click();
+  await page.locator('#filters .chip', { hasText: 'Research' }).click();
   await expect(scenes()).toHaveAttribute('data-scene', 'answer');
-  await expect(figs()).toHaveCount(await chipCount('Dispatches'));
+  await expect(figs()).toHaveCount(await chipCount('Research'));
 });
 
 test('a figure opens its item; a stamp makes it leave; an empty scene is all clear', async () => {
@@ -71,6 +71,12 @@ test('a figure opens its item; a stamp makes it leave; an empty scene is all cle
   await expect(scenes().locator('.sc-clear')).toContainText('All clear');
   await expect(scenes().locator('.sc-pip.clear')).toHaveCount(1);
   await expect(scenes().locator('.sc-left')).toContainText(`${left - 3} to zero`);
+  // every word on the glass is plated and apart: the all-clear card sits between the bubble and the tide bar
+  const box = sel => page.locator(sel).boundingBox();
+  const [card, bar] = [await box('#scenes .sc-clear'), await box('#sc-tidebar')];
+  const speech = await page.locator('#at-window .speech').count() ? await box('#at-window .speech') : null;
+  expect(card.y + card.height).toBeLessThanOrEqual(bar.y);
+  if (speech) expect(card.y).toBeGreaterThanOrEqual(speech.y + speech.height);
   await page.locator('#scenes').screenshot({ path: path.join(SHOTS, 'harbordeck-scene-clear.png') });
   await scenes().locator('.sc-go').click(); // the next scene with anyone waiting
   await expect(scenes()).toHaveAttribute('data-scene', 'decision');
