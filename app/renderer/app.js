@@ -518,9 +518,9 @@ const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.
 let stowLabels = {};
 const stowedOf = id => S.stowed[id] || {};
 const overStow = e => { const r = $('#stow-box').getBoundingClientRect(); return r.width > 0 && e.clientX >= r.left - 10 && e.clientX <= r.right + 10 && e.clientY >= r.top - 10 && e.clientY <= r.bottom + 10; };
-function addStowBtn(p, id) { p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
+function addStowBtn(p, id) { if (p.dataset.pid === 'ask') return; p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
 function stow(id, pid) {
-  const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || id !== S.current || stowedOf(id)[pid]) return;
+  const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || pid === 'ask' || id !== S.current || stowedOf(id)[pid]) return; // the decision slip stays: the stamp lands on it
   (S.stowed[id] ||= {})[pid] = stowLabels[pid] || 'Paper'; save(); snd('flip');
   const b = $('#stow-box').getBoundingClientRect(), r = p.getBoundingClientRect(); p.style.pointerEvents = 'none';
   if (b.width) { p.style.animation = 'none'; p.style.transformOrigin = '0 0'; p.style.transition = 'transform .35s ease-in, opacity .35s'; void p.offsetWidth; p.style.transform = `translate(${b.left + b.width / 2 - r.left}px, ${b.top + b.height / 2 - r.top}px) scale(.05)`; p.style.opacity = '0'; }
@@ -529,8 +529,8 @@ function stow(id, pid) {
 function unstow(id, pid) { const m = S.stowed[id]; if (!m?.[pid]) return; delete m[pid]; if (!Object.keys(m).length) delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
 function unstowAll(id) { if (!S.stowed[id]) return; delete S.stowed[id]; save(); snd('flip'); if (S.current === id) renderDesk(); }
 function stowKey() { // X: the paper last raised, else the reading paper, else any but the ask
-  const ps = [...document.querySelectorAll('#desk-surface .paper')]; if (!ps.length) { toast('No papers on the desk.'); return; }
-  const p = ps.find(q => q.style.zIndex === '89') || ps.find(q => q.classList.contains('reading')) || ps.filter(q => q.dataset.pid !== 'ask').pop() || ps[0];
+  const ps = [...document.querySelectorAll('#desk-surface .paper:not([data-pid="ask"])')]; if (!ps.length) { toast('No papers on the desk.'); return; }
+  const p = ps.find(q => q.style.zIndex === '89') || ps.find(q => q.classList.contains('reading')) || ps[ps.length - 1];
   stow(S.current, p.dataset.pid);
 }
 function renderStow() {
@@ -670,8 +670,8 @@ function askSlip(it, ch) {
 function makeDraggable(p, itemId) {
   const grip = p.querySelector('.grip'); let sx, sy, ox, oy, dragging = false;
   grip.addEventListener('pointerdown', e => { if (window.innerWidth <= 860 || e.target.closest('button,a')) return; dragging = true; grip.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = p.offsetLeft; oy = p.offsetTop; p.style.zIndex = 90; p.style.animation = 'none'; });
-  grip.addEventListener('pointermove', e => { if (!dragging) return; p.style.left = (ox + e.clientX - sx) + 'px'; p.style.top = (oy + e.clientY - sy) + 'px'; $('#stow-box').classList.toggle('drop', overStow(e)); });
-  grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
+  grip.addEventListener('pointermove', e => { if (!dragging) return; p.style.left = (ox + e.clientX - sx) + 'px'; p.style.top = (oy + e.clientY - sy) + 'px'; $('#stow-box').classList.toggle('drop', p.dataset.pid !== 'ask' && overStow(e)); });
+  grip.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; $('#stow-box').classList.remove('drop'); if (p.dataset.pid !== 'ask' && overStow(e)) { stow(itemId, p.dataset.pid); return; } ((S.positions[itemId] ||= {})[p.dataset.pid] = { x: p.offsetLeft, y: p.offsetTop }); save(); snd('flip'); });
   p.addEventListener('pointerdown', () => { document.querySelectorAll('.paper').forEach(q => { if (q.style.zIndex === '90') q.style.zIndex = 40; }); if (!dragging) p.style.zIndex = 89; });
 }
 

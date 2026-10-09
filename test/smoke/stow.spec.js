@@ -35,7 +35,7 @@ test('stow by control, key and drag; count; restore one, restore all', async () 
   await expect(papers()).toHaveCount(n0 - 2);
   await expect(count()).toHaveAttribute('data-n', '2');
   // drag a grip onto the box
-  const grip = papers().last().locator('.grip');
+  const grip = page.locator('#desk-surface .paper:not([data-pid="ask"])').last().locator('.grip');
   const g = await grip.boundingBox(), b = await page.locator('#stow-box').boundingBox();
   await page.mouse.move(g.x + 20, g.y + 8); await page.mouse.down();
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
@@ -61,4 +61,28 @@ test('stowed state survives a reload; bring all back', async () => {
   await expect(papers().first()).toBeVisible();
   await page.keyboard.press('x'); await expect(count()).toHaveAttribute('data-n', '1');
   await page.keyboard.press('Shift+X'); await expect(count()).toHaveAttribute('data-n', '0');
+});
+
+test('the decision slip can never be stowed: no control, drag or key', async () => {
+  const slip = page.locator('#desk-surface .paper[data-pid="ask"]');
+  await expect(slip).toBeVisible();
+  await expect(slip.locator('.stow-btn')).toHaveCount(0);
+  const g = await slip.locator('.grip').boundingBox(), b = await page.locator('#stow-box').boundingBox();
+  await page.mouse.move(g.x + 20, g.y + 8); await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+  await expect(page.locator('#stow-box')).not.toHaveClass(/drop/);
+  await page.mouse.up();
+  // raising the slip last (a click on it) must not make X pick it
+  await slip.click({ position: { x: 8, y: 8 } });
+  await page.keyboard.press('x');
+  await expect(slip).toBeVisible();
+  await expect(count()).toHaveAttribute('data-n', '1');
+  while (await page.locator('#desk-surface .paper:not([data-pid="ask"])').count()) await page.keyboard.press('x');
+  await page.keyboard.press('x');
+  await expect(slip).toBeVisible();
+  await expect(count()).not.toHaveAttribute('data-n', '0');
+  await page.locator('#stow-box').click();
+  await expect(page.locator('#stow-list button', { hasText: /ask/i })).toHaveCount(0);
+  await page.keyboard.press('Shift+X');
+  await expect(count()).toHaveAttribute('data-n', '0');
 });
