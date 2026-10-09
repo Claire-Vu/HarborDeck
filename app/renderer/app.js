@@ -474,7 +474,7 @@ function renderDesk() {
   if (!it || statusOf(it) !== 'open') {
     lastDeskGroup = null;
     surf.append(h('div', { class: 'desk-hint' }, !ITEMS.length ? h('span', null, 'Nothing in ', h('code', null, `${SNAP.home}/items/`), ' yet. Connect an agent (see the README), or ', h('button', { class: 'tbtn', onclick: async () => { applySnapshot(await bridge.demo(true)); } }, 'load the demo day'), '.') : S.dayOpen ? 'Desk is clear. Pick someone at the window, or pick up the ship phone for a new order.' : 'The office is closed. Open the day from the morning manifest.'));
-    renderTray(null); renderStow(); return;
+    stowEls = {}; renderTray(null); renderStow(); return;
   }
   const s = st(it.id); const papers = []; const claims = sentences(it.summary); const m = mateFor(it); const c = crewFor(it);
   const ch = lookAt(it, true); const fresh = new Set(ch?.claims || []);
@@ -500,7 +500,7 @@ function renderDesk() {
   const gk = group.map(m => m.id).join(' '); const calm = gk === lastDeskGroup; lastDeskGroup = gk;
   surf.classList.toggle('calm', calm);
   const pos = S.positions[it.id] || {};
-  const away = stowedOf(it.id); stowLabels = {}; papers.forEach(p => { stowLabels[p.dataset.pid] = p.querySelector('.grip > span')?.textContent || 'Paper'; });
+  const away = stowedOf(it.id); stowLabels = {}; stowEls = {}; papers.forEach(p => { stowLabels[p.dataset.pid] = p.querySelector('.grip > span')?.textContent || 'Paper'; if (away[p.dataset.pid]) stowEls[p.dataset.pid] = p; });
   const shown = papers.filter(p => !away[p.dataset.pid]);
   if (!shown.some(p => p.classList.contains('reading'))) shown.find(p => p.dataset.pid !== 'm' && p.dataset.pid !== 'ask')?.classList.add('reading');
   shown.forEach((p, i) => { p.style.zIndex = 10 + i; p.style.animationDelay = (i * 70) + 'ms'; makeDraggable(p, it.id); addStowBtn(p, it.id); surf.append(p); });
@@ -522,13 +522,16 @@ const isNewMsg = (x, ch) => ch?.since != null && !x.me && x.from !== 'captain' &
 const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.after(h('span', { class: 'upd' }, 'new')); };
 // Storage box: stowed papers leave the desk (per item, persisted) and wait in the box at the foot of the stamp tray.
 // A stowed paper keeps its dragged position, so it comes back where it was (clamped by layoutPapers).
-let stowLabels = {};
+// The box shows its papers as a stack of sheets; clicking it opens a view of mini copies of each stowed paper.
+let stowLabels = {}, stowEls = {};
+const STOW_KINDS = ['manifest', 'report', 'photo', 'monitor', 'prcard', 'thread'];
+const kindOf = p => STOW_KINDS.find(c => p?.classList.contains(c)) || 'report';
 const stowedOf = id => S.stowed[id] || {};
 const overStow = e => { const r = $('#stow-box').getBoundingClientRect(); return r.width > 0 && e.clientX >= r.left - 10 && e.clientX <= r.right + 10 && e.clientY >= r.top - 10 && e.clientY <= r.bottom + 10; };
 function addStowBtn(p, id) { if (p.dataset.pid === 'ask') return; p.querySelector('.grip .spacer')?.after(h('button', { class: 'ibtn stow-btn', title: 'Stow away (X)', 'aria-label': 'Stow this paper', onclick: () => stow(id, p.dataset.pid) })); }
 function stow(id, pid) {
   const p = document.querySelector(`#desk-surface .paper[data-pid="${pid}"]`); if (!p || pid === 'ask' || id !== S.current || stowedOf(id)[pid]) return; // the decision slip stays: the stamp lands on it
-  (S.stowed[id] ||= {})[pid] = stowLabels[pid] || 'Paper'; save(); snd('flip');
+  (S.stowed[id] ||= {})[pid] = stowLabels[pid] || 'Paper'; stowEls[pid] = p; save(); snd('flip');
   const b = $('#stow-box').getBoundingClientRect(), r = p.getBoundingClientRect(); p.style.pointerEvents = 'none';
   if (b.width) { p.style.animation = 'none'; p.style.transformOrigin = '0 0'; p.style.transition = 'transform .35s ease-in, opacity .35s'; void p.offsetWidth; p.style.transform = `translate(${b.left + b.width / 2 - r.left}px, ${b.top + b.height / 2 - r.top}px) scale(.05)`; p.style.opacity = '0'; }
   setTimeout(() => { if (S.current === id) renderDesk(); }, b.width ? 360 : 0); renderStow();
@@ -541,12 +544,39 @@ function stowKey() { // X: the paper last raised, else the reading paper, else a
   stow(S.current, p.dataset.pid);
 }
 function renderStow() {
-  const m = S.current ? stowedOf(S.current) : {}, keys = Object.keys(m), n = keys.length, list = $('#stow-list');
-  $('#stow').dataset.n = n; $('#stow-n').textContent = n || ''; const bx = $('#stow-box'); bx.setAttribute('aria-label', `Storage box: ${n} stowed`);
-  if (!n) { list.hidden = true; bx.setAttribute('aria-expanded', 'false'); }
-  list.replaceChildren(...keys.map(pid => h('button', { class: 'stowed', title: 'Bring back to the desk', onclick: () => unstow(S.current, pid) }, m[pid])), ...(n > 1 ? [h('button', { class: 'all', onclick: () => unstowAll(S.current) }, 'Bring all back')] : []));
+  const m = S.current ? stowedOf(S.current) : {}, keys = Object.keys(m), n = keys.length;
+  $('#stow').dataset.n = n; $('#stow-n').textContent = n || ''; $('#stow-box').setAttribute('aria-label', `Storage box: ${n} stowed`);
+  // up to 6 sheets show; each one more lifts the pile out of the tray
+  $('#stow-stack').replaceChildren(...keys.slice(-6).map((pid, i) => h('span', { class: `leaf ${kindOf(stowEls[pid])}`, style: `--i:${i};--r:${(hash(pid) % 7) - 3}deg;--x:${(hash(pid + 'x') % 5) - 2}px` })));
+  if (!n) { closeStowView(); return; }
+  if (!$('#stow-view').hidden) fillStowView(m, keys);
 }
-$('#stow-box').addEventListener('click', () => { const l = $('#stow-list'); if (!l.children.length) { toast('Nothing stowed. Drag a paper here, or press X.'); return; } l.hidden = !l.hidden; $('#stow-box').setAttribute('aria-expanded', String(!l.hidden)); });
+function fillStowView(m, keys) {
+  const n = keys.length;
+  $('#stow-view').replaceChildren(
+    h('header', null, h('span', null, `Storage box · ${n} paper${n > 1 ? 's' : ''}`), h('span', { class: 'spacer' }), n > 1 ? h('button', { class: 'ibtn all', title: 'Bring all back (Shift+X)', onclick: () => unstowAll(S.current) }, 'Bring all back') : null, h('button', { class: 'ibtn close', 'aria-label': 'Close', title: 'Close (Esc)', onclick: closeStowView }, '×')),
+    h('div', { class: 'stow-cards' }, keys.map(pid => h('button', { class: `stow-card ${kindOf(stowEls[pid])}`, dataset: { pid }, title: 'Bring back to the desk', onclick: () => unstow(S.current, pid) },
+      h('span', { class: 'thumb', 'aria-hidden': 'true' }, stowEls[pid] ? miniPaper(stowEls[pid]) : null), h('span', { class: 'cap' }, m[pid])))));
+}
+// A copy of the paper, scaled down: its kind's look, title and the top of its content. Nothing in it plays or loads.
+function miniPaper(src) {
+  const c = src.cloneNode(true); c.removeAttribute('style'); delete c.dataset.pid; c.className = `paper mini ${kindOf(src)}`; c.inert = true;
+  c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+  c.querySelectorAll('button, .drag-only, .upd').forEach(e => e.remove());
+  c.querySelectorAll('video, iframe, audio').forEach(e => e.replaceWith(h('div', { class: `mini-media ${e.tagName.toLowerCase()}` })));
+  return c;
+}
+function placeStowView() {
+  const v = $('#stow-view'), b = $('#stow-box').getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+  const w = Math.min(424, W - 32); v.style.width = w + 'px'; v.style.maxHeight = Math.max(160, (b.left - w - 12 >= 16 ? b.bottom : b.top - 8) - 16) + 'px';
+  if (b.left - w - 12 >= 16) { v.style.left = (b.left - w - 12) + 'px'; v.style.top = ''; v.style.bottom = Math.max(16, H - b.bottom) + 'px'; } // beside the tray
+  else { v.style.left = Math.max(16, Math.min(b.left + b.width / 2 - w / 2, W - w - 16)) + 'px'; v.style.top = ''; v.style.bottom = (H - b.top + 8) + 'px'; } // above it (narrow: tray at the bottom)
+}
+function openStowView() { const m = stowedOf(S.current), keys = Object.keys(m); if (!keys.length) { toast('Nothing stowed. Drag a paper here, or press X.'); return; } $('#stow-view').hidden = false; fillStowView(m, keys); placeStowView(); $('#stow-box').setAttribute('aria-expanded', 'true'); }
+function closeStowView() { $('#stow-view').hidden = true; $('#stow-box').setAttribute('aria-expanded', 'false'); }
+$('#stow-box').addEventListener('click', () => { if ($('#stow-view').hidden) openStowView(); else closeStowView(); });
+document.addEventListener('pointerdown', e => { if (!$('#stow-view').hidden && !e.target.closest('#stow-view, #stow-box')) closeStowView(); });
+window.addEventListener('resize', () => { if (!$('#stow-view').hidden) placeStowView(); });
 // Papers never overlap: the manifest and the ask (slip or sheet) stack on the left, the main artifact fills the
 // reading column, and the rest stack in a side column (or under the reading paper when the desk is narrow).
 // A paper the captain dragged keeps its spot. Below 860 px the CSS flows papers instead.
@@ -713,7 +743,7 @@ function renderTray(it) {
   });
   $('#stamps').dataset.open = String(S.prefs.tray);
 }
-function toggleTray(open) { S.prefs.tray = open ?? !S.prefs.tray; save(); $('#stamps').dataset.open = String(S.prefs.tray); snd('flip'); }
+function toggleTray(open) { S.prefs.tray = open ?? !S.prefs.tray; save(); if (!S.prefs.tray) closeStowView(); $('#stamps').dataset.open = String(S.prefs.tray); snd('flip'); }
 function stamp(verdict, toReset) {
   const it = byId[S.current]; if (!it || statusOf(it) !== 'open') { toast('Nobody at the desk.'); return; }
   const s = st(it.id); if (s.awaiting) { toast('Already sent back; wait for the reply.'); return; }
@@ -1316,6 +1346,7 @@ document.addEventListener('keydown', e => {
   // Cmd/Ctrl+K: search, from anywhere but the ship phone (it swallows keys while up; checked again here)
   if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === 'KeyK') { e.preventDefault(); if (!phone.isOpen()) { setMenu(false); search.toggle(); } return; }
   if (e.key === 'Escape' && menuOpen()) { setMenu(false); return; }
+  if (e.key === 'Escape' && !$('#stow-view').hidden) { closeStowView(); return; }
   if (e.key === 'Escape') { closeModal(); closeDrawers(); clearPick(); document.querySelector('.tk-pop')?.remove(); return; }
   const tgt = e.target instanceof Element ? e.target : document.body;
   if (tgt.matches('textarea,select,input:not([type=radio]):not([type=checkbox])') || e.metaKey || e.ctrlKey || e.altKey) return;

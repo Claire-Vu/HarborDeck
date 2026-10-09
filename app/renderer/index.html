@@ -143,8 +143,7 @@
       <button class="stamp ask" data-verdict="ask" aria-label="Ask follow-up"><span class="handle"></span><span class="base"><span class="lbl">Ask</span></span></button>
       <button class="stamp later" data-verdict="later" aria-label="Later" title="Later (S): back tomorrow 9:00 · Shift: after the next usage reset"><span class="handle"></span><span class="base"><span class="lbl">Later</span></span></button>
       <div class="stow" id="stow" data-n="0">
-        <div class="stow-list" id="stow-list" hidden></div>
-        <button class="stow-box" id="stow-box" title="Stowed papers (X stows a paper, ⇧X brings all back). Drop a paper here to stow it." aria-label="Storage box: 0 stowed" aria-expanded="false"><svg viewBox="0 0 40 28" aria-hidden="true"><rect x="3" y="9" width="34" height="17" rx="2" fill="#8a5a33"/><rect x="3" y="9" width="34" height="4" fill="#6f4525"/><rect x="2" y="5" width="36" height="5" rx="1.5" fill="#a46b3c"/><rect x="15" y="14" width="10" height="4" rx="1" fill="#2b1a0d" opacity=".55"/></svg><span class="stow-n" id="stow-n"></span></button>
+        <button class="stow-box" id="stow-box" title="Stowed papers (X stows a paper, ⇧X brings all back). Drop a paper here to stow it." aria-label="Storage box: 0 stowed" aria-expanded="false" aria-controls="stow-view"><svg class="tray-back" viewBox="0 0 72 48" aria-hidden="true"><path d="M7 12h58l2 18H5z" fill="#4a2d18"/><path d="M7 12h58v3H7z" fill="#6f4525"/><path d="M9 15h54l1 13H8z" fill="#2b1a0d" opacity=".45"/></svg><span class="stow-stack" id="stow-stack" aria-hidden="true"></span><svg class="tray-front" viewBox="0 0 72 48" aria-hidden="true"><path d="M2 27h68l-3 19H5z" fill="#8a5a33"/><path d="M2 27h68v3H2z" fill="#a46b3c"/><path d="M5 44h62l-.4 2H5.4z" fill="#5e3b21"/><rect x="27" y="34" width="18" height="7" rx="1" fill="#efe4c6" stroke="#5e3b21" stroke-width=".8"/><path d="M30 37h12M30 39h8" stroke="#a08a63" stroke-width=".8"/></svg><span class="stow-n" id="stow-n"></span></button>
       </div>
       <div class="keys">X stow · Space/1 stamp · A–E pick · J/K row · S later · ⇧A take recs · 2 reject · 3 rework · 4 ask · U undo · ⇧B book · T tickets · N next · O topic · I inspect · R orders · ←/→ scene · ⌘K search · M menu · Esc</div>
     </div>
@@ -170,6 +169,7 @@
   </div>
 </aside>
 
+<div class="stow-view" id="stow-view" role="dialog" aria-label="Storage box" hidden></div>
 <div id="modal-root"></div>
 <div id="toasts" aria-live="polite"></div>
 
