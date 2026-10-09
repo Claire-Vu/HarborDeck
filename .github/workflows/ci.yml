@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    env:
+      HARBORDECK_HEADLESS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Unit tests + repo-local checks (file-size ratchet, headless guard). The ystack garden library is private,
+      # so `npm run garden` skips itself here; test/unit/file-size.test.js carries its file-growth rule.
+      - run: npm test
+      - run: npm run check
+      - run: npm run test:smoke
+      - run: npm audit --audit-level=high
