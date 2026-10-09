@@ -1,0 +1,4 @@
+$ env PATH=/usr/bin:/bin ~/.local/bin/hd --version
+1.0.0
+$ ~/.local/bin/hd decision hdv-pkg "Ship the dmg?" ...
+ok decision hdv-pkg

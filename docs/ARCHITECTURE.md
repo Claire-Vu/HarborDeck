@@ -23,6 +23,7 @@ How Harbor Deck is put together and where new code goes. Data formats: [CONTRACT
 - **main** (`app/main.js`, `app/lib/`): owns the data dir, the watcher, settings, the on-answer hook, the `harbor://` protocol, menu, the ship-phone shortcut, demo mode. Imports the CLI's `scheduler.js` and `topics.js` so app and `harbordeck tick` share one queue format. `store.js` is pure Node (unit-testable, no Electron).
 - **preload** (`app/preload.js`): the only door. Every method is a narrow IPC call; add a bridge method here and a matching `ipcMain` handler, nothing else.
 - **renderer** (`app/renderer/`): plain HTML/CSS/JS, no framework, no build step. Scripts attach to `window` and are loaded by `<script>` tags in `index.html`.
+- **distribution** (`app/lib/cli-link.js`, `connect.js`, `updater.js`, renderer `connect-view.js`, `update-view.js`): Install Command Line Tool (links `cli/bin/hd-app`, the CLI on the app's own runtime, into `~/.local/bin`), Connect an agent (first run on an empty desk; lists each change before running `claude mcp add` or `adapters/firstmate/install.sh`), and the GitHub Releases update check. Packaging and signing: [`RELEASING.md`](RELEASING.md).
 - **browser pane** (`app/lib/web-pane.js`, `web-allow.js`, renderer `web-pane.js`): a `WebContentsView` laid over a mount box. Own session partition, no preload, all permissions denied, downloads cancelled.
 
 ## Data dir and contract flow

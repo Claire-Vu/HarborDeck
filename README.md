@@ -17,7 +17,9 @@ The app is a live view, not an import: it watches the data directory, so new ite
 
 ## Install and run
 
-Requires Node 18+ and macOS (Linux and Windows run from source too; packaging is set up for macOS first).
+**Download**: get the `.dmg` for your Mac (`arm64` for Apple Silicon, `x64` for Intel) from [GitHub Releases](https://github.com/Claire-Vu/HarborDeck/releases), and drag Harbor Deck into Applications. Builds are not signed by an Apple Developer ID yet: the first time, open it with System Settings > Privacy & Security > **Open Anyway**. The app tells you when a new version is out (Check for Updates… in the menu); see [`docs/RELEASING.md`](docs/RELEASING.md).
+
+**From source**: requires Node 18+ and macOS (Linux and Windows run from source too; packaging is set up for macOS first).
 
 ```sh
 git clone https://github.com/Claire-Vu/HarborDeck.git && cd HarborDeck
@@ -30,12 +32,23 @@ Build a runnable `.app`:
 
 ```sh
 npm run dist     # dist/mac-arm64/Harbor Deck.app (unsigned; right-click > Open the first time)
-npm run dist:dmg # a .dmg instead
+npm run dist:dmg # a .dmg and the updater's .zip instead
 ```
 
 If `npm install` leaves Electron half-installed (`Electron failed to install correctly`), npm's script approval skipped Electron's download step: run `npm approve-scripts electron && npm rebuild electron`.
 
 ## Connect an agent
+
+On first run (an empty desk) the app opens **Connect an agent**; later it is under File > Connect an Agent… and in Settings. It lists every change before making it, and makes it only when you press the button under the list:
+
+- **Command line tool**: links `hd` and `harbordeck` in `~/.local/bin` (or a folder you choose) to the copy inside the app, which runs on the app's own runtime, so no Node install is needed. Uninstall removes only those links. Also in the app menu: Install Command Line Tool….
+- **Claude Code**: links the command line tool if needed, then runs `claude mcp add harbordeck -s user -- ~/.local/bin/harbordeck mcp`, so every session gets the desk tools ([MCP server](cli/README.md)). The instructions snippet for `CLAUDE.md` is there to copy.
+- **firstmate**: pick the firstmate home; runs [`adapters/firstmate/install.sh`](adapters/firstmate/SETUP.md) (bridge, feeders, firstmate-side instructions), with or without the launchd agent.
+- **Other agent**: the instructions snippet, an MCP config block, and the file format.
+
+A status light shows when an agent last wrote to the data directory (green: in the last 10 minutes).
+
+By hand:
 
 1. Start the app once (it creates `~/.harbordeck/items/`).
 2. Install the CLI where the agent runs and teach the agent the skill: see [`cli/README.md`](cli/README.md).
@@ -116,6 +129,7 @@ Open with ⌘, (or the gear icon). Stored in the app's user-data folder as `sett
 | Web hosts | empty | hosts besides localhost the browser pane may show (`host` or `host:port`) |
 | Phone shortcut | `CommandOrControl+Shift+Space` | opens the ship phone in the app and from any other app (an Electron accelerator; empty: icon only). If another app holds it (1Password Quick Access defaults to ⇧⌘Space), Settings says so and it works inside Harbor Deck only |
 | On answer | off | command run per answer line (above) |
+| Agents | | Connect an agent… and Command line tool… (above) |
 | Demo | | load the synthetic demo day, or go back to your data |
 
 Desk state that is not part of the contract (cash, day count, paper positions, read marks, preferences) lives in the app's local storage, per data directory. Harbor game state (owned cosmetics, stamp book, days at the desk) lives there too. **Ships out → Reset desk** clears it; `answers.jsonl` is never touched.
@@ -190,7 +204,7 @@ Tests and verification run the app headless (`HARBORDECK_HEADLESS=1`: the window
 
 Architecture, security rules and where a new feature goes: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). CI (`.github/workflows/ci.yml`) runs tests, syntax check, the headless smoke suite and `npm audit` on every PR to `main`.
 
-Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (store, watch, hook, settings, and the browser pane: `web-pane.js` + `web-allow.js`), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
+Layout: `app/main.js` (data directory, watcher, `harbor://` protocol, IPC, menu), `app/preload.js` (the only bridge; `contextIsolation` on, `nodeIntegration` off, sandboxed renderer), `app/lib/` (store, watch, hook, settings, the browser pane: `web-pane.js` + `web-allow.js`, and distribution: `cli-link.js`, `connect.js`, `updater.js`), `app/renderer/` (the desk: plain HTML/CSS/JS, no framework), `app/demo/` (seed and pretend agent).
 
 ## Credits
 

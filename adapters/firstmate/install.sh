@@ -2,11 +2,11 @@
 # install.sh - connect a firstmate home to HarborDeck. Idempotent: re-run it to update; --uninstall undoes it.
 #
 # Usage: adapters/firstmate/install.sh [--fm-home <dir>] [--data-dir <dir>] [--mode live|echo] [--from <id>]
-#                                      [--pending deliver|skip] [--bin-dir <dir>] [--no-service] [--uninstall]
+#                                      [--pending deliver|skip] [--bin-dir <dir>] [--settings-dir <dir>] [--no-service] [--uninstall]
 #
 #  1. Links the `harbordeck` and `hd` commands into --bin-dir (default ~/.local/bin).
 #  2. Creates the data dir (default $HARBORDECK_HOME or ~/.harbordeck) and points the app at it, with the
-#     firstmate home as the Artifact root, in the app's settings.json.
+#     firstmate home as the Artifact root, in the app's settings.json (in --settings-dir, default the app's profile).
 #  3. Starts the bridge cursor at the end of answers.jsonl on the first install and when switching from echo
 #     to live, so answers written before (tests, echo runs) are never replayed into firstmate. On a re-install,
 #     answers past the cursor (written while the bridge was down) need --pending: deliver routes them, skip drops
@@ -28,6 +28,7 @@ bin_dir=$HOME/.local/bin
 service=1
 uninstall=0
 pending=''
+settings_dir=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fm-home) shift; fm_home=${1:?} ;;
@@ -36,6 +37,7 @@ while [ "$#" -gt 0 ]; do
     --from) shift; from=${1:?} ;;
     --bin-dir) shift; bin_dir=${1:?} ;;
     --pending) shift; pending=${1:?} ;;
+    --settings-dir) shift; settings_dir=${1:?} ;;
     --no-service) service=0 ;;
     --uninstall) uninstall=1 ;;
     -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -56,7 +58,8 @@ instructions=$fm_home/data/harbordeck.md
 prefs=$fm_home/data/captain.md
 BEGIN='<!-- harbordeck:begin -->'
 END='<!-- harbordeck:end -->'
-if [ "$(uname)" = Darwin ]; then settings_dir="$HOME/Library/Application Support/Harbor Deck"
+if [ -n "$settings_dir" ]; then :
+elif [ "$(uname)" = Darwin ]; then settings_dir="$HOME/Library/Application Support/Harbor Deck"
 else settings_dir="${XDG_CONFIG_HOME:-$HOME/.config}/Harbor Deck"; fi
 say() { printf '%s\n' "$*"; }
 

@@ -1,0 +1,11 @@
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --role button --name Open the office
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Open the office
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Merge PR 142
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press 1
+[exit 0]
+$ tail -1 /tmp/hdv-15a3cf311f/home/answers.jsonl
+{"id":"pr-142-checkout","action":"decide","key":"merge","note":"","at":1791536547}
+[exit 0]

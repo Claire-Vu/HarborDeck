@@ -1,0 +1,19 @@
+/* Connect an agent (connect-view.js) and the update notice (update-view.js). */
+.connect { display: grid; gap: 12px; min-width: min(680px, 80vw); font-size: 13px; }
+.connect code { word-break: break-all; }
+.connect p { margin: 0 0 8px; } .connect ul { margin: 0 0 8px; padding-left: 20px; } .connect li { margin: 2px 0; }
+.connect .dim { color: var(--ui-muted); }
+.cn-status { display: flex; gap: 8px; align-items: baseline; padding: 8px 10px; border: 1px solid var(--ui-edge); border-radius: var(--radius); }
+.cn-light { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ui-muted); transform: translateY(1px); }
+.cn-status.live .cn-light { background: var(--approve); box-shadow: 0 0 0 3px rgba(31,122,74,.25); } .cn-status.recent .cn-light { background: var(--needs); }
+.cn-sec { border: 1px solid var(--ui-edge); border-radius: var(--radius); padding: 10px 12px; min-width: 0; } .cn-sec.focus { border-color: var(--ui-accent); }
+.cn-sec h3 { margin: 0 0 8px; font-size: 13.5px; }
+.cn-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; } .cn-tabs .tbtn.on { border-color: var(--ui-accent); background: rgba(184,106,10,.14); font-weight: 600; }
+.cn-panel { display: grid; gap: 4px; min-width: 0; } .cn-panel .set-row { margin-bottom: 6px; }
+.cn-will { font-weight: 600; }
+.cn-act { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; } .cn-act .pbtn:disabled { opacity: .5; cursor: not-allowed; }
+.cn-code { display: flex; gap: 6px; align-items: flex-start; min-width: 0; margin-bottom: 8px; }
+.cn-code pre, .cn-out { flex: 1; min-width: 0; margin: 0; padding: 6px 8px; border: 1px solid var(--ui-edge); border-radius: var(--radius); font: 12px/1.45 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow: auto; }
+.cn-out.ok { border-color: var(--approve); } .cn-out.bad { border-color: var(--reject); }
+.connect details summary { cursor: pointer; color: var(--ui-muted); margin-bottom: 6px; }
+.toast.update { max-width: min(420px, 80vw); } .toast-act { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.6); color: inherit; border-radius: 10px; padding: 2px 8px; font-size: 12px; cursor: pointer; }

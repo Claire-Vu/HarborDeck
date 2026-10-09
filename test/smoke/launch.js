@@ -8,9 +8,10 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 
 // home: data dir, profile: Electron userData dir, env: extra variables for the app.
-function launchApp({ home, profile, env = {} }) {
+// app: a packaged build's executable (<Harbor Deck.app>/Contents/MacOS/Harbor Deck) instead of this checkout.
+function launchApp({ home, profile, env = {}, app }) {
   return electron.launch({
-    args: [ROOT],
+    ...(app ? { executablePath: app, args: [] } : { args: [ROOT] }),
     env: { ...process.env, HARBORDECK_HEADLESS: process.env.HARBORDECK_HEADLESS || '1', HARBORDECK_HOME: home, HARBORDECK_USER_DATA: profile, ...env }
   });
 }

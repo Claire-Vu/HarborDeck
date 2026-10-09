@@ -6,7 +6,8 @@ const { defaultHome, expandHome } = require('./store');
 const { parseHosts } = require('./web-allow');
 
 // phoneShortcut: Electron accelerator for the ship phone, system-wide; '' turns the system-wide hotkey off.
-const DEFAULTS = { dataDir: '', artifactRoot: '', webHosts: [], phoneShortcut: 'CommandOrControl+Shift+Space', onAnswer: { enabled: false, command: '' } };
+// onboarded: the first-run "Connect an agent" setup was finished or skipped.
+const DEFAULTS = { dataDir: '', artifactRoot: '', webHosts: [], phoneShortcut: 'CommandOrControl+Shift+Space', onAnswer: { enabled: false, command: '' }, onboarded: false };
 
 function loadSettings(file) {
   let raw = {};
@@ -20,7 +21,8 @@ function saveSettings(file, s) {
     artifactRoot: String(s.artifactRoot || ''),
     webHosts: parseHosts(s.webHosts),
     phoneShortcut: s.phoneShortcut == null ? DEFAULTS.phoneShortcut : String(s.phoneShortcut).trim(),
-    onAnswer: { enabled: !!(s.onAnswer && s.onAnswer.enabled), command: String((s.onAnswer && s.onAnswer.command) || '') }
+    onAnswer: { enabled: !!(s.onAnswer && s.onAnswer.enabled), command: String((s.onAnswer && s.onAnswer.command) || '') },
+    onboarded: !!s.onboarded
   };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(clean, null, 2) + '\n');

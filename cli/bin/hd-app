@@ -1,0 +1,8 @@
+#!/bin/sh
+# harbordeck / hd inside the Harbor Deck app bundle: runs the CLI on the app's own runtime (Electron as Node), so the
+# command works without a Node install. The app's "Install Command Line Tool" links this file into ~/.local/bin.
+src=$0
+while [ -L "$src" ]; do l=$(readlink "$src"); case $l in /*) src=$l ;; *) src=$(dirname "$src")/$l ;; esac; done
+bin=$(cd "$(dirname "$src")" && pwd)
+# <app>/Contents/Resources/app.asar.unpacked/cli/bin -> <app>/Contents/MacOS/Harbor Deck
+HARBORDECK_LAUNCHER="$bin/hd-app" ELECTRON_RUN_AS_NODE=1 exec "$bin/../../../../MacOS/Harbor Deck" "$bin/harbordeck.js" "$@"

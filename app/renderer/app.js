@@ -6,7 +6,7 @@
 'use strict';
 
 // views built at boot; the desk scripts call them
-let topicView, harborScene, quick, scenes, attachView, phone, search;
+let topicView, harborScene, quick, scenes, attachView, phone, search, connectView, updates;
 function renderPhoneButton() {
   const set = SNAP.settings || {}, key = HarborPhoneKeys.label(set.phoneShortcut), b = $('#btn-phone');
   const note = { taken: ' The system-wide shortcut is taken by another app: it works inside Harbor Deck only. Pick another in Settings.', invalid: ' The shortcut in Settings is not valid.' }[set.phoneKey] || '';
@@ -127,6 +127,8 @@ window.addEventListener('resize', () => { if (!S.prefs.plain) { renderDesk(); ra
 $('#stamps').addEventListener('transitionend', e => { if (e.target === e.currentTarget && e.propertyName === 'width' && !S.prefs.plain) { renderDesk(); railCues(); } });
 
 renderAll();
-if (!S.dayOpen) morning(); else { markDay(); if (!S.current) next(); }
+const startDay = () => { if (!S.dayOpen) morning(); else { markDay(); if (!S.current) next(); } };
+// first run (an empty desk, setup never finished): Connect an agent opens first, then the usual morning
+connectView = window.HarborConnect({ h, modal, toast, bridge, firstRun: SNAP.firstRun, then: startDay }); updates = window.HarborUpdates({ h, toast, bridge });
 if (S.prefs.music) { const once = () => { try { musicStart(); } catch (e) {} document.removeEventListener('pointerdown', once); }; document.addEventListener('pointerdown', once); }
 })();

@@ -1,0 +1,161 @@
+## 01-first-run
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.connect-modal
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .connect-modal h2 --text Welcome to Harbor Deck
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-status.none --text No agent has written
+[exit 0]
+## 02-cli-install
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #cn-cli-install
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #cn-cli --text are linked in
+[exit 0]
+$ links /tmp/hdv-15a3cf311f/userhome/.local/bin
+harbordeck -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js
+hd -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js
+[exit 0]
+$ /tmp/hdv-15a3cf311f/userhome/.local/bin/hd --version
+1.0.0
+[exit 0]
+## 03-cli-uninstall
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #cn-cli button --text Uninstall
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #cn-cli-install
+[exit 0]
+## 04-claude-code
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-panel ul --text claude mcp add harbordeck -s user -e HARBORDECK_HOME=/tmp/hdv-15a3cf311f/home -- /tmp/hdv-15a3cf311f/userhome/.local/bin/harbordeck mcp
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Connect Claude Code
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #cn-out.ok --text Added stdio MCP server
+[exit 0]
+$ cat /tmp/hdv-15a3cf311f/claude.log
+mcp add harbordeck -s user -e HARBORDECK_HOME=/tmp/hdv-15a3cf311f/home -- /tmp/hdv-15a3cf311f/userhome/.local/bin/harbordeck mcp
+[exit 0]
+$ links /tmp/hdv-15a3cf311f/userhome/.local/bin
+harbordeck -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js
+hd -> /private/tmp/hdsbx/HarborDeck/cli/bin/harbordeck.js
+[exit 0]
+## 05-light-live
+$ env HARBORDECK_HOME=/tmp/hdv-15a3cf311f/home HARBORDECK_FROM=mate-main /tmp/hdv-15a3cf311f/userhome/.local/bin/hd todo hdv-hello Say hello to the desk -s Written through the installed hd. -t hdv-onboarding
+ok todo hdv-hello
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-status.live --text items/hdv-hello.json
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs text --css .cn-status
+Last agent write just now (items/hdv-hello.json). Data directory /tmp/hdv-15a3cf311f/home
+[exit 0]
+## 06-firstmate-plan
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role radio --name firstmate
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs fill --css #cn-fm-home --value /tmp/hdv-15a3cf311f/fm
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Tab
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-panel pre --text --fm-home /tmp/hdv-15a3cf311f/fm
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .cn-panel .set-check
+[exit 0]
+## 07-firstmate-connected
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Connect firstmate
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #cn-out.ok --text service: not installed --timeout 30000
+[exit 0]
+$ grep -c {#harbordeck} /tmp/hdv-15a3cf311f/fm/data/captain.md
+1
+[exit 0]
+$ test -s /tmp/hdv-15a3cf311f/fm/data/harbordeck.md
+[exit 0]
+$ cat /tmp/hdv-15a3cf311f/profile/settings.json
+{
+  "dataDir": "/tmp/hdv-15a3cf311f/home",
+  "artifactRoot": "/tmp/hdv-15a3cf311f/fm"
+}
+[exit 0]
+## 08-other-agent
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role radio --name Other agent
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-panel --text "mcpServers"
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-panel --text hd decision
+[exit 0]
+## 09-done
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .connect-modal footer button --text Done
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.connect-modal --gone
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.manifest
+[exit 0]
+## 10-stamp
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Open the office
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #queue li --text Say hello to the desk
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #desk-surface .paper.manifest h3 --text Say hello
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press 1
+[exit 0]
+$ tail -1 /tmp/hdv-15a3cf311f/home/answers.jsonl
+{"id":"hdv-hello","action":"file","note":"","at":1791536515}
+[exit 0]
+## 11-reload
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs reload
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #queue
+[exit 0]
+## 12-settings-version
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press m
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #btn-settings
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.settings-modal
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs text --css .settings-modal .set-row:has(#btn-update-check)
+Version A source checkout updates with git. 0.1.0 (source checkout) Check for updates
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #btn-update-check
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #toasts .toast --text source checkout
+[exit 0]
+## 13-settings-save
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .settings-modal footer .pbtn --text Save
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.settings-modal --gone
+[exit 0]
+$ cat /tmp/hdv-15a3cf311f/profile/settings.json
+{
+  "dataDir": "/tmp/hdv-15a3cf311f/home",
+  "artifactRoot": "/tmp/hdv-15a3cf311f/fm",
+  "webHosts": [],
+  "phoneShortcut": "CommandOrControl+Shift+Space",
+  "onAnswer": {
+    "enabled": false,
+    "command": ""
+  },
+  "onboarded": true
+}
+[exit 0]
+## 14-settings-cli
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press m
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css #btn-settings
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --role button --name Command line tool…
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .connect-modal #cn-cli.focus
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .connect-modal h2 --text Connect an agent
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .cn-status.live
+[exit 0]
+## 15-menu-intact
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs click --css .connect-modal footer button --text Done
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css .modal.connect-modal --gone
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press m
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs wait --css #menu
+[exit 0]
+$ .agents/skills/verify-harbordeck/scripts/ui.mjs press Escape
+[exit 0]

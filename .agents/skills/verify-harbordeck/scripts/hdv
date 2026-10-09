@@ -4,9 +4,12 @@
 # a synthetic data dir, a private Electron profile, a stub caffeinate and a stub wake command that only logs.
 # Never touches ~/.harbordeck, the installed app, launchd, or the real caffeinate.
 #
-#   hdv launch [--demo] [--port N] [--visible]
+#   hdv launch [--demo|--empty] [--port N] [--visible]
 #                                    start the app headless (seeded synthetic data dir; --demo: the app's own demo + pretend agent;
+#                                    --empty: an empty data dir, so the first-run Connect an agent opens;
 #                                    --visible: show the window, for a human who wants to watch)
+#                                    The app always gets a sandbox HOME ($state/userhome) and a stub `claude` that logs its
+#                                    arguments ($state/claude.log), so Connect an agent never writes the real ~/.local/bin or ~/.claude.json.
 #   hdv doctor                       read-only: is this instance ours, up, and on synthetic data?
 #   hdv env                          print exports (eval "$(hdv env)") for chrome-devtools-axi and the CLI
 #   hdv hd <args...>                 run the harbordeck CLI against the instance's data dir
@@ -32,10 +35,10 @@ ours() { local p=${1:-}; while [ -n "$p" ] && [ "$p" -gt 1 ]; do [ "$p" = "$HDV_
 free_port() { local p=$1; while lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; do p=$((p + 1)); done; echo "$p"; }
 
 cmd_launch() {
-  local demo=0 port="" headless=1
-  while [ $# -gt 0 ]; do case "$1" in --demo) demo=1 ;; --port) port=$2; shift ;; --visible) headless=0 ;; *) die "launch: unknown flag $1" ;; esac; shift; done
+  local demo=0 empty=0 port="" headless=1
+  while [ $# -gt 0 ]; do case "$1" in --demo) demo=1 ;; --empty) empty=1 ;; --port) port=$2; shift ;; --visible) headless=0 ;; *) die "launch: unknown flag $1" ;; esac; shift; done
   if [ -f "$info" ]; then . "$info"; alive "${HDV_PID:-}" && die "already running (pid $HDV_PID); hdv cleanup first"; fi
-  rm -rf "$state"; mkdir -p "$state/bin" "$state/profile" "$state/launchd"
+  rm -rf "$state"; mkdir -p "$state/bin" "$state/profile" "$state/launchd" "$state/userhome"
   [ -x "$root/node_modules/.bin/electron" ] || die "no electron: run npm install in $root"
   port=${port:-$(free_port 9340)}
   local run_id; run_id="$(date +%Y%m%d-%H%M%S)-$(git -C "$root" rev-parse --short HEAD)"
@@ -43,7 +46,9 @@ cmd_launch() {
   printf '#!/bin/sh\ntrap "kill \\$! 2>/dev/null; exit 0" TERM INT\nsleep "${3:-60}" & wait\n' > "$state/bin/caffeinate"
   # Stub wake command: logs what an agent would have received, exits 0 (delivered).
   printf '#!/bin/sh\n{ printf "%%s\\t%%s\\t%%s\\t" "$(date +%%s)" "$HARBORDECK_SCHEDULE_KIND" "${HARBORDECK_ITEM:--}"; tr "\\n" " " ; echo; } >> "%s/wake.log"\n' "$state" > "$state/bin/wake"
-  chmod +x "$state/bin/caffeinate" "$state/bin/wake"; : > "$state/wake.log"
+  # Stub claude for Connect an agent > Claude Code: logs `claude mcp add ...` arguments, changes nothing.
+  printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/claude.log"\necho "Added stdio MCP server harbordeck to user config (hdv stub)"\n' "$state" > "$state/bin/claude"
+  chmod +x "$state/bin/caffeinate" "$state/bin/wake" "$state/bin/claude"; : > "$state/wake.log"
   local home
   if [ "$demo" = 1 ]; then home="$state/profile/demo"
   else
@@ -54,19 +59,20 @@ cmd_launch() {
     for _ in $(seq 1 50); do [ -s "$state/site.url" ] && break; sleep 0.1; done
     [ -s "$state/site.url" ] || die "demo web page did not start ($(cat "$state/site.log"))"
     home="$state/home"
-    node -e 'require(process.argv[1]).seedDemo(process.argv[2], undefined, { webUrl: process.argv[3] })' "$root/app/demo/seed.js" "$home" "$(cat "$state/site.url")"
+    if [ "$empty" = 1 ]; then mkdir -p "$home"; else node -e 'require(process.argv[1]).seedDemo(process.argv[2], undefined, { webUrl: process.argv[3] })' "$root/app/demo/seed.js" "$home" "$(cat "$state/site.url")"; fi
   fi
   cat > "$info" <<ENV
 HDV_ROOT='$root'
 HDV_HOME='$home'
 HDV_PROFILE='$state/profile'
+HDV_USERHOME='$state/userhome'
 HDV_PORT=$port
 HDV_DEMO=$demo
 HDV_RUN_ID='$run_id'
 HDV_SITE='$(cat "$state/site.url" 2>/dev/null)'
 $(cat "$state/site.pid" 2>/dev/null)
 ENV
-  HARBORDECK_HEADLESS=$headless HARBORDECK_HOME=$([ "$demo" = 1 ] || echo "$home") HARBORDECK_USER_DATA="$state/profile" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" \
+  HOME="$state/userhome" HARBORDECK_CLAUDE_BIN="$state/bin/claude" HARBORDECK_HEADLESS=$headless HARBORDECK_HOME=$([ "$demo" = 1 ] || echo "$home") HARBORDECK_USER_DATA="$state/profile" HARBORDECK_CAFFEINATE="$state/bin/caffeinate" \
     nohup "$root/node_modules/.bin/electron" "$root" $([ "$demo" = 1 ] && echo --demo) --remote-debugging-port="$port" > "$state/electron.log" 2>&1 &
   echo "HDV_PID=$!" >> "$info"
   local i
@@ -94,13 +100,13 @@ cmd_doctor() {
   local ev; ev=$(node -p 'const r=process.argv[1];const w=require(r+"/package.json").devDependencies.electron.replace(/^[\^~]/,"");const i=require(r+"/node_modules/electron/package.json").version;i===w?i:i+" != package.json "+w' "$HDV_ROOT" 2>/dev/null || echo missing)
   check "electron $ev is the pinned one" '[ "${ev#* != }" = "$ev" ] && [ "$ev" != missing ]'
   echo "build  $(git -C "$HDV_ROOT" rev-parse --abbrev-ref HEAD)@$(git -C "$HDV_ROOT" rev-parse --short HEAD)$(git -C "$HDV_ROOT" diff --quiet HEAD -- . ':!.agents' ':!.claude' ':!.cursor' || echo ' (dirty)')"
-  echo "items  $(ls "$HDV_HOME/items" | grep -c '\.json$')   answers $(wc -l < "$HDV_HOME/answers.jsonl" 2>/dev/null | tr -d ' ' || echo 0)"
+  echo "items  $(ls "$HDV_HOME/items" | grep -c '\.json$')   answers $(cat "$HDV_HOME/answers.jsonl" 2>/dev/null | wc -l | tr -d ' ')"
   [ "$ok" = 1 ]
 }
 
 cmd_env() {
   load
-  echo "export HDV_STATE='$state' HDV_HOME='$HDV_HOME' HDV_PORT=$HDV_PORT HDV_RUN_ID='$HDV_RUN_ID' HDV_SITE='${HDV_SITE:-}'"
+  echo "export HDV_STATE='$state' HDV_HOME='$HDV_HOME' HDV_USERHOME='$HDV_USERHOME' HDV_PORT=$HDV_PORT HDV_RUN_ID='$HDV_RUN_ID' HDV_SITE='${HDV_SITE:-}'"
   echo "export HARBORDECK_HOME='$HDV_HOME' HARBORDECK_CAFFEINATE='$state/bin/caffeinate' HARBORDECK_LAUNCHD_DIR='$state/launchd'"
   echo "export CHROME_DEVTOOLS_AXI_BROWSER_URL='http://127.0.0.1:$HDV_PORT' CHROME_DEVTOOLS_AXI_SESSION='hdv-$HDV_PORT'"
 }
@@ -120,7 +126,10 @@ cmd_capture() {
   cp "$HDV_HOME/answers.jsonl" "$d/$2.state/" 2>/dev/null || : > "$d/$2.state/answers.jsonl"
   cp "$state/wake.log" "$d/$2.state/wake.log"
   [ -f "$HDV_HOME/scheduler.json" ] && cp "$HDV_HOME/scheduler.json" "$d/$2.state/"
-  (cd "$HDV_HOME/items" && for f in *.json; do node -e 'const i=require(process.argv[1]);console.log([i.id,i.kind,i.status,(i.thread||[]).length,i.title].join("\t"))' "$PWD/$f"; done) > "$d/$2.state/items.tsv"
+  (cd "$HDV_HOME/items" && for f in *.json; do [ -e "$f" ] || continue; node -e 'const i=require(process.argv[1]);console.log([i.id,i.kind,i.status,(i.thread||[]).length,i.title].join("\t"))' "$PWD/$f"; done) > "$d/$2.state/items.tsv"
+  # Connect an agent side effects: what the stub claude was asked, and the sandbox HOME's command links
+  [ -f "$state/claude.log" ] && cp "$state/claude.log" "$d/$2.state/"
+  [ -d "$HDV_USERHOME/.local/bin" ] && for f in "$HDV_USERHOME/.local/bin"/*; do [ -L "$f" ] && echo "$(basename "$f") -> $(readlink "$f")"; done > "$d/$2.state/local-bin.txt"
   echo "$d/$2.{png,aria.yml,state/}"
 }
 

@@ -1,0 +1,8 @@
+PASS 01-packaged-first-run
+PASS 02-packaged-cli-install
+PASS 03-hd-without-node
+PASS 04-packaged-done
+PASS 05-update-banner
+PASS 06-feed-read-nothing-downloaded
+PASS 07-cli-uninstall
+PASS 08-no-release-yet
