@@ -48,7 +48,7 @@ record() {  # <waking|starting> <target>
 }
 recent() {  # -> "<waking|starting> <target>" when one is younger than GRACE
   local f what at target; f=$(record_file)
-  read -r what at target < "$f" 2>/dev/null || return 1
+  { read -r what at target < "$f"; } 2>/dev/null || return 1
   [ $(( $(date +%s) - at )) -lt "$GRACE" ] || return 1
   printf '%s %s\n' "$what" "$target"
 }
@@ -111,8 +111,13 @@ probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start y
   STATE=idle WHY="session pid $PID in ${TARGET:-an unknown pane}, nothing listening ($why)"
 }
 
-type_into() {  # <target> <message> -> fm-send's exit code (a tmux pane: through that pane's own server)
-  if [ -n "$TMUXV" ]; then TMUX=$TMUXV "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2; else "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2; fi
+tmux_env() {  # a tmux pane: point tmux (TMUX, TMUX_TMPDIR) at that pane's own server, as its processes see it
+  [ -n "$TMUXV" ] || return 0
+  export TMUX=$TMUXV TMUX_TMPDIR; TMUX_TMPDIR=$(dirname "$(dirname "${TMUXV%%,*}")")
+}
+
+type_into() {  # <target> <message> -> fm-send's exit code
+  ( tmux_env; "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2 )
 }
 
 start_session() {  # <first message> -> 0 started (target on stdout), 75 cannot start here
@@ -162,7 +167,7 @@ case "$cmd" in
     [ -x "$FM_HOME/bin/fm-send.sh" ] || { echo "hd-listener: $FM_HOME/bin/fm-send.sh not found" >&2; exit 2; }
     probe
     TARGET=${TARGET:-$RECENT}   # a session HarborDeck is starting has a pane before its process shows
-    if [ -n "$TARGET" ]; then [ -z "$TMUXV" ] || export TMUX=$TMUXV; exec "$FM_HOME/bin/fm-send.sh" "$TARGET" "$msg"; fi
+    if [ -n "$TARGET" ]; then tmux_env; exec "$FM_HOME/bin/fm-send.sh" "$TARGET" "$msg"; fi
     [ -z "$PID" ] || { log "session pid $PID has no pane to type into"; exit 75; }
     rc=0; start_session "$msg" >/dev/null || rc=$?
     exit "$rc" ;;
