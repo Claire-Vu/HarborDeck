@@ -22,7 +22,7 @@ else window.HarborSettings = deps => {
   const mac = /Mac/.test(navigator.platform || '');
 
   const section = (title, sub, ...rows) => h('section', { class: 'set-sec', 'aria-label': title }, h('h3', { class: 'set-h' }, title, sub ? h('span', { class: 'set-sub' }, sub) : null), ...rows);
-  const row = (label, hint, ...control) => h('div', { class: 'set-row' }, h('div', { class: 'set-l' }, h('span', { class: 'set-name' }, label), hint ? h('span', { class: 'set-hint' }, hint) : null), h('div', { class: 'set-in' }, ...control));
+  const row = (label, hint, ...control) => h('div', { class: 'set-row' }, h('div', { class: 'set-l', title: hint || null }, h('span', { class: 'set-name' }, label)), h('div', { class: 'set-in' }, ...control));
 
   // A folder shown as its name with the parent dimmed under it; Choose… opens the system picker, Reset falls back.
   function folder(label, value, fallback, fallbackWhere) {

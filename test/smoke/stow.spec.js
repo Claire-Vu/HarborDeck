@@ -30,9 +30,11 @@ const view = () => page.locator('#stow-view');
 test('stow by control, key and drag; count; restore one, restore all', async () => {
   await expect(count()).toHaveAttribute('data-n', '0');
   await expect(sheets()).toHaveCount(0);
-  await page.locator('#stow-box').click(); // empty: no view, just a hint
+  await page.locator('#stow-box').click(); // empty: no view; the box shakes
   await expect(view()).toBeHidden();
+  await expect(page.locator('#stow-box')).toHaveClass(/nudge/);
   await shot(page.locator('#stow-box'), 'stow-empty.png');
+  await page.locator('#queue li', { hasText: 'Merge PR 142' }).click(); // a desk with papers to stow
   const n0 = await papers().count();
   expect(n0).toBeGreaterThan(2);
   // control

@@ -76,11 +76,11 @@ window.HarborScene = deps => {
   }
 
   // ---------------------------------------------------------- tide line (F3) and the daily goal (F7)
-  function drawTide(t, goal, open) {
+  function drawTide(t, goal) {
     // the line is art in the water; its words sit on the plated tide bar above the sill, never over the boats
     const g = $('#sc-tide'); g.replaceChildren(); const l = $('#sc-tide-l'); l.textContent = ''; l.removeAttribute('title'); if (!t) return;
     const y = Math.round(172 - t.level * 54);
-    l.textContent = goal?.beat ? '⚑ beat the tide' : `high tide ${dur(t.in)}${open ? ` · ${open} to clear` : ''}`;
+    l.textContent = goal?.beat ? '⚑ beat the tide' : `high tide ${dur(t.in)}`; // the count left lives once, on the sill (N to zero)
     l.title = `Tide: ${Math.round(t.level * 100)}% toward the next refill (${t.name} ${t.window}, ${deps.fmtTime(t.resets)})`;
     g.append(px(0, y, 320, 1, '#e6f4fa', { opacity: .75 }), px(0, y + 2, 320, 1, '#e6f4fa', { opacity: .3 }));
   }
@@ -95,7 +95,7 @@ window.HarborScene = deps => {
 
   function render(v) {
     const d = new Date(v.t * 1000); const phase = drawSky(d.getHours(), d.getMinutes(), v.stamina); const night = phase === 'night' || phase === 'dusk';
-    drawShore(v.days, v.owned, night); drawBoats(v.open, { pennants: v.owned.includes('pennants'), night }); drawTide(v.tide, v.goal, v.open.length); drawLamp(v.owned, night);
+    drawShore(v.days, v.owned, night); drawBoats(v.open, { pennants: v.owned.includes('pennants'), night }); drawTide(v.tide, v.goal); drawLamp(v.owned, night);
     $('#sc-tidebar').hidden = !$('#sc-tide-l').textContent && !$('#sc-more').textContent;
   }
 
@@ -147,7 +147,7 @@ window.HarborScene = deps => {
       const reg = G.regular(b.project); const sail = Math.min(G.sailHeight(b.calls), 20); const x = 8 + (i % 2) * 196, y = 66 + Math.floor(i / 2) * 22;
       const g = svg('g', { class: 'recap-boat', style: `animation-delay:${Math.round(i * 3000 / Math.max(1, shown.length))}ms` });
       g.append(px(x, y, 26, 5, '#3a2a1a'), px(x + 11, y - sail - 3, 2, sail + 3, '#2b2318'), px(x + 13, y - sail - 1, 10, sail, '#f1e4c0'), px(x + 13, y - sail - 1, 10, 3, reg.coat),
-        svg('text', { x: x + 30, y: y + 4, 'font-size': 8, fill: '#fff', 'font-family': 'monospace' }, `${b.title.slice(0, 22)}${b.calls > 1 ? ` ×${b.calls}` : ''}`));
+        svg('text', { x: x + 30, y: y + 4, 'font-size': 8, fill: '#fff', 'font-family': 'monospace' }, `${b.title.length > 22 ? b.title.slice(0, 21).trimEnd() + '…' : b.title}${b.calls > 1 ? ` ×${b.calls}` : ''}`));
       strip.append(g);
     });
     if (!v.cleared.length) strip.append(svg('text', { x: W / 2, y: 100, 'font-size': 10, fill: '#fff', 'font-family': 'monospace', 'text-anchor': 'middle' }, 'No boats went out today.'));

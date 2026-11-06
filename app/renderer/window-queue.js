@@ -56,11 +56,11 @@ function setScene(k, filter = S.prefs.filter !== 'all') { S.prefs.scene = k; if 
 // the line at a scene (HS.line); `back` is when the item was sent to the back of the line: view state, never written out
 const sceneLine = k => HS.line(queueItems(k), it => ({ prio: prio(it), created: it.created, back: st(it.id).back, away: !!st(it.id).awaiting }));
 // the top window: the current kind's scene over the harbor sky; the ship cat (F8) sits by its most urgent figure
-// (highest priority, then the most impatient), and naps when the scene is clear
+// outside (the queue's own order, so it never disagrees with the list or the manifest), and naps when the scene is clear
 function renderScenes() {
   const open = queueItems('all'); const groups = Object.fromEntries(HS.KINDS.map(k => [k, sceneLine(k)])); const kind = sceneKind();
   const here = groups[kind].filter(i => !st(i.id).awaiting && i.id !== S.current);
-  const urgent = here.reduce((a, b) => (!a || (prio(b) - prio(a) || impatience(a) - impatience(b)) < 0 ? b : a), null);
+  const urgent = here.slice().sort(urgency)[0] || null;
   scenes.render($('#scenes'), { kind, groups, counts: HS.tally(groups), cleared: clearedToday(), paused: new Set(open.flatMap(waitingOn)).size, parked: parkedItems().length, urgent: urgent?.id, catBell: S.fun.owned.includes('bell') });
 }
 function openItem(id) { const it = byId[id]; if (!it) return; closeModal(); if (S.prefs.plain || statusOf(it) !== 'open' || st(id).awaiting) modal('viewer', it.title, plainCard(it, true)); else stepUp(id); }

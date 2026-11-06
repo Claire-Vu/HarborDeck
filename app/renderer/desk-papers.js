@@ -63,7 +63,8 @@ const markNew = p => { p.classList.add('chg'); p.querySelector('.grip > span')?.
 // A paper the captain dragged keeps its spot. Below 860 px the CSS flows papers instead.
 function layoutPapers(papers, surf, pos) {
   if (window.innerWidth <= 860) return;
-  const W = surf.clientWidth || 900, H = surf.clientHeight || 600, G = 14, X0 = 16, Y0 = 16;
+  // the stamps handle stands over the desk's right edge: lay papers out short of it
+  const W = (surf.clientWidth || 900) - ($('#tray-handle')?.offsetWidth || 0), H = surf.clientHeight || 600, G = 14, X0 = 16, Y0 = 16;
   const at = (p, x, y, w, hMax) => { if (w) p.style.width = w + 'px'; if (hMax) p.style.maxHeight = Math.max(120, hMax) + 'px'; const u = pos[p.dataset.pid]; const c = u && clampToDesk(p, u.x, u.y); p.style.left = (c ? c.x : x) + 'px'; p.style.top = (c ? c.y : y) + 'px'; };
   const man = papers.find(p => p.dataset.pid === 'm'), ask = papers.find(p => p.dataset.pid === 'ask');
   const reading = papers.find(p => p.classList.contains('reading'));
@@ -84,10 +85,14 @@ function layoutPapers(papers, surf, pos) {
   let y = Y0;
   if (reading) {
     const below = roomForSide ? [] : rest;
-    const belowH = below.reduce((n, p) => { p.style.width = readW + 'px'; return n + Math.min(p.offsetHeight, 220) + G; }, 0);
-    const hMax = Math.max(H * .45, H - Y0 * 2 - belowH);
+    // the papers under the reading paper share what it leaves, so the column ends inside the desk instead of below it
+    const fit = H - Y0 * 2, readMin = Math.max(200, H * .45);
+    let caps = below.map(p => { p.style.width = readW + 'px'; return Math.min(p.offsetHeight, 220); });
+    const used = () => caps.reduce((n, c) => n + c + G, 0);
+    if (below.length && fit - used() < readMin) { const each = Math.max(120, (fit - readMin) / below.length - G); caps = caps.map(c => Math.min(c, each)); }
+    const hMax = Math.max(160, fit - used());
     at(reading, rx, y, readW, hMax); reading.style.height = hMax + 'px'; y += hMax + G;
-    for (const p of below) { const ph = Math.min(p.offsetHeight, 220); at(p, rx, y, readW, ph); y += ph + G; }
+    below.forEach((p, i) => { at(p, rx, y, readW, caps[i]); y += caps[i] + G; });
   }
   if (!reading || roomForSide) {
     let x = reading ? rx + readW + G : rx; y = Y0;
@@ -186,8 +191,8 @@ function askSlip(it, ch) {
   const s = st(it.id); const kids = [];
   if (it.kind === 'decision' && it.options) {
     s.choice ??= it.options.find(o => o.recommended)?.key || null;
-    kids.push(h('fieldset', { class: 'q' }, h('legend', null, 'Your call ', h('span', { class: 'hint' }, 'A–E pick · Space stamps')), it.options.map((o, i) => { const el = quick.option(it, o, i, s.choice === o.key, key => { s.choice = key; save(); afterPick(it.id); }, `opt-${it.id}`); if (ch?.options?.includes(o.key)) el.classList.add('chg'); return el; })));
-  } else kids.push(h('p', { class: 'ql' }, { review: 'Your verdict on the work.', answer: 'Read, then file.', todo: 'Only you can do this. File it when done.' }[it.kind]));
+    kids.push(h('fieldset', { class: 'q' }, h('legend', { title: 'A–E pick · Space stamps' }, 'Your call'), it.options.map((o, i) => { const el = quick.option(it, o, i, s.choice === o.key, key => { s.choice = key; save(); afterPick(it.id); }, `opt-${it.id}`); if (ch?.options?.includes(o.key)) el.classList.add('chg'); return el; })));
+  } else kids.push(h('p', { class: 'ql' }, { review: 'Your verdict', answer: 'Read, then file', todo: 'Do it, then file' }[it.kind]));
   kids.push(h('div', { class: 'stamp-zone', id: 'stamp-zone' }, s.awaiting ? 'sent back; awaiting reply' : 'Space to stamp'));
   return paper('ask', 'The ask', kids, 'ask');
 }

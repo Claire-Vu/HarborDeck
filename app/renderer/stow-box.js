@@ -57,5 +57,5 @@ function placeStowView(v = $('#stow-view'), anchor = $('#stow-box')) {
   if (b.left - w - 12 >= 16) { v.style.left = (b.left - w - 12) + 'px'; v.style.top = ''; v.style.bottom = Math.max(16, H - b.bottom) + 'px'; } // beside the tray
   else { v.style.left = Math.max(16, Math.min(b.left + b.width / 2 - w / 2, W - w - 16)) + 'px'; v.style.top = ''; v.style.bottom = (H - b.top + 8) + 'px'; } // above it (narrow: tray at the bottom)
 }
-function openStowView() { const m = stowedOf(S.current), keys = Object.keys(m); if (!keys.length) { toast('Nothing stowed. Drag a paper here, or press X.'); return; } closeParkedView(); $('#stow-view').hidden = false; fillStowView(m, keys); placeStowView(); $('#stow-box').setAttribute('aria-expanded', 'true'); }
+function openStowView() { const m = stowedOf(S.current), keys = Object.keys(m); if (!keys.length) { const b = $('#stow-box'); b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; } /* empty: the box shakes; its tooltip says how to fill it */ closeParkedView(); $('#stow-view').hidden = false; fillStowView(m, keys); placeStowView(); $('#stow-box').setAttribute('aria-expanded', 'true'); }
 function closeStowView() { $('#stow-view').hidden = true; $('#stow-box').setAttribute('aria-expanded', 'false'); }

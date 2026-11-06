@@ -10,7 +10,12 @@ function tickets() {
     if (!['ask', 'needs-work', 'request'].includes(a.action)) continue;
     const key = `${a.id}:${a.at}`; if (S.tickets.done[key]) continue;
     let title, reply = null, item = null;
-    if (a.action === 'request') { title = `Order to ${mateLabel(a.to)}`; reply = (byId[a.id] ? { from: mateFor(byId[a.id]).label, text: byId[a.id].summary, at: byId[a.id].created } : null); item = byId[a.id] || null; }
+    if (a.action === 'request') {
+      // the reply is the item the agent wrote under the order's id: its summary, else its latest message (`hd reply`)
+      title = `Order to ${mateLabel(a.to)}`; item = byId[a.id] || null;
+      const last = item && (item.thread || []).filter(m => m.from !== 'captain').sort((x, y) => x.at - y.at).pop();
+      reply = item ? { from: last?.from || mateFor(item).label, text: item.summary || last?.text || item.title, at: last?.at || item.created } : null;
+    }
     else { item = byId[a.id]; title = item?.title || a.id; const th = item?.thread || []; reply = th.filter(m => m.at >= a.at && m.from !== 'captain').sort((x, y) => x.at - y.at)[0] || null; }
     out.push({ key, a, title, reply, item, seen: !!S.tickets.seen[key] });
   }
@@ -52,7 +57,8 @@ const ticketMate = t => t.a.action === 'request' ? t.a.to : t.item ? mateFor(t.i
 function openTicket(t, el) {
   document.querySelector('.tk-pop')?.remove();
   S.tickets.seen[t.key] = true; save(); renderRail();
-  const r = el.getBoundingClientRect();
+  // the rail re-renders (and may re-sort): anchor under the ticket as it stands now, not the replaced element
+  const r = ($('#rail').querySelector(`.ticket[data-key="${CSS.escape(t.key)}"]`) || el).getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note, attachView.thumbs(t.a.attachments)),
     t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)

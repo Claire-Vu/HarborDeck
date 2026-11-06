@@ -7,7 +7,7 @@
 .stow[data-n]:not([data-n="0"]) .stow-box svg, .stow-box:hover svg, .stow-box:focus-visible svg, .stow-box.drop svg { opacity: 1; }
 .stow-box.drop { border-color: var(--ui-accent); transform: scale(1.12); }
 .stow-stack { position: absolute; inset: 0; pointer-events: none; }
-.stow-stack .leaf { position: absolute; left: calc(14px + var(--x)); width: 44px; height: 30px; top: calc(19px - var(--i) * 3.5px); border-radius: 1px; background: var(--paper) repeating-linear-gradient(transparent 0 4px, var(--paper-line) 4px 5px) 5px 6px / 34px 20px no-repeat; box-shadow: 0 -1px 2px rgba(0,0,0,.3); transform: rotate(var(--r)); }
+.stow-stack .leaf { position: absolute; left: calc(14px + var(--x)); width: 44px; height: 30px; top: calc(16px - var(--i) * 3.5px); border-radius: 1px; background: var(--paper) repeating-linear-gradient(transparent 0 4px, var(--paper-line) 4px 5px) 5px 6px / 34px 20px no-repeat; box-shadow: 0 -1px 2px rgba(0,0,0,.3); transform: rotate(var(--r)); }
 .stow-stack .leaf.manifest { border-top: 3px solid #b89968; }
 .stow-stack .leaf.photo { background: #fff linear-gradient(#9fb6c8, #6d8a6a) 5px 4px / 34px 14px no-repeat; }
 .stow-stack .leaf.monitor { background: #3a3f47 linear-gradient(#111, #222) 5px 4px / 34px 14px no-repeat; }
@@ -35,3 +35,4 @@
 .paper.mini .mini-media.audio { height: 30px; background: #222; }
 .paper .ibtn.stow-btn { padding: 0 6px; line-height: 14px; }
 .paper .ibtn.back-btn { flex: none; white-space: nowrap; padding: 0 6px; line-height: 14px; font-size: 10px; text-transform: none; letter-spacing: 0; cursor: pointer; }
+.stow-box.nudge { animation: shake .22s ease-out; }

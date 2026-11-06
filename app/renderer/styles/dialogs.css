@@ -1,6 +1,6 @@
 /* ---------- drawers ---------- */
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--ui-bg); color: var(--ui-fg); border-left: 1px solid var(--ui-edge); box-shadow: var(--shadow); transform: translateX(100%); transition: transform .25s ease; z-index: 100; display: flex; flex-direction: column; }
-.drawer.open { transform: none; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--ui-bg); color: var(--ui-fg); border-left: 1px solid var(--ui-edge); box-shadow: var(--shadow); transform: translateX(100%); visibility: hidden; transition: transform .25s ease, visibility .25s; z-index: 100; display: flex; flex-direction: column; }
+.drawer.open { transform: none; visibility: visible; } /* closed: out of view and out of the Tab order */
 .drawer header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ui-edge); }
 .drawer header h2 { margin: 0; font-size: 15px; } .drawer header .ibtn-top { margin-left: auto; }
 .drawer .content { padding: 12px 14px; overflow: auto; flex: 1; }
@@ -89,6 +89,9 @@
 
 /* toasts: small corner chips (bottom-right); the stamp on the paper is the decision feedback */
 #toasts { position: fixed; right: 14px; bottom: 14px; display: grid; gap: 6px; justify-items: end; z-index: 400; pointer-events: none; }
+/* clear of the open stamp tray and its key legend: beside it on a wide desk, above it when it sits at the bottom */
+body:has(#desk-mode:not([hidden]) #stamps[data-open="true"]) #toasts { right: 164px; }
+@media (max-width: 860px) { body:has(#desk-mode:not([hidden]) #stamps[data-open="true"]) #toasts { right: 14px; bottom: 114px; } }
 .toast { background: var(--ui-fg); color: var(--ui-bg); padding: 5px 11px; border-radius: 14px; font-size: 12px; box-shadow: var(--shadow); animation: toast .2s ease-out; max-width: min(320px, 60vw); display: flex; align-items: center; gap: 8px; }
 .toast.warn { background: var(--warn); color: #fff; pointer-events: auto; }
 .toast-x { background: none; border: 0; color: inherit; font-size: 15px; line-height: 1; padding: 0 2px; cursor: pointer; }

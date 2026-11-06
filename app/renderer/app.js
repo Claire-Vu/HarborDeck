@@ -60,6 +60,7 @@ syncItems(null);
 let phoneDraft = '';
 phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
   sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()), tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
+  resetAt: () => (SCHED?.reset_due > now() ? fmtTime(SCHED.reset_due) : ''),
   resetNote: () => SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable' });
 $('#btn-phone').onclick = () => phone.toggle();
 bridge.onPhone(how => how === 'toggle' ? phone.toggle() : phone.open());
@@ -110,7 +111,7 @@ menuEl.addEventListener('keydown', e => {
 });
 document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
 $('#sched-chip').onclick = () => phone.open();
-$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel()); };
+$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel(false)); };
 $('#cash').onclick = () => harborScene.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
 $('#btn-sound').onclick = () => { S.prefs.sound = !S.prefs.sound; save(); applyPrefs(); snd('ding'); };

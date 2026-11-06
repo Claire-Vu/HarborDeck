@@ -107,7 +107,7 @@ else window.HarborPhone = deps => {
     if (!((deps.draft.get() || tray.has()) && mates().some(m => m.id === dialed))) dialed = deps.lastMate() || mates()[0]?.id;
     pad = h('textarea', { class: 'phone-pad', rows: 3, value: deps.draft.get(), oninput: () => deps.draft.set(pad.value) });
     dial = h('div', { class: 'dial', role: 'radiogroup', 'aria-label': 'Dial a first mate' });
-    resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset');
+    resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset', deps.resetAt?.() ? h('span', { class: 'phone-q-at' }, ` · ${deps.resetAt()}`) : null); // when it goes, in the button
     at = h('input', { type: 'time', class: 'phone-at', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
     atBtn = h('button', { class: 'phone-q', disabled: true, onclick: () => { if (at.value) queue(deps.clockEpoch(at.value)); } }, 'Queue at time');
     at.addEventListener('input', () => { atBtn.disabled = !at.value || !!target; });

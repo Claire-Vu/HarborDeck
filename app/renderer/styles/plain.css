@@ -19,7 +19,7 @@
 .pcard .rec { font-size: 10px; color: var(--approve); font-weight: 700; margin-left: 4px; }
 .pcard .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .abtn { border: 0; border-radius: 6px; padding: 6px 12px; color: #fff; font-weight: 600; font-size: 13px; }
-.abtn.approve { background: var(--approve); } .abtn.reject { background: var(--reject); } .abtn.needswork { background: var(--needs); } .abtn.ask { background: var(--ask); } .abtn.file { background: var(--file); }
+.abtn.approve { background: var(--approve); } .abtn.reject { background: var(--reject); } .abtn.needswork { background: var(--needs); } .abtn.ask { background: var(--ask); } .abtn.file { background: var(--file); } .abtn.later { background: var(--p4); }
 .abtn:disabled { opacity: .4; }
 .pcard .verdict { font-size: 13px; padding: 6px 10px; border-radius: 6px; background: rgba(127,127,127,.12); }
 .pcard .thread { display: grid; gap: 6px; font-size: 13px; }

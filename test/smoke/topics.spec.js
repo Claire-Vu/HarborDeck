@@ -41,7 +41,7 @@ test('a topic arrives as one bundle; a rel link never bundles; an unopened revie
   await expect(bundle.locator('.b-row.cur .b-title')).toHaveText('Launch pricing: one plan or free + pro?');
   const review = bundle.locator('.b-row', { hasText: 'Review onboarding copy v2' });
   await expect(review.locator('input[type=checkbox]')).not.toBeChecked();
-  await expect(review.locator('.b-verb')).toHaveText('Review: not opened yet, open it to include');
+  await expect(review.locator('.b-verb')).toHaveText('Review: not opened');
   await expect(bundle.locator('.sheet-n')).toHaveText('1 row');
   await expect(page.locator('#desk-surface .paper.manifest .topic-chip')).toHaveText('#launch');
   await page.screenshot({ path: path.join(SHOTS, 'harbordeck-bundle.png') });

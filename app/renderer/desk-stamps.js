@@ -23,6 +23,7 @@ function earn(it, action, pitch) { const n = payFor(it, action); if (!n) return;
 
 // ------------------------------------------------------------ stamps
 const VERDICTS = ['approve', 'reject', 'needswork', 'ask'];
+const TRAY_LABELS = { approve: 'Approve', reject: 'Reject', needswork: 'Needs work', ask: 'Ask', later: 'Later' };
 function trayConfig(it) {
   if (!it) return {};
   return {
@@ -37,7 +38,9 @@ function renderTray(it) {
   const cfg = trayConfig(it);
   document.querySelectorAll('#stamps .stamp').forEach(b => {
     const c = cfg[b.dataset.verdict]; b.disabled = !it || !c?.show || st(it.id).awaiting; b.hidden = !!(it && c && !c.show);
-    b.querySelector('.lbl').textContent = c?.label || b.dataset.verdict; b.className = `stamp ${c?.cls || b.dataset.verdict}`;
+    // the spoken name follows the printed label (Approve turns File on a report or notice)
+    const label = c?.label || TRAY_LABELS[b.dataset.verdict]; b.querySelector('.lbl').textContent = label; b.className = `stamp ${c?.cls || b.dataset.verdict}`;
+    b.setAttribute('aria-label', b.dataset.verdict === 'ask' ? 'Ask follow-up' : label);
   });
   $('#stamps').dataset.open = String(S.prefs.tray);
 }
