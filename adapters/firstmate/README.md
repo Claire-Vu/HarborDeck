@@ -11,10 +11,11 @@ Scripts that connect any firstmate home to HarborDeck without changing firstmate
 | `hd-rules.sh <prefs.md>` | `rules.json` | a markdown preferences file such as `data/captain.md` |
 | `hd-bridge.sh` | firstmate holds and inbox notes | new lines in `answers.jsonl` (`--follow`: live, on every append) |
 | `install.sh` | CLI links, app settings, launchd agent, firstmate instructions | see [SETUP.md](SETUP.md) |
-| `wake.sh` | one typed message to the primary firstmate pane (`bin/fm-send.sh`) | the scheduler's wake command ([`docs/SCHEDULER.md`](../../docs/SCHEDULER.md)) |
+| `hd-listener.sh` | a typed wake into the open firstmate session, or a new session in herdr | `status`: will a firstmate session act on what the desk sends? `ensure`: make it so (the bridge runs it) |
+| `wake.sh` | one typed message to the primary firstmate session (`bin/fm-send.sh`), starting one when none runs | the scheduler's wake command ([`docs/SCHEDULER.md`](../../docs/SCHEDULER.md)) |
 | `hd-live.sh` | all of the above, continuously | runs the bridge in `--follow` mode and refreshes fleet (10 s), quota (120 s) and rules (on file change) |
 
-Requirements: bash, `jq`, the `harbordeck` CLI on `PATH` (or `HD=/path/to/harbordeck.js`), and `quota-axi` for the quota script.
+Requirements: bash, `jq`, the `harbordeck` CLI on `PATH` (or `HD=/path/to/harbordeck.js`), `quota-axi` for the quota script, and `herdr` for starting a firstmate session that is not running.
 
 ## Setup
 
@@ -47,13 +48,17 @@ Use the plain CLI (see `skill/SKILL.md`). Two conventions make the bridge work:
 
 | Answer | firstmate call |
 |---|---|
-| `decide` | `bin/fm-captain-hold.sh answers --source harbordeck` with `<id>\t<key>\t<option label>\tdone`; a note, if any, also goes to the inbox |
-| `approve`, `reject` | keyed answer `approve[: note]` / `reject[: note]`, mode `done` |
+| `decide` | `bin/fm-captain-hold.sh answers --source harbordeck` with `<id>\t<key>\t<option label>\tdone`, plus an inbox note naming the answer and asking firstmate to pass it to the worker waiting on that task |
+| `approve`, `reject` | keyed answer `approve[: note]` / `reject[: note]`, mode `done`, plus the same inbox note |
 | `needs-work` | keyed answer `needs-work: <note>`, mode `release` (held work resumes), plus an inbox note |
 | `ask`, `comment` | `bin/fm-inbox.sh note --request-id hd-<id>-<action>-<at> -- <text>` |
 | `request` | `bin/fm-inbox.sh note --request-id <request id> -- HarborDeck request for <to>: <note>` |
 | `file` | todo: inbox note "done"; answer: nothing to route |
+| `defer` | held task (or `<task>.qN` of one): `bin/fm-captain-hold.sh hold <task> --until <date>` plus an inbox note to park the worker; otherwise an inbox note |
 
+- **Someone acts on it.** An inbox note only queues a wake in the home; it needs a live consumer. After each batch the bridge runs `hd-listener.sh ensure`, which acts only while a note HarborDeck wrote (request id `hd-*`/`req-*`) is unacknowledged (`fm-inbox.sh receipts`): nothing when the home's watcher is live (`fm-inbox.sh ready`) or the session holding the home lock is mid-turn; a typed wake (`fm-send.sh`) into the session's own pane when a session is open but nothing listens (for example opened by hand, no turn yet, or a home with no crew, where the Stop hook arms no watcher); and when no session runs, a new tab in the herdr workspace `HD_WAKE_WORKSPACE` (default `firstmate`, created if missing) running `HD_FM_HARNESS` (default `claude`) with the wake as its first prompt (`HD_FM_START=off` to never start one; it never starts herdr itself). A wake or start is recorded in `cursors/firstmate-listener` and not repeated for `HD_LISTENER_GRACE` seconds (180). `--follow` re-checks every `HD_BRIDGE_RECHECK` seconds (30) while such a note is unread, and a (re)started bridge checks at once, so a lost keystroke, a session that died before draining, or a bridge restart never strands a note. The log says which (`hd-bridge: firstmate starting firstmate in default:w7:p1`, `... listening watcher live`, `... clear: ...`), and `fleet.json`'s main mate `state` carries the same word, which the desk shows on each waiting ticket.
+- The session is found by the home lock's pid (`fm-inbox.sh ready`), else the newest agent process whose working directory is the home. Its pane comes from that process's own environment (`HERDR_PANE_ID`/`HERDR_SESSION`, or `TMUX_PANE` on its own tmux server), so only that home's session is typed into, never a crew pane or another home.
+- The protocol is model-checked: `.agents/skills/verify-firstmate-delivery/check.sh` (TLA+ model plus these tests).
 - When a keyed answer names an item that is not a captain-held task (`fm-captain-hold.sh` reports `skipped:`), the bridge sends an inbox note instead, so no answer is lost.
 - `--echo` (or `HD_BRIDGE_MODE=echo`, which `hd-live.sh` and `install.sh --mode echo` pass through) logs each firstmate command with a timestamp instead of running it. It still asks the read-only `fm-captain-hold.sh open` predicate, so it shows exactly what live mode would do. HarborDeck-side effects still happen, and echo mode keeps its own cursor (`firstmate-bridge.echo`). `--dry-run` is a one-shot preview that changes nothing.
 - `--request-id` keys make inbox notes idempotent: replaying a line never creates a second note.

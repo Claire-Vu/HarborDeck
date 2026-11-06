@@ -29,7 +29,7 @@ The installer is idempotent. Re-run it to update or switch modes. It:
 4. Installs and starts the launchd agent `dev.harbordeck.firstmate`. It runs `hd-live.sh`: the on-answer bridge (`hd-bridge.sh --follow`), the crew feed (every 10 s), stamina (every 120 s) and standing orders (whenever `data/captain.md` changes). It logs to `~/Library/Logs/harbordeck-firstmate.log` and restarts if it exits. On a re-install it waits for the old agent to exit before loading the new one, and fails unless the new one is running.
 5. Writes the firstmate-side instructions to `<home>/data/harbordeck.md`. It also adds one standing order pointing at them to `<home>/data/captain.md`, between `<!-- harbordeck:begin/end -->` markers. Both files are in the home's private, git-ignored `data/` directory.
 
-Options: `--from <id>` signs items and replies (default `mate-main`). `--no-service` skips launchd and prints the `hd-live.sh` command instead. `--uninstall` removes the agent, the CLI links and the instructions, and keeps the data dir.
+Options: `--from <id>` signs items and replies (default `mate-main`). `--start herdr|off` (default `herdr`): when something reaches firstmate and no firstmate session runs for the home, the bridge starts one in a tab of the herdr workspace `--workspace` (default `firstmate`); `off` never starts one. `--label <launchd label>` installs a second home's agent beside the first (its log is `~/Library/Logs/<label>.log`); give that home its own `--data-dir` too. `--no-service` skips launchd and prints the `hd-live.sh` command instead. `--uninstall` removes the agent, the CLI links and the instructions, and keeps the data dir.
 
 ## Check it
 
@@ -38,6 +38,8 @@ launchctl print gui/$(id -u)/dev.harbordeck.firstmate | grep state   # state = r
 tail -f ~/Library/Logs/harbordeck-firstmate.log                       # "hd-bridge: following ...", then "hd-bridge: routed <action> <id>" per answer
 harbordeck validate                                                   # ok: 1 fleet, 1 quota, 1 rules, N items, ...
 ```
+
+The log also says, after each answer, whether firstmate will act on it: `hd-bridge: firstmate listening watcher live`, `... busy ...`, `... waking typed a wake into default:w1:p1`, `... starting firstmate in default:w7:p1`, or `... down ...` when nothing runs and none could be started. The desk shows the same on each ticket still waiting (`awaiting reply · 1m · starting up`).
 
 Then open the app and stamp something. In echo mode the log shows the exact firstmate command, for example:
 
@@ -54,7 +56,7 @@ adapters/firstmate/install.sh --fm-home ~/firstmate --mode live
 
 If answers piled up while no bridge ran (tests, or an agent that was down), the installer lists them and asks for `--pending deliver` or `--pending skip`.
 
-From then on a stamp on a held task closes that hold. An ask, a comment, a request, or a stamp on an item that is not a held task becomes an inbox note. Answers made while in echo mode are skipped, not replayed. The routing table is in [README.md](README.md#how-answers-route).
+From then on a stamp on a held task closes that hold and tells firstmate (an inbox note) so it passes the answer to the waiting worker. An ask, a comment, a request, or a stamp on an item that is not a held task becomes an inbox note. Either way, if no firstmate session is listening, the bridge wakes the open one or starts one, so opening HarborDeck is enough. Answers made while in echo mode are skipped, not replayed. The routing table is in [README.md](README.md#how-answers-route).
 
 ## Stamina bars
 
