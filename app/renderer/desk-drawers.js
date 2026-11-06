@@ -21,7 +21,7 @@ function renderOrders() {
 function renderVault() {
   const done = ITEMS.filter(i => statusOf(i) === 'resolved').map(i => ({ i, v: st(i.id).verdict })).sort((a, b) => (b.v?.at || 0) - (a.v?.at || 0));
   $('#vault-content').replaceChildren(done.length ? h('div', null, ...done.map(({ i, v }) => h('div', { class: 'entry', onclick: () => modal('viewer', i.title, plainCard(i, true)) },
-    h('div', { class: `v ink-${v?.action === 'reject' ? 'reject' : v?.action === 'file' ? 'file' : 'approve'}` }, v ? ACTION_LABEL[v.action] : 'resolved', v?.key ? `: ${v.key}` : ''), h('div', null, i.title), h('div', { class: 'c' }, `${KIND[i.kind]} · ${i.stream || i.project} · ${v ? fmtDate(v.at) + ' ' + fmtTime(v.at) : ''}`)))) :
+    h('div', { class: `v ink-${v?.action === 'reject' ? 'reject' : v?.action === 'file' ? 'file' : 'approve'}` }, v ? ACTION_LABEL[v.action] : 'resolved', v?.key ? `: ${i.options?.find(o => o.key === v.key)?.label || v.key}` : ''), h('div', null, i.title), h('div', { class: 'c' }, `${KIND[i.kind]} · ${i.project || i.stream} · ${v ? fmtDate(v.at) + ' ' + fmtTime(v.at) : ''}`)))) :
     h('p', { class: 'legend' }, 'Nothing filed yet.'));
 }
 // gaps.jsonl: responses an agent could not fit into an item kind. Listed so HarborDeck can grow new shapes.

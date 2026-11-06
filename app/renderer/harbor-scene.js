@@ -150,7 +150,7 @@ window.HarborScene = deps => {
         svg('text', { x: x + 30, y: y + 4, 'font-size': 8, fill: '#fff', 'font-family': 'monospace' }, `${b.title.length > 22 ? b.title.slice(0, 21).trimEnd() + '…' : b.title}${b.calls > 1 ? ` ×${b.calls}` : ''}`));
       strip.append(g);
     });
-    if (!v.cleared.length) strip.append(svg('text', { x: W / 2, y: 100, 'font-size': 10, fill: '#fff', 'font-family': 'monospace', 'text-anchor': 'middle' }, 'No boats went out today.'));
+    if (!v.cleared.length) strip.append(svg('text', { x: W / 2, y: H0 - 22, 'font-size': 10, fill: '#fff', 'font-family': 'monospace', 'text-anchor': 'middle' }, 'No boats went out today.'));
     const tideLine = v.tide ? (v.tide.beat ? '⚑ Beat the tide' : `Tide still coming in · ${v.waiting} moored`) : null;
     return h('div', { class: 'report recap' },
       h('div', { class: 'rp-head' }, h('span', null, `Day ${v.day}`), h('span', null, `${v.cleared.reduce((n, b) => n + b.calls, 0)} cleared · ${deps.money(v.earned)} · ${v.waiting} waiting`)),

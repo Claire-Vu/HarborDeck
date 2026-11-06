@@ -6,7 +6,9 @@
 .clock { font-family: var(--font-paper); font-size: 15px; font-variant-numeric: tabular-nums; padding: 2px 8px; border: 1px solid var(--ui-edge); border-radius: var(--radius); }
 .stat { display: inline-flex; align-items: center; gap: 4px; background: transparent; color: var(--ui-fg); border: 1px solid var(--ui-edge); border-radius: var(--radius); padding: 2px 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .stat .ic { width: 16px; height: 16px; }
-.stat#cash { color: #e9c46a; } .stat.low { color: var(--warn); } .stat.empty { color: #ff6b6b; animation: blink 1.2s steps(2) infinite; }
+.stat#cash { color: #e9c46a; } #cash-n { min-width: 5ch; } /* a growing total never shifts the usage strip */
+:root[data-theme="light"] .stat#cash { color: #8a5a00; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .stat#cash { color: #8a5a00; } } .stat.low { color: var(--warn); } .stat.empty { color: #ff6b6b; animation: blink 1.2s steps(2) infinite; }
 @keyframes blink { 50% { opacity: .4; } }
 .tools { margin-left: auto; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .sep { width: 1px; height: 22px; background: var(--ui-edge); margin: 0 4px; }

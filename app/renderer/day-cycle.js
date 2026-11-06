@@ -37,7 +37,7 @@ function openLedger() {
   const cooking = FLEET.crew.filter(c => c.state === 'working'), finished = FLEET.crew.filter(c => c.state === 'done');
   const sec = (title, body) => h('section', { class: 'rp' }, h('h3', null, title), body);
   const content = h('div', { class: 'report' },
-    h('div', { class: 'rp-head' }, h('span', null, `Day ${S.day} · ${fmtDate(t0)} ${fmtTime(t0)}`), h('span', null, `${resolved.length} cleared · ${money(cashToday)} earned · ${waiting.length} waiting`)),
+    h('div', { class: 'rp-head' }, h('span', null, `Day ${S.day} · ${fmtDate(t0)} ${fmtTime(t0)}`)),
     sec('Decided', resolved.length ? h('ul', null, resolved.map(a => { const it = byId[a.id]; const u = it ? unblocks(it) : []; return h('li', null, h('b', null, consequence(a)), u.length ? h('div', { class: 'sub-line' }, '↳ ', u.join('; ')) : h('div', { class: 'sub-line dim' }, '↳ nothing was waiting on it')); })) : h('p', { class: 'dim' }, 'Nothing cleared yet.')),
     A.filter(a => ['ask', 'needs-work', 'request'].includes(a.action)).length ? sec('Sent across the counter', h('ul', null, A.filter(a => ['ask', 'needs-work', 'request'].includes(a.action)).map(a => h('li', null, consequence(a))))) : null,
     sec('Still waiting on you', waiting.length ? h('ul', null, waiting.map(i => h('li', null, prioChip(i), ' ', i.title, h('span', { class: 'dim' }, ` · waiting ${age(t0 - i.created)}`), i.due ? [' · ', dueChip(i)] : null))) : h('p', { class: 'dim' }, 'Nothing. Clear pier.')),

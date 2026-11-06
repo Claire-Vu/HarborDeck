@@ -34,8 +34,7 @@ function staminaPanel(heading = true) { // the Stamina dialog already says it in
       h('div', { class: 'meter' }, h('span', { style: `width:${v.left || 0}%` })),
       h('div', { class: 'sub-foot' }, v.reset ? `reset at ${when}, no reading since` : `resets in ${ST.dur(v.in)} (${when})`,
         v.runsOut ? h('span', { class: 'warn' }, ` · runs out ~${staminaWhen(v.runsOut)} at this pace`) : null,
-        ` · ${v.source === 'statusline' ? 'status line' : 'quota.json'}, ${v.age == null ? 'time unknown' : ST.ago(v.age)}`, v.stale ? h('span', { class: 'warn' }, ' (stale)') : null,
-        v.left != null && v.left < 10 ? ' · nearly empty, crew will stall' : v.left != null && v.left < 25 ? ' · running low, crew yawning' : '')));
+        v.stale ? h('span', { class: 'warn' }, ' · stale') : null)));
   }
   return box;
 }

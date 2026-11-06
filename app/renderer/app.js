@@ -110,7 +110,12 @@ menuEl.addEventListener('keydown', e => {
   its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]?.focus();
 });
 document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
-$('#sched-chip').onclick = () => phone.open();
+// the chip says what is queued: it opens the first queued ticket (Withdraw is there); with nothing queued, the phone
+$('#sched-chip').onclick = () => {
+  const t = tickets().find(x => x.queued); const el = t && $('#rail').querySelector(`.ticket[data-key="${CSS.escape(t.key)}"]`);
+  if (!el) return phone.open();
+  el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); openTicket(t, el);
+};
 $('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel(false)); };
 $('#cash').onclick = () => harborScene.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };

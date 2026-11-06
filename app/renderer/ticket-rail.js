@@ -61,12 +61,12 @@ function openTicket(t, el) {
   const r = ($('#rail').querySelector(`.ticket[data-key="${CSS.escape(t.key)}"]`) || el).getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note, attachView.thumbs(t.a.attachments)),
-    t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)
+    t.queued ? h('div', { class: 'tk-r dim', title: `Held in the scheduler; it goes to ${mateLabel(t.a.to)} by itself` }, `⏳ ${queuedLabel(t.queued)} · to ${mateLabel(t.a.to)}`)
       : t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}${mateState(ticketMate(t)) ? ` (${mateState(ticketMate(t))})` : ''}. Waiting ${age(now() - t.a.at)}.`),
     t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); if (!r.ok) toast('Already sent', 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
     h('div', { class: 'row' }, t.item && statusOf(t.item) === 'open' ? h('button', { class: 'pbtn', onclick: () => { pop.remove(); if (S.prefs.plain) { S.prefs.plain = false; save(); } stepUp(t.item.id); } }, 'Open item') : null, h('button', { class: 'pbtn ghost', onclick: () => { S.tickets.done[t.key] = true; save(); pop.remove(); snd('flip'); renderRail(); } }, 'Done'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')));
   document.body.append(pop);
-  pop.style.left = Math.max(8, Math.min(window.innerWidth - 328, r.left)) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.left = `max(8px, min(${Math.round(r.left)}px, calc(100vw - 328px)))`; // stays in the window if it shrinks pop.style.top = (r.bottom + 6) + 'px';
   pop.querySelector('.pbtn')?.focus();
 }
 // Space on an item whose agent reply the captain has not opened yet: show that reply instead of deciding (once).

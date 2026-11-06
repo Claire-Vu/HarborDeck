@@ -11,7 +11,7 @@ function applyPrefs() {
   $('#btn-plain').setAttribute('aria-pressed', String(S.prefs.plain)); setMi('#btn-plain', S.prefs.plain ? 'desk' : 'plain', S.prefs.plain ? 'Back to the desk' : 'Plain mode');
   $('#desk-mode').hidden = S.prefs.plain; $('#plain-mode').hidden = !S.prefs.plain; $('#btn-inspect').disabled = S.prefs.plain;
   $('#cash-n').textContent = money(S.cash); document.body.dataset.ink = S.fun.ink || 'red'; renderStaminaMini(); renderPhoneButton();
-  const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); for (const id of ['#orders-flag', '#orders-flag2']) { $(id).hidden = !flagged; $(id).textContent = flagged; }
+  const flagged = ITEMS.filter(i => statusOf(i) === 'open').reduce((n, i) => n + flaggedCount(i), 0); for (const id of ['#orders-flag', '#orders-flag2']) { $(id).hidden = !flagged; $(id).textContent = flagged; $(id).title = `${flagged} standing-order flag${flagged === 1 ? '' : 's'} on open items`; }
 }
 function renderAll(keepDesk) {
   applyPrefs();

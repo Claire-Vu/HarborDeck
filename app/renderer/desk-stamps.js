@@ -45,7 +45,7 @@ function renderTray(it) {
   $('#stamps').dataset.open = String(S.prefs.tray);
 }
 function toggleTray(open) { S.prefs.tray = open ?? !S.prefs.tray; save(); if (!S.prefs.tray) closeStowView(); $('#stamps').dataset.open = String(S.prefs.tray); snd('flip'); }
-function stamp(verdict, toReset, pick) {
+function stamp(verdict, toReset, pick, single) { // single: this paper only, never its sheet (plain mode's own Approve)
   const it = byId[S.current]; if (!it || statusOf(it) !== 'open') { toast('Nobody at the desk.'); return; }
   const s = st(it.id); if (s.awaiting) { toast('Already sent back; wait for the reply.'); return; }
   const cfg = trayConfig(it)[verdict]; if (!cfg?.show) return;
@@ -56,7 +56,7 @@ function stamp(verdict, toReset, pick) {
     if (!until) { toast('No usage reset known; S parks it until tomorrow 9:00.'); return; }
     return later(it, until);
   }
-  if (verdict === 'approve' && bundleOf(it).length > 1) return topicView.stampBundle(it, bundleOf(it));
+  if (verdict === 'approve' && !single && bundleOf(it).length > 1) return topicView.stampBundle(it, bundleOf(it));
   if (verdict === 'approve') {
     if (it.kind === 'decision') { if (!s.choice) { toast('Pick an option on the slip first.'); return; } return finishStamp(it, 'APPROVED', 'approve', { id: it.id, action: 'decide', key: s.choice }); }
     if (it.kind === 'review') return finishStamp(it, 'APPROVED', 'approve', { id: it.id, action: 'approve' });

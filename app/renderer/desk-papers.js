@@ -144,7 +144,7 @@ function artifactPaper(it, a, i, ch) {
       h('div', { class: 'pr-num fact', onclick: e => pickFact({ type: 'point', label: host, anchor: { artifact: a.url || a.path } }, e.currentTarget) }, host),
       a.path && !fileFor(a.path) ? missing(a.path) : h('dl', { class: 'pr-meta' }, h('dt', null, 'page'), h('dd', null, h('a', { href: '#', title: a.url || a.path, onclick: e => { e.preventDefault(); openViewer(a); } }, a.url || base(a.path)))),
       h('button', { class: 'pbtn web-open', onclick: () => openViewer(a) }, 'Open in the desk browser')
-    ], pid, h('button', { class: 'ibtn', onclick: () => openViewer(a) }, 'View'));
+    ], pid);
   }
   if (type === 'pdf' || type === 'file') {
     return paper('report', type === 'pdf' ? 'Document' : 'File', [pathMeta(a.path),

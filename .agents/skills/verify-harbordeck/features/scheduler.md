@@ -7,7 +7,7 @@ Out of usage, a person queues an order for after the limit resets (or for a time
 - `sched-queue-reset` `Queue for after reset` (the button ends with the time it goes, `· <time>`, when the scheduler knows it) adds `schedule/queue/reset-<req-id>.json`; ticket `.ticket.queued` reads `waiting for reset · <time>`.
 - `sched-queue-at` time input `Send at time` + `Queue at time` queues for the next occurrence of that clock time. More than an hour away, a toast says the Mac is kept awake only from an hour before; `☕` is absent until then (if the Mac sleeps through, it goes out on wake).
 - `sched-cli` `hd schedule reset|+30m|HH:MM "<msg>" [--request]` queues from the terminal; `hd schedule list` shows it.
-- `sched-chip` `#sched-chip` shows the queued count with the first send time, or the time to reset when nothing is queued, and keep-awake as a bare `☕` (its end time in the title).
+- `sched-chip` `#sched-chip` shows the queued count with the first send time, or the time to reset when nothing is queued, and keep-awake as a bare `☕` (its end time in the title); a click opens the first queued ticket's popover (`Withdraw`), or the phone when nothing is queued.
 - `sched-awake` while anything is pending one stub caffeinate holds `-i -t <secs>`; released when nothing is pending.
 - `sched-withdraw` the queued ticket's `Withdraw` button cancels it; from the terminal `hd schedule cancel <id|item id>`.
 - `sched-deliver` after the reset, `tick` runs the wake for the limit, then writes the queued request to `answers.jsonl` and wakes for it; the ticket becomes `.ticket.waiting` with `sent`.

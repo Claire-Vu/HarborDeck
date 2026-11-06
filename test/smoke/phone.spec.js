@@ -137,10 +137,11 @@ test('queue at a time from the keyboard: Tab to the time, digits never dial, Ent
   const queued = fs.readdirSync(path.join(home, 'schedule', 'queue')).map(f => JSON.parse(fs.readFileSync(path.join(home, 'schedule', 'queue', f), 'utf8')));
   const q = queued.find(x => x.request?.note === 'Rotate the staging keys');
   expect(q.request).toMatchObject({ to: 'mate-web', id: expect.stringMatching(/^req-\d+-\d+$/) });
-  // the scheduler chip opens the phone again
+  // the scheduler chip opens what is queued: the queued ticket, with Withdraw
   await page.locator('#sched-chip').click();
-  await expect(page.locator('#phone .phone-box')).toBeVisible();
-  await page.keyboard.press('Escape');
+  await expect(page.locator('.tk-pop')).toContainText('Rotate the staging keys');
+  await expect(page.locator('.tk-pop').getByRole('button', { name: 'Withdraw' })).toBeVisible();
+  await page.locator('.tk-pop').getByRole('button', { name: 'Close' }).click();
 });
 
 test('no Requests tab: the phone is the one place to write an order', async () => {
