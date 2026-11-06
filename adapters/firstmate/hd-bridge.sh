@@ -6,7 +6,8 @@
 # Reads answers.jsonl lines added since the last run (cursor:
 # <HARBORDECK_HOME>/cursors/firstmate-bridge, advanced one line at a time, so a
 # failure retries from that line on the next run) and routes each:
-#   decide, approve, reject  -> bin/fm-captain-hold.sh answers (keyed answer, closes the hold)
+#   decide, approve, reject  -> bin/fm-captain-hold.sh answers (keyed answer, closes the hold), plus an inbox
+#                               note saying what was decided, so firstmate wakes and tells the waiting worker
 #   needs-work               -> keyed answer with mode release (held work resumes) + inbox note
 #   ask, comment, request    -> bin/fm-inbox.sh note --request-id (idempotent); an Inspect "match:"
 #                               comment (a positive confirmation) is skipped, not inbox noise; a line with
@@ -14,13 +15,16 @@
 #   defer (Later stamp)      -> bin/fm-captain-hold.sh hold <task> --until <date> (a <task>.qN question
 #                               defers its held task), else an inbox note. The hold takes a date only and
 #                               lifts ON that date, so <date> is the first local date at or after `until`
-#                               (rounded up: never early); the reason carries the exact local time
+#                               (rounded up: never early); the reason carries the exact local time; plus an
+#                               inbox note, so firstmate parks the worker waiting on it
 #   file on a todo           -> inbox note ("done"); file on an answer -> nothing to route
 # A keyed answer whose item id is not a captain-held task falls back to an
 # inbox note, so no answer is ever dropped. decide/approve/reject/file also mark
 # the item resolved. Item ids should therefore equal firstmate task ids when an
 # item stands for a captain hold. Each note ends with the exact `harbordeck
 # reply` command to answer on the desk.
+# After each batch that reached firstmate, `hd-listener.sh ensure` makes sure a firstmate session acts on it:
+# it wakes an open session nothing listens in, or starts one when none runs, and the log says which.
 # Images the captain attached (pasted, dropped or snapped on the desk; copies under
 # <HARBORDECK_HOME>/attachments/) ride along as "Attached: <paths>" before that
 # command; a keyed decide/approve/reject that carries one also sends the note.
@@ -54,6 +58,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 HD_HOME=$("$HD" path)
+here=$(cd "$(dirname "$0")" && pwd)
+SENT=0  # set when a batch reached firstmate (then the listener check runs)
 CURSOR="$HD_HOME/cursors/firstmate-bridge"
 [ "$echo_mode" = 0 ] || CURSOR="$CURSOR.echo"
 SOURCE=harbordeck
@@ -84,7 +90,7 @@ keyed() {  # <id> <answer> <label> <mode> -> 0 when the hold was closed
   fi
   out=$(printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" | "$FM_HOME/bin/fm-captain-hold.sh" answers --source "$SOURCE" 2>&1) || rc=$?
   printf '%s\n' "$out"
-  [ "$rc" = 0 ] && ! grep -q '^skipped:\|^refused:' <<<"$out"
+  [ "$rc" = 0 ] && ! grep -q '^skipped:\|^refused:' <<<"$out" && SENT=1
 }
 
 held() {  # <task-id> -> 0 when firstmate holds it for the captain (read-only predicate)
@@ -93,11 +99,16 @@ held() {  # <task-id> -> 0 when firstmate holds it for the captain (read-only pr
 }
 
 note() {  # <request-id> <text>
-  fm "$FM_HOME/bin/fm-inbox.sh" note --request-id "$1" -- "$2"
+  local out rc=0
+  out=$(fm "$FM_HOME/bin/fm-inbox.sh" note --request-id "$1" -- "$2") || rc=$?
+  # fm-inbox promises a pickup "at its next check"; whether anything checks is the listener's call (logged after)
+  [ -z "$out" ] || grep -v 'will pick this up at its next check' <<<"$out" || true
+  [ "$rc" = 0 ] || return "$rc"
+  SENT=1
 }
 
 route() {  # <answer json>; returns nonzero when firstmate did not take it
-  local a=$1 id action key note at to anchor att title='' kind='' label text rid reply until when day task so=''
+  local a=$1 id action key note at to anchor att title='' kind='' label text rid reply until when day task so='' closed
   id=$(jq -r '.id' <<<"$a"); action=$(jq -r '.action' <<<"$a")
   key=$(jq -r '.key // ""' <<<"$a"); note=$(jq -r '.note // ""' <<<"$a"); at=$(jq -r '.at // 0' <<<"$a")
   to=$(jq -r '.to // "any mate"' <<<"$a"); anchor=$(jq -c '.anchor // empty' <<<"$a")
@@ -108,6 +119,8 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
   fi
   # "Remember this" (rule: true): a standing order, so firstmate files it with the captain's preferences
   [ "$(jq -r '.rule // false' <<<"$a")" != true ] || so=" Standing order: file it in your captain preferences, then record it with hd-rules (answer id $id)."
+  # a keyed answer that closed the hold: firstmate still has to pass it to whoever waits on that task
+  closed="The hold on $id is closed with this answer: pass it to any worker waiting on $id now."
   rid="hd-$id-$action-$at"
   rid=${rid:0:128}
   text="HarborDeck $action on $id${title:+ \"$title\"}"
@@ -117,14 +130,14 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       label=$(jq -r --arg k "$key" '[.options[]? | select(.key == $k) | .label][0] // ""' "$HD_HOME/items/$id.json" 2>/dev/null || true)
       text="$text: $key${label:+ ($label)}${note:+ - $note}${att:+. Attached: $att}"
       if keyed "$id" "$key" "$label" done; then
-        [ -z "$note$att" ] || note "$rid" "$text" || return 1
+        note "$rid" "$text. $closed" || return 1
       else
         note "$rid" "$text" || return 1
       fi ;;
     approve|reject)
       text="$text${note:+: $note}${att:+. Attached: $att}"
       if keyed "$id" "$action${note:+: $note}" "" done; then
-        [ -z "$att" ] || note "$rid" "$text" || return 1
+        note "$rid" "$text. $closed" || return 1
       else
         note "$rid" "$text" || return 1
       fi ;;
@@ -150,6 +163,8 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
       held "$task" || { [[ $id =~ \.q[0-9]+$ ]] && held "${id%.q*}" && task=${id%.q*}; } || task=''
       if [ -n "$task" ]; then
         fm "$FM_HOME/bin/fm-captain-hold.sh" hold "$task" --reason "captain deferred $id on HarborDeck until $when" --until "$day" || return 1
+        SENT=1
+        note "$rid" "$text: later, back on the desk $when${note:+ - $note}. Held until $day: park any worker waiting on $task until then." || return 1
       else
         note "$rid" "$text: later, back on the desk $when${note:+ - $note}" || return 1
       fi ;;
@@ -169,7 +184,7 @@ once() {
     end=$(jq -r '.end' <<<"$line")
     a=$(jq -c '.answer // empty' <<<"$line")
     if [ -n "$a" ]; then
-      route "$a" || { log "routing failed at offset $off: $a; will retry"; return 1; }
+      route "$a" || { log "routing failed at offset $off: $a; will retry"; listen; return 1; }
       [ "$dry" = 1 ] || log "routed $(jq -r '"\(.action) \(.id)"' <<<"$a")"
     else
       log "skipping unparseable line ending at $end"
@@ -177,6 +192,18 @@ once() {
     off=$end
     if [ "$dry" = 0 ]; then mkdir -p "$(dirname "$CURSOR")"; printf '%s\n' "$off" > "$CURSOR"; fi
   done < <(jq -c '.lines[]' <<<"$batch")
+  listen
+}
+
+listen() {  # after a batch reached firstmate: make sure a session acts on it (wake or start one), and say which
+  [ "$SENT" = 1 ] && [ "$dry" = 0 ] || return 0
+  SENT=0
+  local out
+  out=$(HD=$HD "$here/hd-listener.sh" ensure $([ "$echo_mode" = 0 ] || echo --echo) || true)
+  # echo mode: the wake or start it would make, as "<time> would ..." like every other firstmate command
+  grep '^would ' <<<"$out" | while IFS= read -r l; do printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$l"; done || true
+  log "firstmate $(tail -n 1 <<<"$out" | grep . || echo 'state unknown')"
+  HD=$HD "$here/hd-fleet.sh" >/dev/null 2>&1 || true   # the desk shows that state now, not at the next feed tick
 }
 
 if [ "$follow" = 1 ]; then

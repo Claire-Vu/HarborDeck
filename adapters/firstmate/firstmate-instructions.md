@@ -39,15 +39,17 @@ It lands live on the topic page and the item's correspondence, so it is not lost
 
 ## Answers come back by themselves
 
-The HarborDeck bridge (launchd job `dev.harbordeck.firstmate`) routes every stamp the moment it lands:
+The HarborDeck bridge (launchd job `@LABEL@`) routes every stamp the moment it lands:
 
-- decide / approve / reject on a held task: a keyed answer through `bin/fm-captain-hold.sh answers --source harbordeck` (closes the hold); `needs-work` releases the hold and also sends an inbox note.
-- defer (the captain's **Later** stamp) on a held task, or on a `<task-id>.qN` question of one: `bin/fm-captain-hold.sh hold <task-id> --until <date>`. The reason names the exact local time the item comes back on the desk (`until YYYY-MM-DD HH:MM`); `<date>` is the first date at or after it, since the hold takes a date only. Park that work until that time; the item stays open.
+- decide / approve / reject on a held task: a keyed answer through `bin/fm-captain-hold.sh answers --source harbordeck` (closes the hold), plus an inbox note `HarborDeck decide on <task-id> ...: <answer>. The hold on <task-id> is closed with this answer: pass it to any worker waiting on <task-id> now.` The hold is already closed: do not answer it again. Send the decision to the worker parked on that task (`bin/fm-send.sh <task-id> '<the decision>'`) the moment the note arrives; if none waits, act on it as the next step of that work. `needs-work` releases the hold and also sends an inbox note.
+- defer (the captain's **Later** stamp) on a held task, or on a `<task-id>.qN` question of one: `bin/fm-captain-hold.sh hold <task-id> --until <date>`, plus an inbox note saying so. The reason names the exact local time the item comes back on the desk (`until YYYY-MM-DD HH:MM`); `<date>` is the first date at or after it, since the hold takes a date only. Park that work, and tell its waiting worker, until that time; the item stays open.
 - ask / comment / request, and stamps on items that are not held tasks: an inbox note starting `HarborDeck <action> on <id>`, ending with the exact reply command.
 - A `comment` on a running order or task id (the captain's **Add to…** on the phone) is an addition to that work: steer the worker already on it, do not start a new task.
 - **Screenshots**: a note that says `Attached: <path>[, <path>]` carries images the captain pasted, dropped or snapped (the marked-up copy first when they drew pins, boxes or arrows; the pin notes are already in the text as `[1] …`). The files are durable desk copies in the data directory's `attachments/` folder. Look at each image yourself, then `cp` it into `data/<task>/refs/` and name those files in the brief or `fm-send` so the worker can view them. Never describe an image instead of passing it on, and never commit a captain screenshot to any repository.
 
 - An inbox note containing `Standing order:` is a captain rule (the captain ticked "Remember this"). Do the work as asked, and also file the rule as a bullet in the captain preferences file with the trailing marker `{@<answer id>}` (the id is in the note), then refresh the desk with `hd-rules.sh <preferences file>`. It then shows in the desk's Standing orders list with a pin. Never drop it as a one-off.
+
+- **HarborDeck wakes you.** After anything reaches your inbox, the bridge checks that a session will act on it. When your watcher is not live and you are not mid-turn, it types `HarborDeck: the captain sent you something on the desk...` into this session; when no session runs for this home, it starts one in the herdr workspace `@WORKSPACE@` with that line as the first prompt. On that line: run your session start if this session has not, drain your wakes, and act on each HarborDeck note. The desk shows the captain whether you are listening, busy, being woken, starting, or down.
 
 Answer every ask with `harbordeck reply <id> "<text>"`; the reply lands on the captain's ticket rail. When a hold closes another way (chat, terminal), run `harbordeck resolve <id>` so the desk matches.
 

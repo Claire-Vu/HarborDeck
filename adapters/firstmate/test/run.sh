@@ -23,7 +23,14 @@ if [ "$id" = held-1 ] || [ "$id" = held-2 ]; then echo "closed: $id"; else echo 
 EOF
 cat > "$FM_HOME/bin/fm-inbox.sh" <<'EOF'
 #!/usr/bin/env bash
+# ready: the home's readiness projection, listening unless a test writes ready.json
+if [ "$1" = ready ]; then cat "$FM_HOME/ready.json" 2>/dev/null || echo '{"lock":{"state":"held","pid":null,"live_harness":true},"wake_consumer":{"reason":"supervised"},"can_receive":true}'; exit 0; fi
 printf 'inbox %s\n' "$*" >> "$FM_HOME/calls.log"
+echo "noted: n1"; echo "  firstmate will pick this up at its next check."
+EOF
+cat > "$FM_HOME/bin/fm-send.sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'send %s | %s\n' "$1" "$2" >> "$FM_HOME/calls.log"; exit "${SEND_RC:-0}"
 EOF
 cat > "$FM_HOME/bin/fm-crew-state.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -41,6 +48,7 @@ fleet="$HARBORDECK_HOME/fleet.json"
 check "fleet: crew states mapped" test "$(jq -c '[.crew[] | [.id, .state]]' "$fleet")" = '[["a","working"],["b","waiting"]]'
 check "fleet: crew linked to its item" test "$(jq -r '.crew[] | select(.id == "b") | .item' "$fleet")" = b
 check "fleet: secondmate is counter staff" test "$(jq -c '[.firstmates[].id]' "$fleet")" = '["mate-main","sm"]'
+check "fleet: main mate state is the listener's" test "$(jq -r '.firstmates[0].state' "$fleet")" = listening
 check "fleet: project basenames" test "$(jq -c '[.regulars[].id]' "$fleet")" = '["bakery-site","weather-app"]'
 
 # who's waiting: crew blocked/paused on an item by id, hold question (<task>.qN) or topic
@@ -158,9 +166,11 @@ check "bridge --echo: own cursor advanced, live cursor untouched" test -s "$tmp/
 HARBORDECK_HOME="$tmp/hd-echo" "$here/hd-bridge.sh" --echo > "$tmp/echo2.txt" 2>/dev/null
 check "bridge --echo: second run routes nothing" test ! -s "$tmp/echo2.txt"
 "$HD" answers --since-offset 0 >/dev/null
-"$here/hd-bridge.sh" >/dev/null 2>&1
+"$here/hd-bridge.sh" > "$tmp/bridge.out" 2> "$tmp/bridge.err"
 log="$FM_HOME/calls.log"
 check "bridge: held decision is a keyed answer" grep -qF "hold answers --source harbordeck | held-1	ship	Ship today	done" "$log"
+check "bridge: closed hold also wakes firstmate to tell the worker" grep -qF 'request-id hd-held-1-decide-1 -- HarborDeck decide on held-1 "Ship 2.4?": ship (Ship today). The hold on held-1 is closed with this answer: pass it to any worker waiting on held-1 now.' "$log"
+check "bridge: Later on a held task also tells firstmate to park the worker" grep -qF 'request-id hd-held-4-defer-11 -- HarborDeck defer on held-4 "Rollout?": later, back on the desk 2026-11-05 00:00. Held until 2026-11-05: park any worker waiting on held-4 until then.' "$log"
 check "bridge: unheld decision falls back to a note" grep -qF 'inbox note --request-id hd-free-1-decide-2 -- HarborDeck decide on free-1 "Palette?": warm (Warm) - cozier' "$log"
 check "bridge: needs-work releases and notes" grep -qF "held-2	needs-work: slower voice		release" "$log"
 check "bridge: needs-work note says how to reply" grep -qF "HarborDeck needs-work on held-2 \"Video\": slower voice. Reply: $HD reply held-2" "$log"
@@ -181,6 +191,8 @@ check "bridge: request carries its image" grep -qF "request-id req-11 -- HarborD
 check "bridge: keyed reject with an image also notes it" grep -qF "request-id hd-held-1-reject-17 -- HarborDeck reject on held-1 \"Ship 2.4?\". Attached: /hd/attachments/2026-10/dd.png" "$log"
 check "bridge: an Inspect match is not inbox noise" test "$(grep -c 'res-1-comment-18' "$log")" = 0
 check "bridge: answers without images say nothing about them" test "$(grep -c 'Attached:' "$log")" = 3
+check "bridge: never repeats fm-inbox's unchecked pickup promise" test "$(grep -c 'next check' "$tmp/bridge.out")" = 0
+check "bridge: says whether firstmate will act (listener verdict)" grep -qE 'hd-bridge: firstmate listening watcher live' "$tmp/bridge.err"
 check "bridge: deferred item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-3.q2.json")" = open
 check "bridge: asked item stays open" test "$(jq -r .status "$HARBORDECK_HOME/items/held-2.json")" = open
 before=$(wc -l < "$log")
@@ -196,6 +208,64 @@ for _ in $(seq 1 50); do grep -q 'hd-res-1-comment-8' "$log" && break; sleep 0.1
 kill "$follower" 2>/dev/null; wait "$follower" 2>/dev/null || true
 check "bridge --follow: new answer routed live" grep -q 'hd-res-1-comment-8' "$log"
 check "bridge --follow: logs start and each route with a time" bash -c "grep -qE '^[0-9TZ:-]+ hd-bridge: following ' '$tmp/follow.err' && grep -qE '^[0-9TZ:-]+ hd-bridge: routed comment res-1' '$tmp/follow.err'"
+
+# listener: wake an open session nothing listens in, start one when none runs, never twice in a burst
+mkdir -p "$tmp/hbin"
+cat > "$tmp/hbin/herdr" <<'EOF'
+#!/usr/bin/env bash
+echo "herdr $*" >> "$FM_HOME/herdr.log"
+case "$1 $2" in
+  "agent get") printf '{"result":{"agent":{"agent_status":"%s"}}}\n' "${AGENT_STATUS:-idle}" ;;
+  "workspace list") [ -z "${NO_HERDR:-}" ] || exit 1; echo '{"result":{"workspaces":[{"workspace_id":"w1","label":"other"}]}}' ;;
+  "workspace create") echo '{"result":{"root_pane":{"pane_id":"w7:p1"}}}' ;;
+  "tab create") echo '{"result":{"root_pane":{"pane_id":"w1:p4"}}}' ;;
+  "agent start") ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$tmp/hbin/herdr"
+L() { PATH="$tmp/hbin:$PATH" "$here/hd-listener.sh" "$@" 2>/dev/null; }
+ready() {  # <lock state> <pid or empty> <can_receive>
+  printf '{"lock":{"state":"%s","pid":%s,"live_harness":%s},"wake_consumer":{"reason":"no-beacon"},"can_receive":%s}\n' \
+    "$1" "${2:-null}" "$([ "$1" = held ] && echo true || echo false)" "$3" > "$FM_HOME/ready.json"
+}
+fresh() { rm -f "$HARBORDECK_HOME/cursors/firstmate-listener" "$FM_HOME/herdr.log"; : > "$log"; }
+sends() { grep -c '^send ' "$log" || true; }
+# a stand-in session process: its pane is in its own environment, as herdr sets it (node: ps -E can read it)
+HERDR_PANE_ID=w9:p9 node -e 'setTimeout(() => {}, 60000)' & sess=$!
+sleep 0.5
+fresh; ready held "$sess" false
+check "listener: open session with no watcher is idle" grep -q "^idle session pid $sess in default:w9:p9" <(L status)
+check "listener: a session mid-turn is busy, not woken" grep -q '^busy ' <(AGENT_STATUS=working L status)
+L ensure > "$tmp/l.txt"
+check "listener: ensure types one wake into that session's own pane" grep -q '^send default:w9:p9 | HarborDeck: the captain sent you something' "$log"
+check "listener: and says it is waking it" grep -q '^waking ' "$tmp/l.txt"
+L ensure > "$tmp/l.txt"
+check "listener: a second answer in the burst does not wake again" test "$(sends)" = 1
+HD_LISTENER_GRACE=0 L ensure >/dev/null
+check "listener: past the grace it wakes again" test "$(sends)" = 2
+check "listener: a watcher that comes up wins over the record" grep -q '^listening ' <(ready held "$sess" true; L status)
+kill "$sess" 2>/dev/null; wait "$sess" 2>/dev/null || true
+fresh; ready free '' false
+check "listener: no session is down" grep -q '^down no firstmate session' <(L status)
+rc=0; HD_FM_START=off L ensure >/dev/null || rc=$?
+check "listener: HD_FM_START=off leaves it down" test "$rc" = 1 -a ! -s "$log" -a ! -e "$FM_HOME/herdr.log"
+L ensure > "$tmp/l.txt"
+check "listener: down starts a session in a new firstmate workspace" grep -q '^starting firstmate in default:w7:p1' "$tmp/l.txt"
+check "listener: claude started there in the home" grep -qF "herdr workspace create --cwd $(cd "$FM_HOME" && pwd -P) --label firstmate --no-focus" "$FM_HOME/herdr.log"
+check "listener: then the wake is its first prompt" grep -q '^send default:w7:p1 | HarborDeck: ' "$log"
+check "listener: starting until it listens" grep -q '^starting ' <(L status)
+L ensure >/dev/null
+check "listener: never starts a second session in the burst" test "$(grep -c 'agent start firstmate --kind claude --pane w7:p1' "$FM_HOME/herdr.log")" = 1
+fresh
+HD_WAKE_WORKSPACE=other L ensure >/dev/null
+check "listener: an existing workspace gets a new tab" grep -qF "herdr tab create --workspace w1 --cwd $(cd "$FM_HOME" && pwd -P) --label firstmate --no-focus" "$FM_HOME/herdr.log"
+fresh
+rc=0; NO_HERDR=1 L ensure >/dev/null || rc=$?
+check "listener: no herdr server, nothing started (it never starts herdr)" test "$rc" = 1 -a ! -s "$log"
+rc=0; NO_HERDR=1 PATH="$tmp/hbin:$PATH" "$here/wake.sh" <<<"reset done" >/dev/null 2>&1 || rc=$?
+check "wake.sh: no session and none startable is 75 (retry next tick)" test "$rc" = 75
+fresh; rm -f "$FM_HOME/ready.json"
 
 # hd-live: bridge follows, snapshots refresh, everything stops together
 rm -f "$HARBORDECK_HOME/fleet.json" "$HARBORDECK_HOME/rules.json"

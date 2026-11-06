@@ -13,6 +13,8 @@
 # id or task id is the item's topic. Only changed lists are written, in one
 # `harbordeck batch`, so a quiet fleet costs no writes. --print writes fleet.json
 # to stdout instead of installing through `harbordeck fleet -`, and sets nothing.
+# The main mate's state is hd-listener.sh's verdict: listening, busy, idle,
+# waking, starting, down or unknown.
 # Env: FM_HOME (required), HD (default: harbordeck), HD_MATE_ID (default:
 # mate-main), HD_MATE_LABEL (default: First Mate).
 set -euo pipefail
@@ -22,6 +24,9 @@ HD=${HD:-harbordeck}
 MATE=${HD_MATE_ID:-mate-main}
 MATE_LABEL=${HD_MATE_LABEL:-First Mate}
 HD_HOME=$("$HD" path)
+here=$(cd "$(dirname "$0")" && pwd)
+# the main mate's state is whether a firstmate session will act on what the desk sends (hd-listener.sh)
+mate_state=$(HD=$HD "$here/hd-listener.sh" status 2>/dev/null | cut -d' ' -f1 | grep . || echo unknown)
 
 meta_get() {  # <file> <key>
   sed -n "s/^$2=//p" "$1" | head -n 1
@@ -63,9 +68,9 @@ rows=$(
   done
 )
 
-fleet=$(jq -s --arg mate "$MATE" --arg label "$MATE_LABEL" '
+fleet=$(jq -s --arg mate "$MATE" --arg label "$MATE_LABEL" --arg ms "$mate_state" '
   {generated: (now | floor), day: (now | strftime("%Y-%m-%d")),
-   firstmates: ([{id: $mate, label: $label, state: "attending"}]
+   firstmates: ([{id: $mate, label: $label, state: $ms}]
      + [.[] | select(.kind == "secondmate")
          | {id, label: (.project // .id), domain: (.project // ""), harness, model, state: "attending"}
          | with_entries(select(.value != null))]),

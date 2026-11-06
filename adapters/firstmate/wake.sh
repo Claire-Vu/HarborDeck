@@ -4,14 +4,16 @@
 # Usage: harbordeck scheduler config --wake-command "FM_HOME=/path/to/home /path/to/wake.sh"
 #
 # Delivers the scheduler's message (stdin, else $HARBORDECK_MESSAGE) as one typed
-# message to the primary firstmate pane through the home's own bin/fm-send.sh.
+# message to the primary firstmate session through the home's own bin/fm-send.sh.
 # Firstmate then resumes supervision and nudges stalled crew; this never types into
-# crew panes. Target: $HD_WAKE_TARGET (<herdr-session>:<pane-id>), else the single
-# agent pane in the herdr workspace labeled $HD_WAKE_WORKSPACE (default firstmate),
-# in herdr session $HD_WAKE_SESSION (default "default").
+# crew panes. Target: $HD_WAKE_TARGET (<herdr-session>:<pane-id>), else the pane of
+# the session holding the home's lock, or of the newest session opened in the home
+# (hd-listener.sh). When no session runs, hd-listener.sh starts one (HD_FM_START,
+# default herdr) with this message as its first prompt.
 # Exit: fm-send's own code (0 confirmed, 3 typed but unconfirmed: the scheduler
-# counts both as delivered and never retypes); 75 when no target pane is found
-# (the scheduler retries next tick without spending an attempt); 2 on bad setup.
+# counts both as delivered and never retypes); 75 when no session runs and none
+# could be started (the scheduler retries next tick without spending an attempt);
+# 2 on bad setup.
 set -euo pipefail
 
 FM_HOME=${FM_HOME:-}
@@ -23,20 +25,5 @@ msg=$(cat || true)
 [ -n "$msg" ] || msg=${HARBORDECK_MESSAGE:-}
 [ -n "$msg" ] || { echo "wake.sh: empty message" >&2; exit 2; }
 
-target=${HD_WAKE_TARGET:-}
-if [ -z "$target" ]; then
-  label=${HD_WAKE_WORKSPACE:-firstmate}
-  if ! spaces=$(herdr workspace list 2>&1) || ! agents=$(herdr agent list 2>&1); then
-    echo "wake.sh: herdr unavailable: ${spaces:0:200} ${agents:-}" >&2; exit 75
-  fi
-  panes=$(jq -r --arg l "$label" --argjson s "$spaces" '
-    ([$s.result.workspaces[] | select(.label == $l) | .workspace_id]) as $ids
-    | [.result.agents[] | select(.workspace_id as $w | $ids | index($w)) | .pane_id] | .[]' <<<"$agents")
-  n=$(grep -c . <<<"$panes" || true)
-  if [ "$n" != 1 ]; then
-    echo "wake.sh: expected one agent pane in herdr workspace '$label', found $n" >&2; exit 75
-  fi
-  target="${HD_WAKE_SESSION:-default}:$panes"
-fi
-
-exec "$FM_HOME/bin/fm-send.sh" "$target" "$msg"
+[ -z "${HD_WAKE_TARGET:-}" ] || exec "$FM_HOME/bin/fm-send.sh" "$HD_WAKE_TARGET" "$msg"
+exec "$(cd "$(dirname "$0")" && pwd)/hd-listener.sh" send "$msg"

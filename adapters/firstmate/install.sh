@@ -3,6 +3,7 @@
 #
 # Usage: adapters/firstmate/install.sh [--fm-home <dir>] [--data-dir <dir>] [--mode live|echo] [--from <id>]
 #                                      [--pending deliver|skip] [--bin-dir <dir>] [--settings-dir <dir>] [--no-service] [--uninstall]
+#                                      [--start herdr|off] [--workspace <herdr label>] [--label <launchd label>]
 #
 #  1. Links the `harbordeck` and `hd` commands into --bin-dir (default ~/.local/bin).
 #  2. Creates the data dir (default $HARBORDECK_HOME or ~/.harbordeck) and points the app at it, with the
@@ -11,9 +12,12 @@
 #     to live, so answers written before (tests, echo runs) are never replayed into firstmate. On a re-install,
 #     answers past the cursor (written while the bridge was down) need --pending: deliver routes them, skip drops
 #     them (cursor to the end); without it install.sh lists them and stops before changing anything.
-#  4. On macOS, installs and (re)starts the launchd agent dev.harbordeck.firstmate, which runs hd-live.sh:
+#  4. On macOS, installs and (re)starts the launchd agent dev.harbordeck.firstmate (--label), which runs hd-live.sh:
 #     the on-answer bridge (--follow) plus fleet, quota and rules feeders, and fails unless it is running after. --mode echo makes the bridge log
 #     the firstmate commands instead of running them. Elsewhere, or with --no-service, prints the command.
+#     When something reaches firstmate and no session acts on it, the bridge wakes the open session or, with
+#     --start herdr (default), starts one in the herdr workspace --workspace (default firstmate); --start off never
+#     starts one. A second home needs its own --label (and --data-dir), so the two agents never replace each other.
 #  5. Writes the firstmate-side instructions to <fm-home>/data/harbordeck.md and one standing order
 #     pointing at them into <fm-home>/data/captain.md (between harbordeck markers, replaced on re-run).
 set -euo pipefail
@@ -29,6 +33,9 @@ service=1
 uninstall=0
 pending=''
 settings_dir=''
+start=herdr
+workspace=firstmate
+LABEL=dev.harbordeck.firstmate
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --fm-home) shift; fm_home=${1:?} ;;
@@ -38,9 +45,12 @@ while [ "$#" -gt 0 ]; do
     --bin-dir) shift; bin_dir=${1:?} ;;
     --pending) shift; pending=${1:?} ;;
     --settings-dir) shift; settings_dir=${1:?} ;;
+    --start) shift; start=${1:?} ;;
+    --workspace) shift; workspace=${1:?} ;;
+    --label) shift; LABEL=${1:?} ;;
     --no-service) service=0 ;;
     --uninstall) uninstall=1 ;;
-    -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "install.sh: unknown argument $1 (see --help)" >&2; exit 2 ;;
   esac
   shift
@@ -49,11 +59,12 @@ done
 fm_home=$(cd "$fm_home" && pwd)
 case "$mode" in live|echo) ;; *) echo "install.sh: --mode is live or echo" >&2; exit 2 ;; esac
 case "$pending" in ''|deliver|skip) ;; *) echo "install.sh: --pending is deliver or skip" >&2; exit 2 ;; esac
+case "$start" in herdr|off) ;; *) echo "install.sh: --start is herdr or off" >&2; exit 2 ;; esac
 case "$data_dir" in "~"*) data_dir=$HOME${data_dir#\~} ;; esac
 
-LABEL=dev.harbordeck.firstmate
 plist=$HOME/Library/LaunchAgents/$LABEL.plist
 log=$HOME/Library/Logs/harbordeck-firstmate.log
+[ "$LABEL" = dev.harbordeck.firstmate ] || log=$HOME/Library/Logs/$LABEL.log
 instructions=$fm_home/data/harbordeck.md
 prefs=$fm_home/data/captain.md
 BEGIN='<!-- harbordeck:begin -->'
@@ -126,7 +137,7 @@ if [ ! -e "$cursor" ] || { [ "$mode" = live ] && [ "$was_echo" = 1 ]; }; then
 fi
 
 # 4. live feeders + on-answer bridge
-live_cmd="FM_HOME=$fm_home HD=$HD HARBORDECK_HOME=$data_dir HARBORDECK_FROM=$from HD_BRIDGE_MODE=$mode $here/hd-live.sh"
+live_cmd="FM_HOME=$fm_home HD=$HD HARBORDECK_HOME=$data_dir HARBORDECK_FROM=$from HD_BRIDGE_MODE=$mode HD_FM_START=$start HD_WAKE_WORKSPACE=$workspace $here/hd-live.sh"
 if [ "$service" = 1 ] && [ "$(uname)" = Darwin ]; then
   mkdir -p "$(dirname "$plist")" "$(dirname "$log")"
   x() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
@@ -144,6 +155,8 @@ if [ "$service" = 1 ] && [ "$(uname)" = Darwin ]; then
     <key>HARBORDECK_HOME</key><string>$(x "$data_dir")</string>
     <key>HARBORDECK_FROM</key><string>$(x "$from")</string>
     <key>HD_BRIDGE_MODE</key><string>$mode</string>
+    <key>HD_FM_START</key><string>$start</string>
+    <key>HD_WAKE_WORKSPACE</key><string>$(x "$workspace")</string>
     <key>PATH</key><string>$(x "$PATH")</string>
   </dict>
   <key>WorkingDirectory</key><string>$(x "$fm_home")</string>
@@ -168,7 +181,7 @@ EOF
   for _ in $(seq 1 50); do launchctl print "$domain/$LABEL" 2>/dev/null | grep -q 'state = running' && break; sleep 0.2; done
   launchctl print "$domain/$LABEL" 2>/dev/null | grep -q 'state = running' || {
     echo "install.sh: launchd agent $LABEL is not running; last log lines:" >&2; tail -5 "$log" >&2 2>/dev/null; exit 1; }
-  say "service: launchd agent $LABEL running hd-live.sh (bridge mode: $mode), log $log"
+  say "service: launchd agent $LABEL running hd-live.sh (bridge mode: $mode, start firstmate: $start), log $log"
 else
   say "service: not installed; run this under your process supervisor or a terminal pane:"
   say "  $live_cmd"
@@ -176,7 +189,7 @@ fi
 
 # 5. firstmate-side instructions (private: the home's data/ dir)
 home_env=''; [ "$data_dir" = "$HOME/.harbordeck" ] || home_env=", \`HARBORDECK_HOME=$data_dir\`"
-sed -e "s|@HD_HOME@|$data_dir|g" -e "s|@FROM@|$from|g" -e "s|@HOME_ENV@|$home_env|g" "$here/firstmate-instructions.md" > "$instructions"
+sed -e "s|@HD_HOME@|$data_dir|g" -e "s|@FROM@|$from|g" -e "s|@HOME_ENV@|$home_env|g" -e "s|@LABEL@|$LABEL|g" -e "s|@WORKSPACE@|$workspace|g" "$here/firstmate-instructions.md" > "$instructions"
 touch "$prefs"
 strip_block
 {

@@ -360,32 +360,34 @@ test('install from the app bundle: the plist runs the app runtime as Node; hooks
   assert.match(r.stdout, /"command": "'\/Apps\/Harbor Deck\.app\/x\/hd-app' limit record"/);
 });
 
-test('firstmate wake preset: finds the firstmate pane and calls fm-send with FM_HOME', () => {
+test('firstmate wake preset: types into the pane of the session holding the home lock, with FM_HOME', async () => {
   const root = fileURLToPath(new URL('../../adapters/firstmate/wake.sh', import.meta.url));
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hd-fm-'));
-  const fm = path.join(tmp, 'fm'); const bin = path.join(tmp, 'bin');
-  fs.mkdirSync(path.join(fm, 'bin'), { recursive: true }); fs.mkdirSync(bin);
+  const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'hd-fm-')));
+  const fm = path.join(tmp, 'fm');
+  fs.mkdirSync(path.join(fm, 'bin'), { recursive: true });
   fs.writeFileSync(path.join(fm, 'bin', 'fm-send.sh'), `#!/bin/sh\nprintf '%s|%s|%s\\n' "$FM_HOME" "$1" "$2" >> "${tmp}/sent"\nexit \${SEND_RC:-0}\n`);
-  fs.writeFileSync(path.join(bin, 'herdr'), `#!/bin/sh
-case "$1 $2" in
-  "workspace list") echo '{"result":{"workspaces":[{"workspace_id":"w1","label":"firstmate"},{"workspace_id":"w2","label":"other"}]}}' ;;
-  "agent list") [ -n "$NO_AGENT" ] && echo '{"result":{"agents":[]}}' || echo '{"result":{"agents":[{"workspace_id":"w2","pane_id":"p9"},{"workspace_id":"w1","pane_id":"p3"}]}}' ;;
-  *) exit 1 ;;
-esac
+  // the lock holder: a process whose environment names its herdr pane, as herdr sets it for every pane
+  const { spawn } = await import('node:child_process');
+  const sess = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { env: { ...process.env, HERDR_PANE_ID: 'w1:p3' }, stdio: 'ignore' });
+  await new Promise(r => setTimeout(r, 300));
+  fs.writeFileSync(path.join(fm, 'bin', 'fm-inbox.sh'), `#!/bin/sh
+[ -n "$NO_SESSION" ] && echo '{"lock":{"state":"free","pid":null,"live_harness":false},"can_receive":false}' || echo '{"lock":{"state":"held","pid":${sess.pid},"live_harness":true},"can_receive":false}'
 `);
-  for (const f of [path.join(fm, 'bin', 'fm-send.sh'), path.join(bin, 'herdr')]) fs.chmodSync(f, 0o755);
-  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, FM_HOME: fm };
-  let r = spawnSync(root, [], { input: 'wake up\n', env, encoding: 'utf8' });
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(fs.readFileSync(path.join(tmp, 'sent'), 'utf8'), `${fm}|default:p3|wake up\n`);
-  // explicit target, message from env; fm-send rc 3 passes through (delivered, unconfirmed)
-  r = spawnSync(root, [], { input: '', env: { ...env, HD_WAKE_TARGET: 's:p1', HARBORDECK_MESSAGE: 'from env', SEND_RC: '3' }, encoding: 'utf8' });
-  assert.equal(r.status, 3);
-  assert.match(fs.readFileSync(path.join(tmp, 'sent'), 'utf8'), /\|s:p1\|from env\n$/);
-  // no firstmate pane: 75 (defer, try next tick)
-  r = spawnSync(root, [], { input: 'x', env: { ...env, NO_AGENT: '1' }, encoding: 'utf8' });
-  assert.equal(r.status, 75);
-  assert.match(r.stderr, /found 0/);
+  for (const f of ['fm-send.sh', 'fm-inbox.sh']) fs.chmodSync(path.join(fm, 'bin', f), 0o755);
+  const env = { ...process.env, FM_HOME: fm, HARBORDECK_HOME: path.join(tmp, 'hd'), HD: BIN, HD_FM_START: 'off' };
+  try {
+    let r = spawnSync(root, [], { input: 'wake up\n', env, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(fs.readFileSync(path.join(tmp, 'sent'), 'utf8'), `${fm}|default:w1:p3|wake up\n`);
+    // explicit target, message from env; fm-send rc 3 passes through (delivered, unconfirmed)
+    r = spawnSync(root, [], { input: '', env: { ...env, HD_WAKE_TARGET: 's:p1', HARBORDECK_MESSAGE: 'from env', SEND_RC: '3' }, encoding: 'utf8' });
+    assert.equal(r.status, 3);
+    assert.match(fs.readFileSync(path.join(tmp, 'sent'), 'utf8'), /\|s:p1\|from env\n$/);
+    // no session, and starting one is off: 75 (defer, try next tick)
+    r = spawnSync(root, [], { input: 'x', env: { ...env, NO_SESSION: '1' }, encoding: 'utf8' });
+    assert.equal(r.status, 75);
+    assert.match(r.stderr, /not starting firstmate \(HD_FM_START=off\)/);
+  } finally { sess.kill(); }
   // FM_HOME is required
   const noHome = { ...env }; delete noHome.FM_HOME;
   assert.equal(spawnSync(root, [], { input: 'x', env: noHome, encoding: 'utf8' }).status, 2);
