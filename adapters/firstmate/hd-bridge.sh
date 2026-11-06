@@ -24,7 +24,9 @@
 # item stands for a captain hold. Each note ends with the exact `harbordeck
 # reply` command to answer on the desk.
 # After each batch that reached firstmate, `hd-listener.sh ensure` makes sure a firstmate session acts on it:
-# it wakes an open session nothing listens in, or starts one when none runs, and the log says which.
+# it wakes an open session nothing listens in, or starts one when none runs, and the log says which. --follow
+# repeats that check every HD_BRIDGE_RECHECK seconds (default 30) while a HarborDeck note is unread, so a wake
+# that never landed or a session that died before draining is retried, not left for the next stamp.
 # Images the captain attached (pasted, dropped or snapped on the desk; copies under
 # <HARBORDECK_HOME>/attachments/) ride along as "Attached: <paths>" before that
 # command; a keyed decide/approve/reject that carries one also sends the note.
@@ -59,7 +61,10 @@ done
 
 HD_HOME=$("$HD" path)
 here=$(cd "$(dirname "$0")" && pwd)
-SENT=0  # set when a batch reached firstmate (then the listener check runs)
+SENT=0      # set when a batch reached firstmate (then the listener check runs)
+OWED=$((1 - echo_mode))  # notes firstmate has not read may be waiting (a restart checks at once): --follow checks again soon
+LAST=''     # the last listener verdict logged (a timer recheck logs only a change)
+RECHECK=${HD_BRIDGE_RECHECK:-30}
 CURSOR="$HD_HOME/cursors/firstmate-bridge"
 [ "$echo_mode" = 0 ] || CURSOR="$CURSOR.echo"
 SOURCE=harbordeck
@@ -195,15 +200,20 @@ once() {
   listen
 }
 
-listen() {  # after a batch reached firstmate: make sure a session acts on it (wake or start one), and say which
-  [ "$SENT" = 1 ] && [ "$dry" = 0 ] || return 0
-  SENT=0
-  local out
+listen() {  # after a batch reached firstmate, or on the recheck timer while notes are unread: make sure a session
+  [ "$dry" = 0 ] || return 0  # acts on them (wake or start one), and say which
+  [ "$SENT" = 1 ] || [ "$OWED" = 1 ] || return 0
+  local out verdict
   out=$(HD=$HD "$here/hd-listener.sh" ensure $([ "$echo_mode" = 0 ] || echo --echo) || true)
   # echo mode: the wake or start it would make, as "<time> would ..." like every other firstmate command
   grep '^would ' <<<"$out" | while IFS= read -r l; do printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$l"; done || true
-  log "firstmate $(tail -n 1 <<<"$out" | grep . || echo 'state unknown')"
-  HD=$HD "$here/hd-fleet.sh" >/dev/null 2>&1 || true   # the desk shows that state now, not at the next feed tick
+  verdict=$(tail -n 1 <<<"$out" | grep . || echo 'state unknown')
+  OWED=1; [ "$echo_mode" = 0 ] && [ "${verdict%%:*}" != clear ] || OWED=0
+  if [ "$SENT" = 1 ] || [ "$verdict" != "$LAST" ]; then
+    log "firstmate $verdict"; LAST=$verdict
+    HD=$HD "$here/hd-fleet.sh" >/dev/null 2>&1 || true   # the desk shows that state now, not at the next feed tick
+  fi
+  SENT=0
 }
 
 if [ "$follow" = 1 ]; then
@@ -213,7 +223,7 @@ if [ "$follow" = 1 ]; then
   while :; do
     once || sleep 5   # a failed route retries from the same line
     # Background + wait so a stop signal is handled at once and the waiter goes with us.
-    "$HD" answers --since-offset "$(cat "$CURSOR" 2>/dev/null || echo 0)" --wait --timeout 300 >/dev/null &
+    "$HD" answers --since-offset "$(cat "$CURSOR" 2>/dev/null || echo 0)" --wait --timeout "$([ "$OWED" = 1 ] && echo "$RECHECK" || echo 300)" >/dev/null &
     waiter=$!
     wait "$waiter" || true
     waiter=''

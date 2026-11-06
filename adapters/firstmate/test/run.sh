@@ -25,6 +25,8 @@ cat > "$FM_HOME/bin/fm-inbox.sh" <<'EOF'
 #!/usr/bin/env bash
 # ready: the home's readiness projection, listening unless a test writes ready.json
 if [ "$1" = ready ]; then cat "$FM_HOME/ready.json" 2>/dev/null || echo '{"lock":{"state":"held","pid":null,"live_harness":true},"wake_consumer":{"reason":"supervised"},"can_receive":true}'; exit 0; fi
+# receipts: one unread HarborDeck note unless a test writes receipts.json
+if [ "$1" = receipts ]; then cat "$FM_HOME/receipts.json" 2>/dev/null || echo '{"pending":[{"id":"n1","request_id":"hd-res-1-ask-4"},{"id":"n0","request_id":null}]}'; exit 0; fi
 printf 'inbox %s\n' "$*" >> "$FM_HOME/calls.log"
 echo "noted: n1"; echo "  firstmate will pick this up at its next check."
 EOF
@@ -265,7 +267,28 @@ rc=0; NO_HERDR=1 L ensure >/dev/null || rc=$?
 check "listener: no herdr server, nothing started (it never starts herdr)" test "$rc" = 1 -a ! -s "$log"
 rc=0; NO_HERDR=1 PATH="$tmp/hbin:$PATH" "$here/wake.sh" <<<"reset done" >/dev/null 2>&1 || rc=$?
 check "wake.sh: no session and none startable is 75 (retry next tick)" test "$rc" = 75
-fresh; rm -f "$FM_HOME/ready.json"
+check "listener: nothing unread from HarborDeck, nothing to do" grep -q '^clear' <(echo '{"pending":[{"request_id":"voice-1"}]}' > "$FM_HOME/receipts.json"; L ensure)
+rm -f "$FM_HOME/receipts.json"
+# bridge --follow: a wake that never led to a drain is retried on the recheck timer, and stops once firstmate read it
+HERDR_PANE_ID=w9:p9 node -e 'setTimeout(() => {}, 60000)' & sess=$!
+sleep 0.5
+fresh; ready held "$sess" false
+PATH="$tmp/hbin:$PATH" HD_LISTENER_GRACE=0 HD_BRIDGE_RECHECK=1 "$here/hd-bridge.sh" --follow >/dev/null 2> "$tmp/recheck.err" &
+follower=$!
+sleep 1
+echo '{"id":"res-1","action":"ask","note":"anyone there?","at":30}' >> "$HARBORDECK_HOME/answers.jsonl"
+for _ in $(seq 1 60); do [ "$(sends)" -ge 2 ] && break; sleep 0.1; done
+check "bridge --follow: an unread note is re-woken on the timer" test "$(sends)" -ge 2
+echo '{"pending":[]}' > "$FM_HOME/receipts.json"; sleep 1.5; n=$(sends); sleep 1.5
+check "bridge --follow: and left alone once firstmate read it" test "$(sends)" = "$n"
+check "bridge --follow: the log says it went clear" grep -q 'hd-bridge: firstmate clear' "$tmp/recheck.err"
+kill "$follower" 2>/dev/null; wait "$follower" 2>/dev/null || true
+# a bridge that (re)starts with nothing new to route still checks on notes firstmate has not read
+fresh; rm -f "$FM_HOME/receipts.json"
+PATH="$tmp/hbin:$PATH" "$here/hd-bridge.sh" >/dev/null 2>&1
+check "bridge: a restart with an unread note wakes firstmate, no new answer needed" test "$(sends)" = 1
+kill "$sess" 2>/dev/null; wait "$sess" 2>/dev/null || true
+fresh; rm -f "$FM_HOME/ready.json" "$FM_HOME/receipts.json"
 
 # hd-live: bridge follows, snapshots refresh, everything stops together
 rm -f "$HARBORDECK_HOME/fleet.json" "$HARBORDECK_HOME/rules.json"

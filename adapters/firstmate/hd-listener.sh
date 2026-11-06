@@ -2,10 +2,13 @@
 # hd-listener.sh - make sure a firstmate session acts on what HarborDeck sends it.
 #
 # Usage: FM_HOME=<home> hd-listener.sh status            print "<state> <reason>"
-#        FM_HOME=<home> hd-listener.sh ensure [--echo]   after a route: wake or start firstmate unless it acts anyway
+#        FM_HOME=<home> hd-listener.sh ensure [--echo]   while a HarborDeck note is unread: wake or start firstmate unless it acts anyway
 #        FM_HOME=<home> hd-listener.sh send <message>    type one message to the session, starting one if none (wake.sh)
 #
-# An inbox note only appends a wake to the home's queue; something must consume it. States:
+# An inbox note only appends a wake to the home's queue; something must consume it. `ensure` acts only while a note
+# HarborDeck wrote (request id hd-* or req-*) is still unacknowledged (`fm-inbox.sh receipts`), so the bridge can
+# call it after every route and again on a timer: it re-wakes a session that never took the turn, and stops once
+# firstmate has drained the note. --echo skips that check (echo mode writes no notes). States:
 #   listening  the home's watcher is live (`fm-inbox.sh ready`: can_receive), so the note wakes it
 #   busy       the session holding the home lock is mid-turn; its Stop hook arms the watcher, which presents the note
 #   idle       a session is open but nothing listens (opened with no turn yet, or its watcher died): ensure types a wake
@@ -84,6 +87,11 @@ newest_session() {  # -> pid of the youngest agent process whose working directo
 }
 
 READY='' PID='' TARGET='' RECENT=''
+unread() {  # -> number of HarborDeck notes firstmate has not acknowledged yet
+  "$FM_HOME/bin/fm-inbox.sh" receipts --all-pending 2>/dev/null \
+    | jq -r '[.pending[]? | select((.request_id // "") | test("^(hd-|req-)"))] | length' 2>/dev/null | grep . || echo 0
+}
+
 probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start younger than GRACE)
   local can lock live why r
   STATE=unknown WHY='' PID='' TARGET='' RECENT=''
@@ -133,6 +141,7 @@ case "$cmd" in
     for _ in $(seq 1 50); do  # one decision at a time: two routes must not start two sessions
       if mkdir "$lockd" 2>/dev/null; then trap 'rmdir "$lockd" 2>/dev/null || true' EXIT; break; fi; sleep 0.2
     done
+    if [ "$echo_mode" = 0 ] && [ "$(unread)" = 0 ]; then echo "clear: firstmate has read everything HarborDeck sent"; exit 0; fi
     probe
     case "$STATE" in
       idle)
