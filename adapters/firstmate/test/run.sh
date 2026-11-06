@@ -7,6 +7,12 @@ root=$(cd "$here/../.." && pwd)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 export HD="$root/cli/bin/harbordeck.js" HARBORDECK_HOME="$tmp/hd" FM_HOME="$tmp/fm"
+# Nothing here may reach the machine's real herdr or tmux: stubs first on PATH for every command below.
+mkdir -p "$tmp/hbin"
+printf '#!/usr/bin/env bash\necho "herdr $*" >> "%s/herdr.refused"; exit 1\n' "$tmp" > "$tmp/hbin/herdr"
+printf '#!/usr/bin/env bash\necho "tmux $*" >> "%s/tmux.refused"; exit 1\n' "$tmp" > "$tmp/hbin/tmux"
+chmod +x "$tmp/hbin/herdr" "$tmp/hbin/tmux"
+export PATH="$tmp/hbin:$PATH"
 fails=0
 check() {  # <description> <command...>
   if "${@:2}"; then echo "ok   $1"; else echo "FAIL $1"; fails=$((fails + 1)); fi
@@ -38,7 +44,12 @@ cat > "$FM_HOME/bin/fm-crew-state.sh" <<'EOF'
 #!/usr/bin/env bash
 case $1 in a) echo "state: working · source: pane · busy" ;; b) echo "state: ${B_STATE:-parked} · source: run-step · gate" ;; *) echo "state: unknown · source: none" ;; esac
 EOF
+printf '#!/usr/bin/env bash\nwhile :; do sleep 1; done\n' > "$FM_HOME/bin/fm-watch.sh"
+printf '#!/usr/bin/env bash\n' > "$FM_HOME/bin/fm-session-start.sh"   # marks a firstmate home: the listener starts sessions only in one
 chmod +x "$FM_HOME"/bin/*.sh
+# the home's watcher, running (the listener needs a live bin/fm-watch.sh, not only a fresh beacon)
+"$FM_HOME/bin/fm-watch.sh" >/dev/null 2>&1 & watcher=$!
+trap 'kill "$watcher" 2>/dev/null; rm -rf "$tmp"' EXIT
 printf 'kind=ship\nharness=claude\nmodel=opus\neffort=medium\nproject=/x/projects/weather-app\nendpoint_task_id=a\n' > "$FM_HOME/state/a.meta"
 printf 'kind=ship\nharness=codex\nmodel=gpt\nproject=/x/projects/bakery-site\nendpoint_task_id=b\n' > "$FM_HOME/state/b.meta"
 printf 'kind=secondmate\nharness=claude\nmodel=opus\nproject=/x/projects/bakery-site\n' > "$FM_HOME/state/sm.meta"
@@ -212,7 +223,7 @@ check "bridge --follow: new answer routed live" grep -q 'hd-res-1-comment-8' "$l
 check "bridge --follow: logs start and each route with a time" bash -c "grep -qE '^[0-9TZ:-]+ hd-bridge: following ' '$tmp/follow.err' && grep -qE '^[0-9TZ:-]+ hd-bridge: routed comment res-1' '$tmp/follow.err'"
 
 # listener: wake an open session nothing listens in, start one when none runs, never twice in a burst
-mkdir -p "$tmp/hbin"
+check "nothing before this reached a real herdr or tmux" test ! -e "$tmp/herdr.refused" -a ! -e "$tmp/tmux.refused"
 cat > "$tmp/hbin/herdr" <<'EOF'
 #!/usr/bin/env bash
 echo "herdr $*" >> "$FM_HOME/herdr.log"
@@ -247,6 +258,10 @@ check "listener: a second answer in the burst does not wake again" test "$(sends
 HD_LISTENER_GRACE=0 L ensure >/dev/null
 check "listener: past the grace it wakes again" test "$(sends)" = 2
 check "listener: a watcher that comes up wins over the record" grep -q '^listening ' <(ready held "$sess" true; L status)
+kill "$watcher"; wait "$watcher" 2>/dev/null || true
+rm -f "$HARBORDECK_HOME/cursors/firstmate-listener"
+check "listener: a fresh beacon with no fm-watch.sh running is not listening" grep -q '^idle .*beacon fresh but no fm-watch.sh running' <(L status)
+"$FM_HOME/bin/fm-watch.sh" >/dev/null 2>&1 & watcher=$!
 kill "$sess" 2>/dev/null; wait "$sess" 2>/dev/null || true
 fresh; ready free '' false
 check "listener: no session is down" grep -q '^down no firstmate session' <(L status)
@@ -265,6 +280,24 @@ check "listener: an existing workspace gets a new tab" grep -qF "herdr tab creat
 fresh
 rc=0; NO_HERDR=1 L ensure >/dev/null || rc=$?
 check "listener: no herdr server, nothing started (it never starts herdr)" test "$rc" = 1 -a ! -s "$log"
+mv "$FM_HOME/bin/fm-session-start.sh" "$tmp/fss"; fresh
+rc=0; L ensure >/dev/null || rc=$?
+check "listener: never starts a session in a dir that is not a firstmate home" test "$rc" = 1 -a ! -e "$FM_HOME/herdr.log"
+mv "$tmp/fss" "$FM_HOME/bin/fm-session-start.sh"
+# HD_FM_START=tmux: a window in the tmux session, the wake as the harness's first prompt (no typing needed)
+cat > "$tmp/hbin/tmux" <<'EOF'
+#!/usr/bin/env bash
+printf 'tmux %s\n' "$*" >> "$FM_HOME/tmux.log"
+case $1 in has-session) [ -n "${TMUX_HAS:-}" ] ;; new-session) echo firstmate:0 ;; new-window) echo firstmate:3 ;; *) exit 1 ;; esac
+EOF
+chmod +x "$tmp/hbin/tmux"; fresh
+HD_FM_START=tmux HD_FM_COMMAND='claude --model sonnet' L ensure > "$tmp/l.txt"
+check "listener: tmux start opens a session running the harness with the wake as first prompt" grep -qF "tmux new-session -d -P -F #{session_name}:#{window_index} -s firstmate -n firstmate -c $(cd "$FM_HOME" && pwd -P) claude --model sonnet HarborDeck:\ the\ captain" "$FM_HOME/tmux.log"
+check "listener: and reports it starting there, nothing typed" bash -c "grep -q '^starting firstmate in firstmate:0' '$tmp/l.txt' && ! grep -q '^send ' '$log'"
+fresh; rm -f "$FM_HOME/tmux.log"
+TMUX_HAS=1 HD_FM_START=tmux L ensure >/dev/null
+check "listener: an existing tmux session gets a new window" grep -q "^tmux new-window -d -P .* -t =firstmate: -n firstmate" "$FM_HOME/tmux.log"
+printf '#!/usr/bin/env bash\necho "tmux $*" >> "%s/tmux.refused"; exit 1\n' "$tmp" > "$tmp/hbin/tmux"; fresh
 rc=0; NO_HERDR=1 PATH="$tmp/hbin:$PATH" "$here/wake.sh" <<<"reset done" >/dev/null 2>&1 || rc=$?
 check "wake.sh: no session and none startable is 75 (retry next tick)" test "$rc" = 75
 check "listener: nothing unread from HarborDeck, nothing to do" grep -q '^clear' <(echo '{"pending":[{"request_id":"voice-1"}]}' > "$FM_HOME/receipts.json"; L ensure)

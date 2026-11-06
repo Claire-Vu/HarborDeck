@@ -9,27 +9,30 @@
 # HarborDeck wrote (request id hd-* or req-*) is still unacknowledged (`fm-inbox.sh receipts`), so the bridge can
 # call it after every route and again on a timer: it re-wakes a session that never took the turn, and stops once
 # firstmate has drained the note. --echo skips that check (echo mode writes no notes). States:
-#   listening  the home's watcher is live (`fm-inbox.sh ready`: can_receive), so the note wakes it
+#   listening  the home's watcher is live (`fm-inbox.sh ready`: can_receive, and its bin/fm-watch.sh runs), so the note wakes it
 #   busy       the session holding the home lock is mid-turn; its Stop hook arms the watcher, which presents the note
 #   idle       a session is open but nothing listens (opened with no turn yet, or its watcher died): ensure types a wake
 #   waking     HarborDeck typed a wake less than HD_LISTENER_GRACE seconds ago and nothing listens yet
 #   starting   HarborDeck started a session less than HD_LISTENER_GRACE seconds ago and nothing listens yet
-#   down       no session runs for this home: ensure starts one (HD_FM_START=herdr), else it stays down
+#   down       no session runs for this home: ensure starts one (HD_FM_START herdr or tmux), else it stays down
 #   unknown    the home cannot say (no fm-inbox.sh ready)
 # The session is the lock holder (state/.lock), else the newest agent process whose working directory is FM_HOME
 # (a session opened but not yet started). Its pane comes from that process's own environment (HERDR_PANE_ID,
 # HERDR_SESSION; TMUX_PANE and TMUX, its tmux server), so only this home's session is ever typed into. Typing goes through the home's
 # bin/fm-send.sh. Starting creates a tab in the herdr workspace labeled HD_WAKE_WORKSPACE (default firstmate;
 # the workspace is created when missing) in the running herdr server, starts HD_FM_HARNESS (default claude) there
-# with `herdr agent start`, then types the first message. It never starts herdr itself. Each wake or start is
+# with `herdr agent start`, then types the first message. It never starts herdr itself. HD_FM_START=tmux instead
+# opens a window in tmux session HD_FM_TMUX_SESSION (default firstmate, created if missing) on this process's tmux
+# server (TMUX_TMPDIR) running HD_FM_COMMAND (default claude) with the message as its first prompt. Each wake or start is
 # recorded in <HARBORDECK_HOME>/cursors/firstmate-listener, so a burst of answers wakes or starts once.
 # Exit: status 0; ensure 0, or 1 when the session could not be woken or started; send: fm-send's code
 # (0 confirmed, 3 typed but unconfirmed), 75 when no session runs and none could be started, 2 on bad setup.
-# Env: FM_HOME (required), HD (default harbordeck, else this checkout's CLI), HD_FM_START (herdr|off, default herdr), HD_FM_HARNESS,
+# Env: FM_HOME (required), HD (default harbordeck, else this checkout's CLI), HD_FM_START (herdr|tmux|off, default herdr), HD_FM_HARNESS,
 # HD_WAKE_WORKSPACE, HD_WAKE_SESSION (herdr session, default "default"), HD_LISTENER_GRACE (default 180).
 set -euo pipefail
 
 FM_HOME=${FM_HOME:?set FM_HOME to the firstmate home}
+HOME_AS_GIVEN=$FM_HOME
 FM_HOME=$(cd "$FM_HOME" && pwd -P)
 export FM_HOME   # fm-send and fm-inbox refuse to guess their home
 HD=${HD:-$(command -v harbordeck || echo "$(cd "$(dirname "$0")/../.." && pwd)/cli/bin/harbordeck.js")}
@@ -77,7 +80,7 @@ secs() {  # ps etime ([[dd-]hh:]mm:ss) -> seconds
 
 newest_session() {  # -> pid of the youngest agent process whose working directory is FM_HOME, or nothing
   local pids p best='' best_age='' age
-  pids=$(ps -Ao pid=,comm= | awk '{n = $2; sub(".*/", "", n)} n ~ /^(claude|codex|grok|cursor-agent|kimi|omp|pi|opencode)$/ {print $1}' | paste -sd, -)
+  pids=$(ps -Ao pid=,comm= | awk '{n = $2; sub(".*/", "", n)} n ~ /^(claude|codex|grok|cursor-agent|kimi|omp|pi|opencode)(\.exe)?$/ {print $1}' | paste -sd, -)
   [ -n "$pids" ] || return 0
   # one lsof for all of them: "p<pid>" then "n<cwd>" per process
   for p in $(lsof -a -d cwd -p "$pids" -Fpn 2>/dev/null | awk -v h="$FM_HOME" '/^p/ {p = substr($0, 2)} /^n/ && substr($0, 2) == h {print p}'); do
@@ -85,6 +88,10 @@ newest_session() {  # -> pid of the youngest agent process whose working directo
     if [ -z "$best" ] || [ "$age" -lt "$best_age" ]; then best=$p; best_age=$age; fi
   done
   printf '%s' "$best"
+}
+
+watching() {  # a live watcher for this home: its own bin/fm-watch.sh, running (ready's beacon stays fresh for minutes after one dies)
+  pgrep -f -- "$FM_HOME/bin/fm-watch.sh" >/dev/null 2>&1 || pgrep -f -- "$HOME_AS_GIVEN/bin/fm-watch.sh" >/dev/null 2>&1
 }
 
 READY='' PID='' TARGET='' RECENT='' TMUXV=''
@@ -102,7 +109,8 @@ probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start y
   if [ "$lock" = held ] && [ "$live" = true ]; then PID=$(jq -r '.lock.pid // empty' <<<"$READY"); else PID=$(newest_session); fi
   [ -z "$PID" ] || { TARGET=$(target_of "$PID"); TMUXV=$(pane_env "$PID" TMUX); }
   ! r=$(recent) || RECENT=${r#* }
-  if [ "$can" = true ]; then STATE=listening WHY="watcher live"; return 0; fi
+  if [ "$can" = true ] && watching; then STATE=listening WHY="watcher live"; return 0; fi
+  [ "$can" != true ] || why="beacon fresh but no fm-watch.sh running"
   if [ -n "$RECENT" ]; then STATE=${r%% *} WHY="HarborDeck is ${r%% *} it in $RECENT"; return 0; fi
   if [ -z "$PID" ]; then STATE=down WHY="no firstmate session for $FM_HOME"; return 0; fi
   if [ "$lock" = held ] && [ "${TARGET%%:*}" = "$HSESSION" ] && [ "$(herdr agent get "${TARGET#*:}" 2>/dev/null | jq -r '.result.agent.agent_status // ""')" = working ]; then
@@ -120,9 +128,22 @@ type_into() {  # <target> <message> -> fm-send's exit code
   ( tmux_env; "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2 )
 }
 
+start_tmux() {  # <first message>: a window in tmux session HD_FM_TMUX_SESSION (on this process's tmux server,
+  local s=${HD_FM_TMUX_SESSION:-firstmate} cmd t  # TMUX_TMPDIR) running HD_FM_COMMAND with the message as its first prompt
+  cmd="${HD_FM_COMMAND:-claude} $(printf '%q' "$1")"
+  if tmux has-session -t "=$s" 2>/dev/null; then t=$(tmux new-window -d -P -F '#{session_name}:#{window_index}' -t "=$s:" -n firstmate -c "$FM_HOME" "$cmd")
+  else t=$(tmux new-session -d -P -F '#{session_name}:#{window_index}' -s "$s" -n firstmate -c "$FM_HOME" "$cmd"); fi || { log "tmux unavailable, cannot start firstmate"; return 75; }
+  [ -n "$t" ] || { log "tmux made no window"; return 1; }
+  record starting "$t"
+  log "started ${HD_FM_COMMAND:-claude} in tmux window $t for $FM_HOME, the wake as its first prompt"
+  printf '%s\n' "$t"
+}
+
 start_session() {  # <first message> -> 0 started (target on stdout), 75 cannot start here
   local spaces ws out pane
-  [ "$START" = herdr ] || { log "not starting firstmate (HD_FM_START=$START)"; return 75; }
+  case "$START" in herdr|tmux) ;; *) log "not starting firstmate (HD_FM_START=$START)"; return 75 ;; esac
+  [ -x "$FM_HOME/bin/fm-session-start.sh" ] || { log "not starting firstmate: $FM_HOME is not a firstmate home"; return 75; }
+  [ "$START" = herdr ] || { start_tmux "$1"; return; }
   [ "$HSESSION" = default ] || { log "starting only in the default herdr session, not $HSESSION"; return 75; }
   spaces=$(herdr workspace list 2>&1) || { log "herdr unavailable, cannot start firstmate: ${spaces:0:200}"; return 75; }
   ws=$(jq -r --arg l "$LABEL" '[.result.workspaces[] | select(.label == $l) | .workspace_id][0] // empty' <<<"$spaces")

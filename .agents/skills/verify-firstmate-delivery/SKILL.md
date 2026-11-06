@@ -44,7 +44,7 @@ Needs Java 11+. The first run downloads TLC (`tla2tools.jar` 1.7.4, sha256-pinne
 |---|---|---|
 | `CaptainStamps` | `app/lib/store.js` appendAnswer (one `answers.jsonl` line) | store tests |
 | `BridgeRoutes` (`KeyedNote`) | `hd-bridge.sh` `route()`: `keyed` then `note "$rid" "$text. $closed"` for decide/approve/reject; defer: `hold --until` + note | "closed hold also wakes firstmate", "Later on a held task also tells firstmate" |
-| `BridgeEnsure` (`Listener`) | `hd-bridge.sh` `listen()` -> `hd-listener.sh ensure`: `unread` (clear), `probe` (listening / busy / recent / idle / down), wake via `fm-send.sh`, start via herdr | all `listener:` checks |
+| `BridgeEnsure` (`Listener`) | `hd-bridge.sh` `listen()` -> `hd-listener.sh ensure`: `unread` (clear), `probe` (listening / busy / recent / idle / down), wake via `fm-send.sh` (herdr or tmux pane, its own server), start via herdr or tmux (`HD_FM_START`), live `fm-watch.sh` check | all `listener:` checks |
 | `owed` (`Recheck`) | `hd-bridge.sh` `OWED` (starts 1 in live mode), `--wait --timeout $RECHECK` while owed | "bridge --follow: an unread note is re-woken on the timer", "...left alone once firstmate read it" |
 | `recent`, `GraceExpires` | `hd-listener.sh` `record`/`recent`, `cursors/firstmate-listener`, `HD_LISTENER_GRACE` | "does not wake again", "past the grace it wakes again" |
 | `TakesTypedTurn`, `WakeLost` | `fm-send.sh` typed plane (exit 0 / 3) | wake.sh unit test (`cli/test/scheduler.test.js`) |

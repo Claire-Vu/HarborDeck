@@ -374,7 +374,10 @@ test('firstmate wake preset: types into the pane of the session holding the home
 [ -n "$NO_SESSION" ] && echo '{"lock":{"state":"free","pid":null,"live_harness":false},"can_receive":false}' || echo '{"lock":{"state":"held","pid":${sess.pid},"live_harness":true},"can_receive":false}'
 `);
   for (const f of ['fm-send.sh', 'fm-inbox.sh']) fs.chmodSync(path.join(fm, 'bin', f), 0o755);
-  const env = { ...process.env, FM_HOME: fm, HARBORDECK_HOME: path.join(tmp, 'hd'), HD: BIN, HD_FM_START: 'off' };
+  // a stub herdr first on PATH: this test never reaches the machine's real herdr
+  const sbin = path.join(tmp, 'sbin'); fs.mkdirSync(sbin);
+  fs.writeFileSync(path.join(sbin, 'herdr'), '#!/bin/sh\necho \'{"result":{"agent":{"agent_status":"idle"}}}\'\n'); fs.chmodSync(path.join(sbin, 'herdr'), 0o755);
+  const env = { ...process.env, PATH: `${sbin}:${process.env.PATH}`, FM_HOME: fm, HARBORDECK_HOME: path.join(tmp, 'hd'), HD: BIN, HD_FM_START: 'off' };
   try {
     let r = spawnSync(root, [], { input: 'wake up\n', env, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);

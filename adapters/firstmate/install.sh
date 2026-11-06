@@ -3,7 +3,7 @@
 #
 # Usage: adapters/firstmate/install.sh [--fm-home <dir>] [--data-dir <dir>] [--mode live|echo] [--from <id>]
 #                                      [--pending deliver|skip] [--bin-dir <dir>] [--settings-dir <dir>] [--no-service] [--uninstall]
-#                                      [--start herdr|off] [--workspace <herdr label>] [--label <launchd label>]
+#                                      [--start herdr|tmux|off] [--workspace <herdr label>] [--label <launchd label>]
 #
 #  1. Links the `harbordeck` and `hd` commands into --bin-dir (default ~/.local/bin).
 #  2. Creates the data dir (default $HARBORDECK_HOME or ~/.harbordeck) and points the app at it, with the
@@ -16,8 +16,10 @@
 #     the on-answer bridge (--follow) plus fleet, quota and rules feeders, and fails unless it is running after. --mode echo makes the bridge log
 #     the firstmate commands instead of running them. Elsewhere, or with --no-service, prints the command.
 #     When something reaches firstmate and no session acts on it, the bridge wakes the open session or, with
-#     --start herdr (default), starts one in the herdr workspace --workspace (default firstmate); --start off never
-#     starts one. A second home needs its own --label (and --data-dir), so the two agents never replace each other.
+#     --start herdr (default), starts one in the herdr workspace --workspace (default firstmate); --start tmux in a
+#     window of tmux session HD_FM_TMUX_SESSION (default firstmate), running HD_FM_COMMAND (default claude), both
+#     taken from the environment; --start off never starts one. A second home needs its own --label (and
+#     --data-dir), so the two agents never replace each other.
 #  5. Writes the firstmate-side instructions to <fm-home>/data/harbordeck.md and one standing order
 #     pointing at them into <fm-home>/data/captain.md (between harbordeck markers, replaced on re-run).
 set -euo pipefail
@@ -59,7 +61,7 @@ done
 fm_home=$(cd "$fm_home" && pwd)
 case "$mode" in live|echo) ;; *) echo "install.sh: --mode is live or echo" >&2; exit 2 ;; esac
 case "$pending" in ''|deliver|skip) ;; *) echo "install.sh: --pending is deliver or skip" >&2; exit 2 ;; esac
-case "$start" in herdr|off) ;; *) echo "install.sh: --start is herdr or off" >&2; exit 2 ;; esac
+case "$start" in herdr|tmux|off) ;; *) echo "install.sh: --start is herdr, tmux or off" >&2; exit 2 ;; esac
 case "$data_dir" in "~"*) data_dir=$HOME${data_dir#\~} ;; esac
 
 plist=$HOME/Library/LaunchAgents/$LABEL.plist
@@ -137,7 +139,9 @@ if [ ! -e "$cursor" ] || { [ "$mode" = live ] && [ "$was_echo" = 1 ]; }; then
 fi
 
 # 4. live feeders + on-answer bridge
-live_cmd="FM_HOME=$fm_home HD=$HD HARBORDECK_HOME=$data_dir HARBORDECK_FROM=$from HD_BRIDGE_MODE=$mode HD_FM_START=$start HD_WAKE_WORKSPACE=$workspace $here/hd-live.sh"
+live_cmd="FM_HOME=$fm_home HD=$HD HARBORDECK_HOME=$data_dir HARBORDECK_FROM=$from HD_BRIDGE_MODE=$mode HD_FM_START=$start HD_WAKE_WORKSPACE=$workspace"
+for v in HD_FM_TMUX_SESSION HD_FM_COMMAND TMUX_TMPDIR; do [ -z "${!v:-}" ] || live_cmd="$live_cmd $v=$(printf '%q' "${!v}")"; done
+live_cmd="$live_cmd $here/hd-live.sh"
 if [ "$service" = 1 ] && [ "$(uname)" = Darwin ]; then
   mkdir -p "$(dirname "$plist")" "$(dirname "$log")"
   x() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
@@ -156,7 +160,7 @@ if [ "$service" = 1 ] && [ "$(uname)" = Darwin ]; then
     <key>HARBORDECK_FROM</key><string>$(x "$from")</string>
     <key>HD_BRIDGE_MODE</key><string>$mode</string>
     <key>HD_FM_START</key><string>$start</string>
-    <key>HD_WAKE_WORKSPACE</key><string>$(x "$workspace")</string>
+    <key>HD_WAKE_WORKSPACE</key><string>$(x "$workspace")</string>$(for v in HD_FM_TMUX_SESSION HD_FM_COMMAND TMUX_TMPDIR; do [ -z "${!v:-}" ] || printf '\n    <key>%s</key><string>%s</string>' "$v" "$(x "${!v}")"; done)
     <key>PATH</key><string>$(x "$PATH")</string>
   </dict>
   <key>WorkingDirectory</key><string>$(x "$fm_home")</string>
