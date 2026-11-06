@@ -24,7 +24,8 @@
 .mi { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 8px; background: transparent; color: var(--ui-fg); border: 1px solid transparent; border-radius: var(--radius); font: inherit; text-align: left; }
 .mi:hover, .mi:focus-visible { background: rgba(127,127,127,.14); border-color: var(--ui-edge); }
 .mi:disabled { opacity: .35; cursor: not-allowed; }
-.mi[aria-pressed="true"] { background: var(--ui-accent); color: #1b1b1b; }
+.mi[aria-pressed="true"], .mi[aria-checked="true"] { background: var(--ui-accent); color: #1b1b1b; }
+.mi[role="menuitemcheckbox"]::after { content: "off"; flex: none; font-size: 11px; opacity: .6; } .mi[aria-checked="true"]::after { content: "on"; opacity: 1; font-weight: 700; } /* a toggle says its state, not just a fill */
 .mi-l { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mi .kbd { flex: none; } .mi .badge { flex: none; }
 .mi-vol .vol { flex: 0 1 110px; width: auto; min-width: 0; }

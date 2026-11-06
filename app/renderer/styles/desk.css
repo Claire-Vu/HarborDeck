@@ -17,6 +17,7 @@
 .paper.photo:not(.mini) .grip { top: -10px; } .paper.monitor:not(.mini) .grip { top: -8px; background: #3a3f47; box-shadow: inset 0 0 0 999px rgba(255,255,255,.05); }
 .paper .ibtn, .ibtn { background: none; border: 1px solid var(--paper-line); color: inherit; border-radius: 3px; padding: 1px 7px; font-size: 11px; font-family: var(--font-paper); text-decoration: none; }
 .paper .ibtn:hover { background: rgba(0,0,0,.06); }
+.paper .ibtn { color: var(--paper-ink); border-color: rgba(43,35,24,.3); } /* readable on both paper tones (the dark theme's paper hides --paper-line) */
 .paper h3 { margin: 0 0 6px; font-size: 14px; line-height: 1.3; }
 .paper p { margin: 0 0 8px; }
 .paper .meta { color: var(--paper-faint); font-size: 11px; margin-bottom: 8px; }
@@ -31,7 +32,7 @@
 .paper.ask .q { margin: 8px 0; border: 1px solid rgba(0,0,0,.15); border-radius: 3px; padding: 4px 8px 6px; }
 .paper.ask .q legend, .paper.ask .ql { font-weight: 700; font-size: 12px; }
 .paper.ask label.opt { display: flex; gap: 6px; align-items: flex-start; padding: 3px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
-.paper.ask label.opt.on { border-color: var(--approve); background: rgba(31,122,74,.1); }
+.paper.ask label.opt.on { border-color: var(--approve); background: rgba(31,122,74,.16); box-shadow: inset 0 0 0 1px var(--approve); } /* picked: a heavier edge than any outlined option */
 .paper.ask label.opt .k { flex: none; font-weight: 700; font-size: 10.5px; line-height: 15px; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; opacity: .75; }
 .paper.ask label.opt.on .k { background: var(--approve); color: #fff; border-color: var(--approve); opacity: 1; }
 .paper.ask label.opt input { position: absolute; opacity: 0; pointer-events: none; }

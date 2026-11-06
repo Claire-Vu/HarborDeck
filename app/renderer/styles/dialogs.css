@@ -69,7 +69,7 @@
 /* manifest + shift report sheets */
 .ledger .box { background: var(--paper); color: var(--paper-ink); font-family: var(--font-paper); border-top: 12px solid #b89968; width: min(760px, 100%); }
 .ledger .box header, .ledger .box footer { border-color: var(--paper-line); }
-.ledger .box header .ibtn-top { color: inherit; }
+.ledger .box header .ibtn-top, .noteslip .box header .ibtn-top, .laterslip .box header .ibtn-top { color: inherit; } /* paper-coloured boxes: the close takes the ink, not the dark theme's light ui colour */
 .ledger .legend, .ledger .dim { color: var(--paper-faint); }
 .ledger .pbtn { background: var(--wood-1); color: #fff; } .ledger .pbtn.ghost { background: transparent; color: inherit; border-color: var(--paper-line); }
 .ledger .meter { background: rgba(0,0,0,.08); }

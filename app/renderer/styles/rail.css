@@ -7,7 +7,7 @@
 /* a cue takes a gutter beside the rail, so it never sits on a ticket's text */
 .rail.cue-r { right: var(--cue-w, 78px); } .rail.cue-l { left: var(--cue-w, 78px); }
 .rail-cue:focus-visible { outline: 2px solid var(--ui-accent); }
-.rail-label { position: sticky; left: 0; align-self: center; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #d9cba6; writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 8px; opacity: .8; }
+.rail-label { align-self: center; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #d9cba6; writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 8px; opacity: .8; }
 .rail-empty { align-self: center; margin-top: 10px; font-size: 11px; color: rgba(255,255,255,.55); font-family: var(--font-paper); }
 .ticket { position: relative; flex: 0 0 190px; margin-top: 6px; text-align: left; background: #fff8e8; color: var(--paper-ink); border: 0; border-top: 3px solid #b89968; padding: 6px 8px 4px; font-family: var(--font-paper); font-size: 11px; line-height: 1.3; box-shadow: 0 4px 10px rgba(0,0,0,.35); transform: rotate(var(--tilt, -.6deg)); transform-origin: top center; cursor: pointer; }
 .ticket:nth-child(odd) { --tilt: .7deg; }

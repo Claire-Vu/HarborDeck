@@ -10,7 +10,7 @@ The top bar shows how much of each subscription usage window is left, readable w
 - `stamina-fresh` `schedule/rate-limits.json` (Claude Code status line via `hd limit snapshot`) replaces a staler quota.json reading of `Claude` 5h/7d, and adds windows quota.json lacks.
 - `stamina-stale` `.ms-stale` `STALE` when the reading (quota.json `at`, else the file's mtime; the status line's `at`) is over 30 min old.
 - `stamina-title` each `.mini-sub[title]` reads `<Provider[ Model]> · <window>: N% left (M% used). Resets <local time>, in <countdown>.` plus run-out, per-model and `Reading: <source>, <age>` lines.
-- `stamina-order` the most urgent window comes first (run-out or low, then least left; a reset window last) and its provider's group leads; when the top bar is short of room the least urgent chips fold into one `.ms-more` `+N` (title and aria-label name each folded window), so no chip is ever cut (`test/smoke/layout.spec.js`). The `#sched-chip` keeps its full text.
+- `stamina-order` the most urgent window comes first (run-out or low, then least left; a reset window last) and its provider's group leads; when the top bar is short of room the least urgent chips fold into one `.ms-more` `+N` (title and aria-label name each folded window), so no chip is ever cut; it refits when its room changes (a badge or chip beside it, the cash growing) and once fonts load (`test/smoke/layout.spec.js`). The `#sched-chip` keeps its full text.
 - `stamina-long` click `#stamina-cluster` (wider than 860 px) → `.modal.stamina-modal .stamina .sub` per window with the long form; at 860 px or less the click expands the chips in place.
 
 ## How to get to it (user POV)

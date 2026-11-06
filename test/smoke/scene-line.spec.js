@@ -62,6 +62,18 @@ test('Back of the line (W, or the slip button) sends the visitor to the end and 
   await expect(title()).toHaveText(before[2]);
 });
 
+test('with All shown, one sent to the back of the line stays behind the rest after a stamp', async () => {
+  await page.locator('#filters .chip', { hasText: 'All' }).click();
+  await page.locator('#queue li', { hasText: 'Sign the app store developer agreement' }).click(); // P1, overdue: the front of the queue
+  await page.keyboard.press('w');
+  await expect(title()).not.toHaveText('Sign the app store developer agreement');
+  await page.locator('#queue li', { hasText: 'Forward September receipts' }).click();
+  await page.keyboard.press('1'); // File: the desk moves on to the front of the line
+  await expect(title()).not.toHaveText('Forward September receipts to the bookkeeper');
+  await expect(title()).not.toHaveText('Sign the app store developer agreement');
+  await page.keyboard.press('u');
+});
+
 test('N walks forward through the whole line, not back and forth between the first two', async () => {
   await page.locator('#filters .chip', { hasText: 'Decisions' }).click();
   await expect(scenes()).toHaveAttribute('data-scene', 'decision');

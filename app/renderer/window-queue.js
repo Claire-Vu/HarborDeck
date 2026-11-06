@@ -149,10 +149,11 @@ function unpark(id) {
   if (pending && [pending.line, ...(pending.extra || []).map(e => e.line)].some(l => l.action === 'defer' && l.id === id)) undoPending();
   const s = st(id); s.undeferAt = now(); save(); snd('slide'); stepUp(id);
 }
-// A letter (or click) picked an option on `id`: on a sheet move to the next row, else just mark it on the slip.
+// A letter (or click) picked an option on `id`: on a sheet move to the next decision row (a paper to read opens only
+// by hand, j/k or a click, so a pick never ticks unseen work), else just mark it on the slip.
 function afterPick(id) {
   const it = byId[id]; snd('tick'); const group = bundleOf(it);
-  if (group.length > 1) { const nx = group[group.indexOf(it) + 1]; if (nx && id === S.current) focusRow(nx.id); else if (id !== S.current) focusRow(id); else renderDesk(); }
+  if (group.length > 1) { const nx = group.slice(group.indexOf(it) + 1).find(m => m.kind === 'decision'); if (nx && id === S.current) focusRow(nx.id); else if (id !== S.current) focusRow(id); else renderDesk(); }
   else quick.mark($('#desk-surface .paper.ask'), st(id).choice);
 }
 function sheetCount() { const it = byId[S.current]; const n = it ? bundleOf(it).filter(topicView.ticked).length : 0; const el = $('#desk-surface .sheet-n'); if (el) el.textContent = `${n} row${n === 1 ? '' : 's'}`; }
@@ -163,8 +164,13 @@ function pickLetter(i) {
   st(it.id).choice = o.key; save(); afterPick(it.id);
 }
 function moveRow(d) { const it = byId[S.current]; if (!it) return; const g = bundleOf(it); const nx = g[g.indexOf(it) + d]; if (nx) focusRow(nx.id); }
-// who is at the window, in order: the scene's line when a kind is shown, else the queue; nobody away on an ask
-const walkOrder = () => (HS.byKind[S.prefs.filter] ? sceneLine(S.prefs.filter) : queueItems()).filter(i => !st(i.id).awaiting);
+// who is at the window, in order: the scene's line when a kind is shown, else the queue with anyone sent to the back
+// of the line behind the rest (in the order they were sent); nobody away on an ask
+const walkOrder = () => {
+  if (HS.byKind[S.prefs.filter]) return sceneLine(S.prefs.filter).filter(i => !st(i.id).awaiting);
+  const q = queueItems().filter(i => !st(i.id).awaiting);
+  return [...q.filter(i => !st(i.id).back), ...q.filter(i => st(i.id).back).sort((a, b) => st(a.id).back - st(b.id).back)];
+};
 // after a stamp: the front of the line steps up (nobody when the scene is clear)
 function next() { const f = walkOrder().find(i => i.id !== S.current); if (f) stepUp(f.id); else { S.current = null; save(); renderAll(); } }
 // N: the one behind the visitor at the desk; past the end of the line, the next busy scene, else back to the front

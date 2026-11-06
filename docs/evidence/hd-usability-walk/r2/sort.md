@@ -2,7 +2,7 @@
 
 Walker: fresh Opus 5.5, page only, own instance, 13 new missions aimed at controls round 1 never touched (storage box, Shift+A, desk browser, Add to…, queue at a time + withdraw, Remember this, sheet with a row left out, topics, plain mode, archive + agent log, chandlery, theme + shortcut) ([walker-report.md](walker-report.md)).
 Auditor: fresh Opus 5.5, page only, own instance, same bar. Its `report.md` write was refused by the harness (a `/tmp` vs `/private/tmp` permission mismatch, fixed for round 3); its full final summary is [auditor-report.md](auditor-report.md).
-Layout check: [before](layout-check-before.txt) = round 1 after (65/65); [after](layout-check-after.txt) 69/69 clean (2 new states: the chip's queued ticket, an open plain card).
+Layout check: [before](layout-check-before.txt) = round 1 after (64/64); [after](layout-check-after.txt) 68/68 clean (2 new states: the chip's queued ticket, an open plain card).
 
 ## Fix now (done in this round)
 

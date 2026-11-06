@@ -2,7 +2,7 @@
 
 Walker: fresh Opus 5.5 (`claude-opus-5-5`), page only, own headless instance, 11 missions ([walker-report.md](walker-report.md)).
 Auditor: fresh Opus 5.5, page only, own instance, 1440x900, captain's bar verbatim ([auditor-report.md](auditor-report.md)).
-Layout check: `layout-check.js` on 32 states x 2 sizes (1440x868, 1000x640): [before](layout-check-before.txt) 1 of 63 clean, [after](layout-check-after.txt) 65 of 65 clean.
+Layout check: `layout-check.js` on 32 states x 2 sizes (1440x868, 1000x640): [before](layout-check-before.txt) 0 of 62 state checks clean, [after](layout-check-after.txt) 64 of 64 clean.
 
 ## Fix now (done in this round)
 

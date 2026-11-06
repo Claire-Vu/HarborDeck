@@ -59,7 +59,7 @@ syncItems(null);
 // ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
 let phoneDraft = '';
 phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
-  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()), tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
+  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()).map(t => ({ ...t, to: byId[t.id] ? mateFor(byId[t.id]).id : tickets().find(k => k.a.id === t.id)?.a.to })) /* to: whose it is (the addition goes there) */, tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
   resetAt: () => (SCHED?.reset_due > now() ? fmtTime(SCHED.reset_due) : ''),
   resetNote: () => SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable' });
 $('#btn-phone').onclick = () => phone.toggle();
@@ -133,6 +133,10 @@ document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(
 document.addEventListener('keydown', deskKeys);
 window.addEventListener('beforeunload', commitPending);
 window.addEventListener('resize', () => { renderStaminaMini(); if (!S.prefs.plain) { renderDesk(); railCues(); } });
+// the usage strip refits whenever its room changes (a badge, chip or the cash beside it grew), not only on a window resize,
+// and once the fonts have loaded (the first fit measured the fallback font)
+document.fonts?.ready.then(() => renderStaminaMini());
+let statusW = 0; new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w !== statusW) { statusW = w; renderStaminaMini(); } }).observe(document.querySelector('.topbar .status'));
 // the stamp tray opening or closing resizes the desk: lay the papers out again once it settles
 $('#stamps').addEventListener('transitionend', e => { if (e.target === e.currentTarget && e.propertyName === 'width' && !S.prefs.plain) { renderDesk(); railCues(); } });
 
