@@ -1,0 +1,10 @@
+$ TLA2TOOLS=<tla2tools-1.7.4.jar> .agents/skills/verify-firstmate-delivery/check.sh
+ok   HdDelivery.cfg: pass 1137 distinct states
+ok   chart.cfg: pass 43 distinct states
+ok   before-fix.cfg: SomeoneComing 14 distinct states
+ok   no-keyed-note.cfg: DecisionNotLost 17 distinct states
+ok   no-recheck.cfg: SomeoneComing 27 distinct states
+ok   trust-watcher.cfg: liveness 215 distinct states
+ok   code: adapter tests (109 checks)
+delivery verified
+exit 0

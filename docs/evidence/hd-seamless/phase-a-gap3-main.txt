@@ -1,0 +1,31 @@
+# Phase A, gap 3, on main: a decide stamp on a held task (lab 1 home <lab1>)
+== 18:56:23Z (decide routed 18:53:59Z)
+-- hold open? (rc 1 = closed)
+
+
+
+rc=1
+-- firstmate inbox pending:
+[]
+-- worker steering inbox:
+<lab1-home>/state/labcb261e474fd0-worker.inbox/:
+ handled
+
+<lab1-home>/state/labcb261e474fd0-worker.inbox/handled:
+-- worker status:
+paused [at=1793991092]: waiting for gate file <lab1-home>/data/labcb261e474fd0-worker/gate and resume message
+-- firstmate pane:
+
+
+
+ ▐▛███▛█   Claude Code v2.1.319
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   <lab1-home>
+▎ Your Max plan includes $100 a month in API credits to power your apps and agents. Claim them at https://clau.de/api-credits
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then cb261e474fd0, with no spaces.                                                 
+⏺ LABREADY-cb261e474fd0                                                                                                                                                                                                     
+✻ Cogitated for 3s · done 11:51 AM                                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                                                                         
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                                                                                                                                                    

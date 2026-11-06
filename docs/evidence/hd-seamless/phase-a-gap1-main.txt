@@ -1,0 +1,27 @@
+# Phase A, gap 1, on main (adapters from git archive main): an order to a freshly opened firstmate session
+== 19:12:34Z: 3 min after main's bridge routed req-1793992164-332 (19:09:24Z) to a freshly opened firstmate session
+-- main's bridge log:
+2026-11-06T19:08:51Z hd-bridge: following <hdv-home>/answers.jsonl from byte 234 into <lab-home>
+queued 1793992164-WdMDj3
+  HarborDeck request for mate-main: E2E order 1: reply on the desk to this order with the single word 
+  firstmate will pick this up at its next check.
+2026-11-06T19:09:24Z hd-bridge: routed request req-1793992164-332
+-- firstmate inbox, unread:
+[{"id":"1793992164-WdMDj3","request_id":"req-1793992164-332"}]
+-- fm-inbox.sh ready:
+{"lock":{"state":"held","pid":24673,"live_harness":true},"consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":250},"can_receive":true}
+-- what the new listener says about this home:
+
+
+
+idle session pid 24673 in firstmate:3.0, nothing listening (beacon fresh but no fm-watch.sh running)
+-- desk reply item for the order? (a reply creates items/<id>.json)
+"<data>/items/req-1793992164-332.json": No such file or directory (os error 2)
+-- the fresh firstmate session's pane:
+ ▐▛███▛█   Claude Code v2.1.319
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   <lab-home>
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Try "write a test for herdr.sh"
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)

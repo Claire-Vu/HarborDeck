@@ -1,0 +1,152 @@
+# Bridge log, Phase B (the branch: hd-live.sh -> hd-bridge.sh --follow -> hd-listener.sh), lab home <lab-home>, desk data dir <hdv-home>.
+# Lines from hd-live/hd-bridge/hd-listener and the fm-inbox/fm-captain-hold output they print. Times UTC.
+
+## 19:13-19:23Z (log truncated at a restart; these lines are as printed in the run console)
+2026-11-06T19:13:53Z hd-bridge: following <hdv-home>/answers.jsonl from byte 451 into <lab-home>
+2026-11-06T19:13:56Z hd-bridge: firstmate waking typed a wake into firstmate:3.0      <- order 1, fresh session opened by hand (no turn, no watcher)
+2026-11-06T19:22:08Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+2026-11-06T19:23:04Z hd-bridge: routed request req-1793992983-161                    <- order 2
+2026-11-06T19:23:04Z hd-bridge: firstmate listening watcher live                       <- the listener before 8099720 trusted the watcher: nobody woke for 8 min
+
+## 19:35Z onward (full)
+2026-11-06T19:35:10Z hd-live: bridge mode live
+2026-11-06T19:35:10Z hd-bridge: following <hdv-home>/answers.jsonl from byte 627 into <lab-home>
+2026-11-06T19:35:10Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793993740-9isfIw
+  HarborDeck request for mate-main: E2E order 3: reply on the desk to this order with the single word 
+2026-11-06T19:35:41Z hd-bridge: routed request req-1793993740-183
+2026-11-06T19:35:43Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:36:14Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793993802-H5CzoC
+  HarborDeck request for mate-main: E2E order 4: reply on the desk to this order with the single word 
+2026-11-06T19:36:42Z hd-bridge: routed request req-1793993802-205
+2026-11-06T19:36:43Z hd-listener: started claude --setting-sources project,local --model sonnet --effort medium --permission-mode auto in tmux window firstmate:3 for <lab-home>, the wake as its first prompt
+2026-11-06T19:36:43Z hd-bridge: firstmate starting firstmate in firstmate:3
+2026-11-06T19:37:14Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+closed: lab76f96daab579-worker
+answers: closed=1 skipped=0
+queued 1793993867-as90Mw
+  HarborDeck decide on lab76f96daab579-worker "Notes file format for the lab worker?": md (Markdown). 
+ok resolve lab76f96daab579-worker
+2026-11-06T19:37:47Z hd-bridge: routed decide lab76f96daab579-worker
+2026-11-06T19:37:50Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:38:21Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+skipped: lab76f96daab579-worker.q2 (no captain-held task with that id)
+answers: closed=0 skipped=1
+queued 1793994224-LxAEbQ
+  HarborDeck decide on lab76f96daab579-worker.q2 "Put a note count at the top?": no (No)
+ok resolve lab76f96daab579-worker.q2
+2026-11-06T19:43:45Z hd-bridge: routed decide lab76f96daab579-worker.q2
+skipped: lab76f96daab579-worker.q1 (no captain-held task with that id)
+answers: closed=0 skipped=1
+queued 1793994225-fL0f4K
+  HarborDeck decide on lab76f96daab579-worker.q1 "Heading style for the notes file?": atx (# headings)
+ok resolve lab76f96daab579-worker.q1
+2026-11-06T19:43:45Z hd-bridge: routed decide lab76f96daab579-worker.q1
+2026-11-06T19:43:48Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:44:19Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+skipped: labcall-sheet.q2 (no captain-held task with that id)
+answers: closed=0 skipped=1
+queued 1793994289-svDGzB
+  HarborDeck decide on labcall-sheet.q2 "Date format in note headers?": iso (2026-11-06)
+ok resolve labcall-sheet.q2
+2026-11-06T19:44:49Z hd-bridge: routed decide labcall-sheet.q2
+skipped: labcall-sheet.q1 (no captain-held task with that id)
+answers: closed=0 skipped=1
+queued 1793994290-RKBZMf
+  HarborDeck decide on labcall-sheet.q1 "Line width for the notes file?": w100 (100 columns)
+ok resolve labcall-sheet.q1
+2026-11-06T19:44:50Z hd-bridge: routed decide labcall-sheet.q1
+2026-11-06T19:44:53Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:45:23Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793994337-VPAn1n
+  HarborDeck file on todo-app-store "Sign the app store developer agreement": done
+ok resolve todo-app-store
+2026-11-06T19:45:37Z hd-bridge: routed file todo-app-store
+2026-11-06T19:45:40Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:46:11Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+closed: labcall-approve
+answers: closed=1 skipped=0
+queued 1793994541-uocmiI
+  HarborDeck approve on labcall-approve "Approve the notes plan: one file per day". The hold on labcal
+ok resolve labcall-approve
+2026-11-06T19:49:01Z hd-bridge: routed approve labcall-approve
+2026-11-06T19:49:04Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:49:35Z hd-bridge: firstmate waking HarborDeck is waking it in firstmate:3.0
+2026-11-06T19:50:07Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+closed: labcall-reject
+answers: closed=1 skipped=0
+queued 1793994610-qUKg7P
+  HarborDeck reject on labcall-reject "Approve a notes database instead of files". The hold on labcall
+ok resolve labcall-reject
+2026-11-06T19:50:10Z hd-bridge: routed reject labcall-reject
+2026-11-06T19:50:13Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:50:44Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+closed: labcall-needswork
+answers: closed=1 skipped=0
+queued 1793994648-Il9VR9
+  HarborDeck needs-work on labcall-needswork "Approve the notes template draft": Add a Sources section
+2026-11-06T19:50:48Z hd-bridge: routed needs-work labcall-needswork
+2026-11-06T19:50:51Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:51:22Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793994695-voq5qs
+  HarborDeck defer on labcall-later "Archive notes older than a year?": later, back on the desk 2026-1
+2026-11-06T19:51:36Z hd-bridge: routed defer labcall-later
+2026-11-06T19:51:38Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:52:10Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793994749-YEKngv
+  HarborDeck ask on labres-1 "Lab notes research: plain files beat a database": In one sentence: what 
+2026-11-06T19:52:29Z hd-bridge: routed ask labres-1
+2026-11-06T19:52:32Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:53:03Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+ok resolve labres-1
+2026-11-06T19:53:15Z hd-bridge: routed file labres-1
+queued 1793994864-eTcYD1
+  HarborDeck request for mate-main: E2E order 5: keep this remark on the lab-notes topic as a HarborDe
+2026-11-06T19:54:24Z hd-bridge: routed request req-1793994864-260
+2026-11-06T19:54:27Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:54:58Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793994980-g8uAGc
+  HarborDeck request for mate-main: E2E order 6: look at the attached desk screenshot and reply with o
+2026-11-06T19:56:20Z hd-bridge: routed request req-1793994980-97
+2026-11-06T19:56:23Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+queued 1793995012-nPCVum
+  HarborDeck request for mate-main: Never schedule lab work on Sundays.. Standing order: file it in yo
+2026-11-06T19:56:52Z hd-bridge: routed request req-1793995012-773
+2026-11-06T19:56:52Z hd-bridge: firstmate waking HarborDeck is waking it in firstmate:3.0
+2026-11-06T19:59:28Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T19:59:59Z hd-bridge: firstmate waking HarborDeck is waking it in firstmate:3.0
+2026-11-06T20:02:01Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+2026-11-06T20:02:58Z hd-live: bridge mode live
+2026-11-06T20:02:58Z hd-bridge: following <hdv-home>/answers.jsonl from byte 2741 into <lab-home>
+2026-11-06T20:02:59Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793995393-GBqK4w
+  HarborDeck request for mate-main: E2E order 7: reply on the desk to this order with the single word 
+2026-11-06T20:03:13Z hd-bridge: routed request req-1793995393-975
+2026-11-06T20:03:16Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+queued 1793995404-6PWeJn
+  HarborDeck request for mate-main: Keep lab notes under 200 lines each.. Standing order: file it in y
+2026-11-06T20:03:24Z hd-bridge: routed request req-1793995404-777
+2026-11-06T20:03:27Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T20:03:58Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793995562-5gm57V
+  HarborDeck request for mate-main: E2E queued order 9: reply on the desk to this order with the singl
+2026-11-06T20:06:02Z hd-bridge: routed request req-1793995471-808
+2026-11-06T20:06:05Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T20:06:36Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793995597-b7CJpR
+  HarborDeck comment on labtodo-1 "Check the notes folder size": E2E comment: reply on this item with 
+2026-11-06T20:06:37Z hd-bridge: routed comment labtodo-1
+2026-11-06T20:06:40Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T20:07:11Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793995712-3RUdfF
+  HarborDeck request for mate-main: E2E order 10: reply on the desk to this order with the single word
+2026-11-06T20:08:32Z hd-bridge: routed request req-1793995712-931
+2026-11-06T20:08:35Z hd-bridge: firstmate waking typed a wake into firstmate:3.0
+2026-11-06T20:09:06Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
+queued 1793995985-zRfnbt
+  HarborDeck request for mate-main: E2E order 11: reply on the desk to this order with the single word
+2026-11-06T20:13:05Z hd-bridge: routed request req-1793995984-555
+2026-11-06T20:13:05Z hd-listener: started claude --setting-sources project,local --model sonnet --effort medium --permission-mode auto in tmux window firstmate:3 for <lab-home>, the wake as its first prompt
+2026-11-06T20:13:05Z hd-bridge: firstmate starting firstmate in firstmate:3
+2026-11-06T20:13:37Z hd-bridge: firstmate clear: firstmate has read everything HarborDeck sent
