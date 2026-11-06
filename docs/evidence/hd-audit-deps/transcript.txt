@@ -1,0 +1,18 @@
+$ hdv doctor
+ok    app pid 68247 alive
+ok    pid runs this worktree's electron
+ok    CDP :9341 owned by our pid tree
+ok    window is the Harbor Deck desk
+ok    data dir is synthetic (/tmp/hdv-a960152415/home)
+ok    app reads that data dir
+ok    wake command is the stub
+ok    electron 44.10.2 is the pinned one
+build  fm/hd-audit-deps@a9c9faa (dirty)
+items  20   answers 3
+
+$ ui.mjs eval navigator.userAgent Electron
+"Electron/44.10.2"
+
+$ ui.mjs press 1   # stamp "Merge PR 142 (calmer checkout)?"
+$ tail -1 answers.jsonl
+{"id":"pr-142-checkout","action":"decide","key":"merge","note":"","at":1793997298}
