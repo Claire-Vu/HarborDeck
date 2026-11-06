@@ -60,6 +60,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 HD_HOME=$("$HD" path)
+# a note's reply command names a non-default data dir, so firstmate's reply lands on this desk, not ~/.harbordeck
+HD_ENV=''; [ "$HD_HOME" = "$HOME/.harbordeck" ] || HD_ENV="HARBORDECK_HOME=$(printf '%q' "$HD_HOME") "
 here=$(cd "$(dirname "$0")" && pwd)
 SENT=0      # set when a batch reached firstmate (then the listener check runs)
 OWED=$((1 - echo_mode))  # notes firstmate has not read may be waiting (a restart checks at once): --follow checks again soon
@@ -129,7 +131,7 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
   rid="hd-$id-$action-$at"
   rid=${rid:0:128}
   text="HarborDeck $action on $id${title:+ \"$title\"}"
-  reply="${att:+Attached: $att. }Reply: $HD reply $id \"<text>\""
+  reply="${att:+Attached: $att. }Reply: $HD_ENV$HD reply $id \"<text>\""
   case "$action" in
     decide)
       label=$(jq -r --arg k "$key" '[.options[]? | select(.key == $k) | .label][0] // ""' "$HD_HOME/items/$id.json" 2>/dev/null || true)

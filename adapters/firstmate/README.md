@@ -63,7 +63,7 @@ Use the plain CLI (see `skill/SKILL.md`). Two conventions make the bridge work:
 - `--echo` (or `HD_BRIDGE_MODE=echo`, which `hd-live.sh` and `install.sh --mode echo` pass through) logs each firstmate command with a timestamp instead of running it. It still asks the read-only `fm-captain-hold.sh open` predicate, so it shows exactly what live mode would do. HarborDeck-side effects still happen, and echo mode keeps its own cursor (`firstmate-bridge.echo`). `--dry-run` is a one-shot preview that changes nothing.
 - `--request-id` keys make inbox notes idempotent: replaying a line never creates a second note.
 - `decide`, `approve`, `reject` and `file` mark the item resolved on the desk.
-- Every note that expects an answer ends with the exact command to reply, e.g. `Reply: harbordeck reply <id> "<text>"`.
+- Every note that expects an answer ends with the exact command to reply, e.g. `Reply: harbordeck reply <id> "<text>"`; on a data dir other than `~/.harbordeck` the command starts with `HARBORDECK_HOME=<dir>`, so the reply lands on this desk.
 
 ## Fleet mapping
 

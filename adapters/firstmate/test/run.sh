@@ -169,6 +169,9 @@ sed -i.bak "s/UNTIL_EVENING/$(epoch '2026-10-31 18:00')/; s/UNTIL_RESET/$(epoch 
 "$here/hd-bridge.sh" --dry-run > "$tmp/dry.txt"
 check "bridge: dry run touches nothing" test ! -e "$FM_HOME/calls.log"
 check "bridge: dry run lists routes" grep -q "fm-inbox.sh note --request-id req-9" "$tmp/dry.txt"
+mkdir -p "$tmp/dflt" && cp -R "$HARBORDECK_HOME" "$tmp/dflt/.harbordeck"
+HOME="$tmp/dflt" HARBORDECK_HOME="$tmp/dflt/.harbordeck" "$here/hd-bridge.sh" --dry-run > "$tmp/dry-default.txt"
+check "bridge: on the default data dir the reply command is bare" grep -qF -- "$(printf '%q' "Reply: $HD reply held-2")" "$tmp/dry-default.txt"
 cp -R "$HARBORDECK_HOME" "$tmp/hd-echo"
 HARBORDECK_HOME="$tmp/hd-echo" "$here/hd-bridge.sh" --echo > "$tmp/echo.txt" 2>/dev/null
 check "bridge --echo: touches no firstmate state" test ! -e "$FM_HOME/calls.log"
@@ -186,7 +189,7 @@ check "bridge: closed hold also wakes firstmate to tell the worker" grep -qF 're
 check "bridge: Later on a held task also tells firstmate to park the worker" grep -qF 'request-id hd-held-4-defer-11 -- HarborDeck defer on held-4 "Rollout?": later, back on the desk 2026-11-05 00:00. Held until 2026-11-05: park any worker waiting on held-4 until then.' "$log"
 check "bridge: unheld decision falls back to a note" grep -qF 'inbox note --request-id hd-free-1-decide-2 -- HarborDeck decide on free-1 "Palette?": warm (Warm) - cozier' "$log"
 check "bridge: needs-work releases and notes" grep -qF "held-2	needs-work: slower voice		release" "$log"
-check "bridge: needs-work note says how to reply" grep -qF "HarborDeck needs-work on held-2 \"Video\": slower voice. Reply: $HD reply held-2" "$log"
+check "bridge: needs-work note says how to reply, on this data dir" grep -qF "HarborDeck needs-work on held-2 \"Video\": slower voice. Reply: HARBORDECK_HOME=$HARBORDECK_HOME $HD reply held-2" "$log"
 check "bridge: ask becomes a note" grep -qF "request-id hd-res-1-ask-4" "$log"
 check "bridge: filing an answer sends nothing" test "$(grep -c 'res-1-file' "$log")" = 0
 check "bridge: filing a todo reports done" grep -qF "HarborDeck file on td-1 \"Sign form\": done" "$log"
@@ -199,7 +202,7 @@ check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/i
 check "bridge: Later on a question defers its held task, date rounded up" grep -qF "hold hold held-3 --reason captain deferred held-3.q2 on HarborDeck until 2026-10-31 18:00 --until 2026-11-01" "$log"
 check "bridge: Later at midnight holds until that date" grep -qF "hold hold held-4 --reason captain deferred held-4 on HarborDeck until 2026-11-05 00:00 --until 2026-11-05" "$log"
 check "bridge: Later on an unheld item is a note with the exact time" grep -qF "request-id hd-free-2-defer-11 -- HarborDeck defer on free-2 \"Later maybe?\": later, back on the desk 2026-11-03 04:31" "$log"
-check "bridge: comment lists its images, marked copy first" grep -qF "HarborDeck comment on res-1 \"Research\": see [1] overlap. Attached: /hd/attachments/2026-10/aa.marked.png, /hd/attachments/2026-10/bb.png. Reply: $HD reply res-1" "$log"
+check "bridge: comment lists its images, marked copy first" grep -qF "HarborDeck comment on res-1 \"Research\": see [1] overlap. Attached: /hd/attachments/2026-10/aa.marked.png, /hd/attachments/2026-10/bb.png. Reply: HARBORDECK_HOME=$HARBORDECK_HOME $HD reply res-1" "$log"
 check "bridge: request carries its image" grep -qF "request-id req-11 -- HarborDeck request for sm: Fix this. Attached: /hd/attachments/2026-10/cc.png. Reply:" "$log"
 check "bridge: keyed reject with an image also notes it" grep -qF "request-id hd-held-1-reject-17 -- HarborDeck reject on held-1 \"Ship 2.4?\". Attached: /hd/attachments/2026-10/dd.png" "$log"
 check "bridge: an Inspect match is not inbox noise" test "$(grep -c 'res-1-comment-18' "$log")" = 0
