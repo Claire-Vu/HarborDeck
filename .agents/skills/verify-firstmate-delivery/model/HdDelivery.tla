@@ -107,11 +107,13 @@ CaptainTurn ==
   /\ UNCHANGED <<stamped, toRoute, inbox, hold, worker, typed, recent, owed, faults>>
 
 \* The turn's wake drain presents every note; firstmate acts on each and sends the decision to the waiting worker.
+\* The wake record names the note it was typed for, so once that note is read the record no longer holds a newer
+\* note back (hd-listener.sh recent()).
 Drains ==
   /\ session = "busy" /\ inbox # {}
-  /\ inbox' = {} /\ duty' = FALSE
+  /\ inbox' = {} /\ duty' = FALSE /\ recent' = FALSE
   /\ worker' = IF "dec" \in inbox /\ hold = "closed" THEN "told" ELSE worker
-  /\ UNCHANGED <<stamped, toRoute, hold, session, watcher, typed, recent, owed, faults>>
+  /\ UNCHANGED <<stamped, toRoute, hold, session, watcher, typed, owed, faults>>
 
 \* The turn ends (a wake turn once nothing is left to drain). The Stop hook arms the watcher, or does not
 \* (no supervision need, or no lock yet).

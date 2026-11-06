@@ -30,8 +30,8 @@ Needs Java 11+. The first run downloads TLC (`tla2tools.jar` 1.7.4, sha256-pinne
 
 | Config | Scope | Expected |
 |---|---|---|
-| `HdDelivery.cfg` | an order and a held decision, up to 3 faults (session dies, typed wake lost, watcher dies, bridge restarts), every start state (not running, just opened, idle with or without watcher) | all hold (~1,400 states) |
-| `chart.cfg` | one held decision, no faults | all hold (52 states), drawable |
+| `HdDelivery.cfg` | an order and a held decision, up to 3 faults (session dies, typed wake lost, watcher dies, bridge restarts), every start state (not running, just opened, idle with or without watcher) | all hold (~1,100 states) |
+| `chart.cfg` | one held decision, no faults | all hold (43 states), drawable |
 | `before-fix.cfg` | `Listener`, `KeyedNote`, `Recheck` off: the bridge before this protocol | `SomeoneComing` breaks |
 | `no-keyed-note.cfg` | keyed decide closes the hold with no note | `DecisionNotLost` breaks |
 | `no-recheck.cfg` | listener after a batch only, no timer, restart forgets | `SomeoneComing` breaks |
@@ -50,7 +50,7 @@ Needs Java 11+. The first run downloads TLC (`tla2tools.jar` 1.7.4, sha256-pinne
 | `BridgeEnsure` (`Listener`) | `hd-bridge.sh` `listen()` -> `hd-listener.sh ensure`: `unread` (clear, drops the wake record), `probe` (recent / down / busy / listening / idle), wake via `fm-send.sh` (herdr or tmux pane, its own server), start via herdr or tmux (`HD_FM_START`) | all `listener:` checks |
 | `TrustWatcher` = FALSE | `hd-listener.sh ensure`: `idle\|listening)` both type the wake | "listening still gets the wake" |
 | `owed` (`Recheck`) | `hd-bridge.sh` `OWED` (starts 1 in live mode), `--wait --timeout $RECHECK` while owed | "bridge --follow: an unread note is re-woken on the timer", "...left alone once firstmate read it" |
-| `recent`, `GraceExpires` | `hd-listener.sh` `record`/`recent`, `cursors/firstmate-listener`, `HD_LISTENER_GRACE` | "does not wake again", "past the grace it wakes again", "all read drops the wake record" |
+| `recent`, `GraceExpires`, `Drains` ends `recent` | `hd-listener.sh` `record`/`recent` (the record names the newest unread note; it holds only while that note is unread), `cursors/firstmate-listener`, `HD_LISTENER_GRACE` | "does not wake again", "past the grace it wakes again", "a newer note wakes again inside the grace", "all read drops the wake record" |
 | `TakesTypedTurn`, `WakeLost` | `fm-send.sh` typed plane (exit 0 / 3) | wake.sh unit test (`cli/test/scheduler.test.js`) |
 | `TurnEnds`, `Drains` | firstmate: Stop hook `bin/fm-claude-stop-autoarm.sh`, `bin/fm-session-start.sh`, `bin/fm-wake-drain.sh` (not in this repo) | live walk only (`docs/evidence/hd-seamless/`) |
 

@@ -14,8 +14,8 @@
 #              notes wait for the next drain), so ensure types a wake here too
 #   idle       a session is open with no watcher (opened with no turn yet, or its watcher died): ensure types a wake
 #   busy       the session holding the home lock is mid-turn (herdr says working): the bridge checks again after it
-#   waking     HarborDeck typed a wake less than HD_LISTENER_GRACE seconds ago
-#   starting   HarborDeck started a session less than HD_LISTENER_GRACE seconds ago
+#   waking     HarborDeck typed a wake less than HD_LISTENER_GRACE seconds ago, for a note still unread
+#   starting   HarborDeck started a session less than HD_LISTENER_GRACE seconds ago, for a note still unread
 #   down       no session runs for this home: ensure starts one (HD_FM_START herdr or tmux), else it stays down
 #   unknown    the home cannot say (no fm-inbox.sh ready)
 # The session is the lock holder (state/.lock), else the newest agent process whose working directory is FM_HOME
@@ -26,7 +26,8 @@
 # with `herdr agent start`, then types the first message. It never starts herdr itself. HD_FM_START=tmux instead
 # opens a window in tmux session HD_FM_TMUX_SESSION (default firstmate, created if missing) on this process's tmux
 # server (TMUX_TMPDIR) running HD_FM_COMMAND (default claude) with the message as its first prompt. Each wake or start is
-# recorded in <HARBORDECK_HOME>/cursors/firstmate-listener, so a burst of answers wakes or starts once.
+# recorded in <HARBORDECK_HOME>/cursors/firstmate-listener with the newest unread note, so a burst of answers
+# wakes or starts once; once firstmate acknowledges that note the wake counts as taken and a newer note wakes again.
 # Exit: status 0; ensure 0, or 1 when the session could not be woken or started; send: fm-send's code
 # (0 confirmed, 3 typed but unconfirmed), 75 when no session runs and none could be started, 2 on bad setup.
 # Env: FM_HOME (required), HD (default harbordeck, else this checkout's CLI), HD_FM_START (herdr|tmux|off, default herdr), HD_FM_HARNESS,
@@ -47,14 +48,16 @@ WAKE="HarborDeck: the captain sent you something on the desk. It is in your inbo
 log() { printf '%s hd-listener: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 
 record_file() { printf '%s/cursors/firstmate-listener' "$("$HD" path)"; }
-record() {  # <waking|starting> <target>
+record() {  # <waking|starting> <target>: also names the newest unread HarborDeck note, the one this wake is for
   local f; f=$(record_file); mkdir -p "$(dirname "$f")"
-  printf '%s %s %s\n' "$1" "$(date +%s)" "$2" > "$f.tmp" && mv "$f.tmp" "$f"
+  printf '%s %s %s %s\n' "$1" "$(date +%s)" "$2" "$(pending_ids | tail -n 1)" > "$f.tmp" && mv "$f.tmp" "$f"
 }
-recent() {  # -> "<waking|starting> <target>" when one is younger than GRACE
-  local f what at target; f=$(record_file)
-  { read -r what at target < "$f"; } 2>/dev/null || return 1
+recent() {  # -> "<waking|starting> <target>" when one is younger than GRACE and its note is still unread
+  local f what at target note; f=$(record_file)
+  { read -r what at target note < "$f"; } 2>/dev/null || return 1
   [ $(( $(date +%s) - at )) -lt "$GRACE" ] || return 1
+  # firstmate drained the note it was woken for: that wake was taken, so a newer note needs its own
+  [ -z "$note" ] || pending_ids | grep -qxF -- "$note" || return 1
   printf '%s %s\n' "$what" "$target"
 }
 
@@ -97,10 +100,11 @@ watching() {  # a live watcher for this home: its own bin/fm-watch.sh, running (
 }
 
 READY='' PID='' TARGET='' RECENT='' TMUXV=''
-unread() {  # -> number of HarborDeck notes firstmate has not acknowledged yet
+pending_ids() {  # -> ids of the HarborDeck notes (request id hd-* or req-*) firstmate has not acknowledged, oldest first
   "$FM_HOME/bin/fm-inbox.sh" receipts --all-pending 2>/dev/null \
-    | jq -r '[.pending[]? | select((.request_id // "") | test("^(hd-|req-)"))] | length' 2>/dev/null | grep . || echo 0
+    | jq -r '.pending[]? | select((.request_id // "") | test("^(hd-|req-)")) | .id' 2>/dev/null || true
 }
+unread() { pending_ids | grep -c . || true; }   # -> how many
 
 probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start younger than GRACE)
   local can lock live why r watcher=no

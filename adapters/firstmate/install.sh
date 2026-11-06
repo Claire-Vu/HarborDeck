@@ -193,7 +193,7 @@ fi
 
 # 5. firstmate-side instructions (private: the home's data/ dir)
 home_env=''; [ "$data_dir" = "$HOME/.harbordeck" ] || home_env=", \`HARBORDECK_HOME=$data_dir\`"
-sed -e "s|@HD_HOME@|$data_dir|g" -e "s|@FROM@|$from|g" -e "s|@HOME_ENV@|$home_env|g" -e "s|@LABEL@|$LABEL|g" -e "s|@WORKSPACE@|$workspace|g" "$here/firstmate-instructions.md" > "$instructions"
+sed -e "s|@HD_HOME@|$data_dir|g" -e "s|@FROM@|$from|g" -e "s|@HOME_ENV@|$home_env|g" -e "s|@LABEL@|$LABEL|g" -e "s|@WORKSPACE@|$workspace|g" -e "s|@ADAPTER@|$here|g" "$here/firstmate-instructions.md" > "$instructions"
 touch "$prefs"
 strip_block
 {

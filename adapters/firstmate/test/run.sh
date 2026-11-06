@@ -195,7 +195,7 @@ check "bridge: filing an answer sends nothing" test "$(grep -c 'res-1-file' "$lo
 check "bridge: filing a todo reports done" grep -qF "HarborDeck file on td-1 \"Sign form\": done" "$log"
 check "bridge: request keeps its id" grep -qF "request-id req-9 -- HarborDeck request for sm: Add dark theme" "$log"
 check "bridge: rule request carries Standing order" grep -qF "request-id req-10 -- HarborDeck request for sm: Never use max effort. Standing order: file it in your captain preferences" "$log"
-check "bridge: rule note names the answer id" grep -qF "(answer id req-10)" "$log"
+check "bridge: rule note names the marker with the answer id" grep -qF "as a bullet ending {@req-10}; the desk pins it from there." "$log"
 check "bridge: rule on needs-work carries Standing order" grep -qE "request-id hd-res-1-needs-work-13 -- .*always cite sources\. Standing order:" "$log"
 check "bridge: plain request has no Standing order" test "$(grep -F 'request-id req-9 ' "$log" | grep -c 'Standing order')" = 0
 check "bridge: decided items resolved" test "$(jq -r .status "$HARBORDECK_HOME/items/held-1.json")" = resolved
@@ -260,6 +260,10 @@ L ensure > "$tmp/l.txt"
 check "listener: a second answer in the burst does not wake again" test "$(sends)" = 1
 HD_LISTENER_GRACE=0 L ensure >/dev/null
 check "listener: past the grace it wakes again" test "$(sends)" = 2
+echo '{"pending":[{"id":"n2","request_id":"req-12"}]}' > "$FM_HOME/receipts.json"
+L ensure >/dev/null
+check "listener: once the note it woke for is read, a newer note wakes again inside the grace" test "$(sends)" = 3
+rm -f "$FM_HOME/receipts.json"
 fresh; ready held "$sess" true
 check "listener: a session at its prompt with a live watcher is listening" grep -q "^listening watcher live in session pid $sess in default:w9:p9" <(L status)
 L ensure > "$tmp/l.txt"

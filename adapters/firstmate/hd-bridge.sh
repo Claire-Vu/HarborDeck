@@ -125,7 +125,7 @@ route() {  # <answer json>; returns nonzero when firstmate did not take it
     title=$(jq -r '.title // ""' "$HD_HOME/items/$id.json"); kind=$(jq -r '.kind // ""' "$HD_HOME/items/$id.json")
   fi
   # "Remember this" (rule: true): a standing order, so firstmate files it with the captain's preferences
-  [ "$(jq -r '.rule // false' <<<"$a")" != true ] || so=" Standing order: file it in your captain preferences, then record it with hd-rules (answer id $id)."
+  [ "$(jq -r '.rule // false' <<<"$a")" != true ] || so=" Standing order: file it in your captain preferences as a bullet ending {@$id}; the desk pins it from there."
   # a keyed answer that closed the hold: firstmate still has to pass it to whoever waits on that task
   closed="The hold on $id is closed with this answer: pass it to any worker waiting on $id now."
   rid="hd-$id-$action-$at"
