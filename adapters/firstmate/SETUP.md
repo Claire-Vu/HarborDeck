@@ -39,7 +39,7 @@ tail -f ~/Library/Logs/harbordeck-firstmate.log                       # "hd-brid
 harbordeck validate                                                   # ok: 1 fleet, 1 quota, 1 rules, N items, ...
 ```
 
-The log also says, after each answer, whether firstmate will act on it: `hd-bridge: firstmate listening watcher live`, `... busy ...`, `... waking typed a wake into default:w1:p1`, `... starting firstmate in default:w7:p1`, or `... down ...` when nothing runs and none could be started. The desk shows the same on each ticket still waiting (`awaiting reply · 1m · starting up`).
+The log also says, after each answer, whether firstmate will act on it: `hd-bridge: firstmate waking typed a wake into default:w1:p1`, `... busy ...`, `... starting firstmate in default:w7:p1`, or `... down ...` when nothing runs and none could be started. The desk shows the same on each ticket still waiting (`awaiting reply · 1m · starting up`).
 
 Then open the app and stamp something. In echo mode the log shows the exact firstmate command, for example:
 

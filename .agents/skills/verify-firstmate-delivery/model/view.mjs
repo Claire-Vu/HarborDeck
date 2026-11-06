@@ -26,7 +26,6 @@ export const step = (action, from, to) => ({
   CaptainOpens: "you open firstmate",
   TakesTypedTurn: "firstmate takes the wake",
   CaptainTurn: "you type to firstmate",
-  WatcherWakes: "the watcher wakes firstmate",
   Drains: "firstmate reads its inbox",
   TurnEnds: to.watcher ? "the turn ends, watcher armed" : "the turn ends, no watcher",
   SessionDies: "firstmate dies",

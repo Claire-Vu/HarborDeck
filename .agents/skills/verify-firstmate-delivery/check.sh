@@ -9,6 +9,7 @@
 #      before-fix.cfg   the bridge before this check existed: SomeoneComing must break
 #      no-keyed-note.cfg a held decide without its note: DecisionNotLost must break
 #      no-recheck.cfg   listener after a batch only, no recheck timer: SomeoneComing must break
+#      trust-watcher.cfg the listener leaves a session with a live watcher alone: a note is never read (liveness)
 #    A broken variant that passes means the model can no longer fail: treat it as a failed check.
 # 2. Code: adapters/firstmate/test/run.sh, whose bridge and listener tests pin each model step to the code.
 # TLC is tla2tools.jar 1.7.4 (sha256-pinned), downloaded once into ~/.cache/harbordeck-tla, or $TLA2TOOLS.
@@ -46,6 +47,7 @@ verdict chart.cfg pass
 verdict before-fix.cfg SomeoneComing
 verdict no-keyed-note.cfg DecisionNotLost
 verdict no-recheck.cfg SomeoneComing
+verdict trust-watcher.cfg liveness
 
 if [ "${1:-}" != --model-only ]; then
   if out=$("$root/adapters/firstmate/test/run.sh" 2>&1); then echo "ok   code: adapter tests ($(grep -c '^ok' <<<"$out") checks)"

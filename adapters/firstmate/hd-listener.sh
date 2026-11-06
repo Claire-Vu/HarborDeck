@@ -9,11 +9,13 @@
 # HarborDeck wrote (request id hd-* or req-*) is still unacknowledged (`fm-inbox.sh receipts`), so the bridge can
 # call it after every route and again on a timer: it re-wakes a session that never took the turn, and stops once
 # firstmate has drained the note. --echo skips that check (echo mode writes no notes). States:
-#   listening  the home's watcher is live (`fm-inbox.sh ready`: can_receive, and its bin/fm-watch.sh runs), so the note wakes it
-#   busy       the session holding the home lock is mid-turn; its Stop hook arms the watcher, which presents the note
-#   idle       a session is open but nothing listens (opened with no turn yet, or its watcher died): ensure types a wake
-#   waking     HarborDeck typed a wake less than HD_LISTENER_GRACE seconds ago and nothing listens yet
-#   starting   HarborDeck started a session less than HD_LISTENER_GRACE seconds ago and nothing listens yet
+#   listening  a session sits at its prompt with the home's watcher live (`fm-inbox.sh ready`: can_receive, and its
+#              bin/fm-watch.sh runs). The watcher never presents an inbox note (it surfaces only process-event checks;
+#              notes wait for the next drain), so ensure types a wake here too
+#   idle       a session is open with no watcher (opened with no turn yet, or its watcher died): ensure types a wake
+#   busy       the session holding the home lock is mid-turn (herdr says working): the bridge checks again after it
+#   waking     HarborDeck typed a wake less than HD_LISTENER_GRACE seconds ago
+#   starting   HarborDeck started a session less than HD_LISTENER_GRACE seconds ago
 #   down       no session runs for this home: ensure starts one (HD_FM_START herdr or tmux), else it stays down
 #   unknown    the home cannot say (no fm-inbox.sh ready)
 # The session is the lock holder (state/.lock), else the newest agent process whose working directory is FM_HOME
@@ -101,7 +103,7 @@ unread() {  # -> number of HarborDeck notes firstmate has not acknowledged yet
 }
 
 probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start younger than GRACE)
-  local can lock live why r
+  local can lock live why r watcher=no
   STATE=unknown WHY='' PID='' TARGET='' RECENT=''
   READY=$("$FM_HOME/bin/fm-inbox.sh" ready 2>/dev/null) || { WHY="fm-inbox.sh ready failed"; return 0; }
   can=$(jq -r '.can_receive' <<<"$READY"); lock=$(jq -r '.lock.state' <<<"$READY"); live=$(jq -r '.lock.live_harness' <<<"$READY")
@@ -109,14 +111,18 @@ probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start y
   if [ "$lock" = held ] && [ "$live" = true ]; then PID=$(jq -r '.lock.pid // empty' <<<"$READY"); else PID=$(newest_session); fi
   [ -z "$PID" ] || { TARGET=$(target_of "$PID"); TMUXV=$(pane_env "$PID" TMUX); }
   ! r=$(recent) || RECENT=${r#* }
-  if [ "$can" = true ] && watching; then STATE=listening WHY="watcher live"; return 0; fi
-  [ "$can" != true ] || why="beacon fresh but no fm-watch.sh running"
   if [ -n "$RECENT" ]; then STATE=${r%% *} WHY="HarborDeck is ${r%% *} it in $RECENT"; return 0; fi
-  if [ -z "$PID" ]; then STATE=down WHY="no firstmate session for $FM_HOME"; return 0; fi
-  if [ "$lock" = held ] && [ "${TARGET%%:*}" = "$HSESSION" ] && [ "$(herdr agent get "${TARGET#*:}" 2>/dev/null | jq -r '.result.agent.agent_status // ""')" = working ]; then
-    STATE=busy WHY="mid-turn in ${TARGET:-pid $PID}; its turn end arms the watcher"; return 0
+  [ "$can" != true ] || ! watching || watcher=yes
+  if [ -z "$PID" ]; then
+    if [ "$watcher" = yes ]; then STATE=listening WHY="watcher live, but no session found to type into"; else STATE=down WHY="no firstmate session for $FM_HOME"; fi
+    return 0
   fi
-  STATE=idle WHY="session pid $PID in ${TARGET:-an unknown pane}, nothing listening ($why)"
+  if [ "$lock" = held ] && [ "${TARGET%%:*}" = "$HSESSION" ] && [ "$(herdr agent get "${TARGET#*:}" 2>/dev/null | jq -r '.result.agent.agent_status // ""')" = working ]; then
+    STATE=busy WHY="mid-turn in ${TARGET:-pid $PID}; the bridge checks again after this turn"; return 0
+  fi
+  if [ "$watcher" = yes ]; then STATE=listening WHY="watcher live in session pid $PID in ${TARGET:-an unknown pane}"; return 0; fi
+  [ "$can" != true ] || why="beacon fresh but no fm-watch.sh running"
+  STATE=idle WHY="session pid $PID in ${TARGET:-an unknown pane}, no watcher ($why)"
 }
 
 tmux_env() {  # a tmux pane: point tmux (TMUX, TMUX_TMPDIR) at that pane's own server, as its processes see it
@@ -168,15 +174,16 @@ case "$cmd" in
     for _ in $(seq 1 50); do  # one decision at a time: two routes must not start two sessions
       if mkdir "$lockd" 2>/dev/null; then trap 'rmdir "$lockd" 2>/dev/null || true' EXIT; break; fi; sleep 0.2
     done
-    if [ "$echo_mode" = 0 ] && [ "$(unread)" = 0 ]; then echo "clear: firstmate has read everything HarborDeck sent"; exit 0; fi
+    # all read: a wake HarborDeck recorded was taken, so the desk shows the session as it is, not "being woken"
+    if [ "$echo_mode" = 0 ] && [ "$(unread)" = 0 ]; then rm -f "$(record_file)"; echo "clear: firstmate has read everything HarborDeck sent"; exit 0; fi
     probe
     case "$STATE" in
-      idle)
-        if [ -z "$TARGET" ]; then log "idle session pid $PID has no pane to type into"; printf 'idle %s\n' "$WHY"; exit 1; fi
-        if [ "$echo_mode" = 1 ]; then printf 'would run: %q %q %q\n' "$FM_HOME/bin/fm-send.sh" "$TARGET" "$WAKE"; printf 'idle %s\n' "$WHY"; exit 0; fi
+      idle|listening)  # the watcher presents no inbox note, so an open session at its prompt gets the wake either way
+        if [ -z "$TARGET" ]; then log "session ${PID:+pid $PID }has no pane to type into"; printf '%s %s\n' "$STATE" "$WHY"; exit 1; fi
+        if [ "$echo_mode" = 1 ]; then printf 'would run: %q %q %q\n' "$FM_HOME/bin/fm-send.sh" "$TARGET" "$WAKE"; printf '%s %s\n' "$STATE" "$WHY"; exit 0; fi
         record waking "$TARGET"
         rc=0; type_into "$TARGET" "$WAKE" || rc=$?
-        if [ "$rc" = 0 ] || [ "$rc" = 3 ]; then printf 'waking typed a wake into %s\n' "$TARGET"; else printf 'idle wake failed (fm-send exit %s)\n' "$rc"; exit 1; fi ;;
+        if [ "$rc" = 0 ] || [ "$rc" = 3 ]; then printf 'waking typed a wake into %s\n' "$TARGET"; else printf '%s wake failed (fm-send exit %s)\n' "$STATE" "$rc"; exit 1; fi ;;
       down)
         if [ "$echo_mode" = 1 ]; then printf 'would start firstmate (%s) for %s\n' "$START" "$FM_HOME"; printf 'down %s\n' "$WHY"; exit 0; fi
         rc=0; t=$(start_session "$WAKE") || rc=$?

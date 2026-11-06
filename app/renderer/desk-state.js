@@ -91,7 +91,7 @@ function consequence(a) {
 const mateLabel = id => FLEET.firstmates.find(f => f.id === id)?.label || id;
 // Whether a first mate will act on what you send, as the firstmate feed reports it (adapters/firstmate/hd-listener.sh);
 // '' when the feed does not say (other adapters, or "attending").
-const MATE_STATE = { listening: 'listening', busy: 'busy: reads it when this turn ends', idle: 'session open, not listening yet', waking: 'being woken up', starting: 'starting up', down: 'not running' };
+const MATE_STATE = { listening: 'at its prompt', busy: 'busy: reads it when this turn ends', idle: 'at its prompt', waking: 'being woken up', starting: 'starting up', down: 'not running' };
 const mateState = id => MATE_STATE[FLEET.firstmates.find(f => f.id === id)?.state] || '';
 function unblocks(it) {
   const out = [];

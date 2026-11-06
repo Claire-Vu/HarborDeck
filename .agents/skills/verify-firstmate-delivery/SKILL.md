@@ -11,7 +11,7 @@ description: Formally verify that everything the captain sends from HarborDeck r
 ## Run it
 
 ```sh
-.agents/skills/verify-firstmate-delivery/check.sh            # model (5 configs) + adapter tests, about 30 s
+.agents/skills/verify-firstmate-delivery/check.sh            # model (6 configs) + adapter tests, about 30 s
 .agents/skills/verify-firstmate-delivery/check.sh --model-only
 ```
 
@@ -24,19 +24,22 @@ Needs Java 11+. The first run downloads TLC (`tla2tools.jar` 1.7.4, sha256-pinne
 | Rule | Plain sentence |
 |---|---|
 | `DecisionNotLost` | A decision that closed a hold waits in firstmate's inbox until firstmate passes it on. |
-| `SomeoneComing` | While a note is unread, something is on its way to act: the bridge owes a check, a wake or start is in flight, the watcher is armed, or firstmate is mid-turn. |
+| `SomeoneComing` | While a note is unread, something is on its way to act: the bridge owes a check, a wake or start is in flight, or firstmate is mid-turn. An armed watcher does not count. |
 | `NoteRead` | Every note is eventually read (liveness). |
 | `WorkerTold` | A worker waiting on a closed hold is eventually told (liveness). |
 
 | Config | Scope | Expected |
 |---|---|---|
-| `HdDelivery.cfg` | an order and a held decision, up to 3 faults (session dies, typed wake lost, watcher dies, bridge restarts), every start state (not running, just opened, idle with or without watcher) | all hold (~1,600 states) |
-| `chart.cfg` | one held decision, no faults | all hold (63 states), drawable |
+| `HdDelivery.cfg` | an order and a held decision, up to 3 faults (session dies, typed wake lost, watcher dies, bridge restarts), every start state (not running, just opened, idle with or without watcher) | all hold (~1,400 states) |
+| `chart.cfg` | one held decision, no faults | all hold (52 states), drawable |
 | `before-fix.cfg` | `Listener`, `KeyedNote`, `Recheck` off: the bridge before this protocol | `SomeoneComing` breaks |
 | `no-keyed-note.cfg` | keyed decide closes the hold with no note | `DecisionNotLost` breaks |
 | `no-recheck.cfg` | listener after a batch only, no timer, restart forgets | `SomeoneComing` breaks |
+| `trust-watcher.cfg` | `TrustWatcher` on: ensure leaves a session with a live watcher alone (the listener before the live walk) | liveness breaks (`NoteRead`: firstmate listening, the note unread forever) |
 
-**Assumptions** (outside the model, so a pass does not cover them): one firstmate session per home (two at once is the session lock's job); herdr's server is running when a start is needed (`hd-listener.sh` never starts herdr; with it down the desk says `down` and the bridge keeps retrying); a turn started by a HarborDeck wake or by the watcher drains the inbox and relays a closed decision (that is the instruction in `adapters/firstmate/firstmate-instructions.md`; the model cannot check the model-in-the-loop); the watcher presents a `check` wake queued before it armed; the bridge's recheck timer fires whatever the session does (strong fairness); faults are finitely many.
+**Assumptions** (outside the model, so a pass does not cover them): one firstmate session per home (two at once is the session lock's job); herdr's server is running when a start is needed (`hd-listener.sh` never starts herdr; with it down the desk says `down` and the bridge keeps retrying); a turn started by a HarborDeck wake drains the inbox and relays a closed decision (that is the instruction in `adapters/firstmate/firstmate-instructions.md`; the model cannot check the model-in-the-loop); the bridge's recheck timer fires whatever the session does (strong fairness); faults are finitely many.
+
+**The watcher is not delivery.** firstmate's `bin/fm-watch.sh` surfaces only `procevent:` rows of the wake queue; the `check` row an inbox note queues waits for the next drain, so a session idle at its prompt with a live watcher never reads a HarborDeck note by itself. The live walk found this (`docs/evidence/hd-seamless/`) after the first model assumed the watcher wakes on it. The model has no watcher wake step, and `trust-watcher.cfg` shows what trusting one costs. If firstmate ever surfaces inbox rows from the watcher, re-read `fm-watch.sh` before adding the step back.
 
 ## Coverage: model step -> code
 
@@ -44,11 +47,12 @@ Needs Java 11+. The first run downloads TLC (`tla2tools.jar` 1.7.4, sha256-pinne
 |---|---|---|
 | `CaptainStamps` | `app/lib/store.js` appendAnswer (one `answers.jsonl` line) | store tests |
 | `BridgeRoutes` (`KeyedNote`) | `hd-bridge.sh` `route()`: `keyed` then `note "$rid" "$text. $closed"` for decide/approve/reject; defer: `hold --until` + note | "closed hold also wakes firstmate", "Later on a held task also tells firstmate" |
-| `BridgeEnsure` (`Listener`) | `hd-bridge.sh` `listen()` -> `hd-listener.sh ensure`: `unread` (clear), `probe` (listening / busy / recent / idle / down), wake via `fm-send.sh` (herdr or tmux pane, its own server), start via herdr or tmux (`HD_FM_START`), live `fm-watch.sh` check | all `listener:` checks |
+| `BridgeEnsure` (`Listener`) | `hd-bridge.sh` `listen()` -> `hd-listener.sh ensure`: `unread` (clear, drops the wake record), `probe` (recent / down / busy / listening / idle), wake via `fm-send.sh` (herdr or tmux pane, its own server), start via herdr or tmux (`HD_FM_START`) | all `listener:` checks |
+| `TrustWatcher` = FALSE | `hd-listener.sh ensure`: `idle\|listening)` both type the wake | "listening still gets the wake" |
 | `owed` (`Recheck`) | `hd-bridge.sh` `OWED` (starts 1 in live mode), `--wait --timeout $RECHECK` while owed | "bridge --follow: an unread note is re-woken on the timer", "...left alone once firstmate read it" |
-| `recent`, `GraceExpires` | `hd-listener.sh` `record`/`recent`, `cursors/firstmate-listener`, `HD_LISTENER_GRACE` | "does not wake again", "past the grace it wakes again" |
+| `recent`, `GraceExpires` | `hd-listener.sh` `record`/`recent`, `cursors/firstmate-listener`, `HD_LISTENER_GRACE` | "does not wake again", "past the grace it wakes again", "all read drops the wake record" |
 | `TakesTypedTurn`, `WakeLost` | `fm-send.sh` typed plane (exit 0 / 3) | wake.sh unit test (`cli/test/scheduler.test.js`) |
-| `WatcherWakes`, `TurnEnds`, `Drains` | firstmate: Stop hook `bin/fm-claude-stop-autoarm.sh`, `bin/fm-session-start.sh`, `bin/fm-wake-drain.sh` (not in this repo) | live walk only (`docs/evidence/hd-seamless/`) |
+| `TurnEnds`, `Drains` | firstmate: Stop hook `bin/fm-claude-stop-autoarm.sh`, `bin/fm-session-start.sh`, `bin/fm-wake-drain.sh` (not in this repo) | live walk only (`docs/evidence/hd-seamless/`) |
 
 Sync commit (the code this model was last confirmed against): see the commit that adds this line on branch `fm/hd-seamless` (`git log -1 --format=%h -- .agents/skills/verify-firstmate-delivery/SKILL.md`). Move it forward only after re-reading every row above at the new commit and confirming the model still describes it.
 

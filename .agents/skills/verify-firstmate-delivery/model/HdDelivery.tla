@@ -11,9 +11,11 @@
 (*   BridgeEnsure   hd-bridge.sh listen() -> hd-listener.sh ensure         *)
 (*   GraceExpires   HD_LISTENER_GRACE passes on cursors/firstmate-listener *)
 (*   TakesTypedTurn the session takes the typed wake / first prompt        *)
-(*   WatcherWakes   the armed watcher rewakes the idle session (exit 2)    *)
 (*   Drains         fm-session-start / fm-wake-drain + relay by fm-send    *)
 (*   TurnEnds       Claude Stop hook fm-claude-stop-autoarm.sh             *)
+(* No step wakes firstmate from its watcher: fm-watch.sh surfaces only     *)
+(* process-event `check` rows, never an inbox note's (the live walk found  *)
+(* this; notes wait for the next drain). An armed watcher is not delivery. *)
 (***************************************************************************)
 EXTENDS Naturals
 
@@ -22,7 +24,8 @@ CONSTANTS
   MaxFaults,  \* how many faults may happen: a session dies, a typed wake is lost, the watcher dies, the bridge restarts
   KeyedNote,  \* TRUE: a keyed decide on a held task is also an inbox note (route(), "$closed")
   Listener,   \* TRUE: after a batch the bridge runs hd-listener.sh ensure (listen())
-  Recheck     \* TRUE: --follow re-runs ensure while a HarborDeck note is unread (OWED), and a restart starts owed
+  Recheck,    \* TRUE: --follow re-runs ensure while a HarborDeck note is unread (OWED), and a restart starts owed
+  TrustWatcher \* TRUE: ensure leaves a session with a live watcher alone (the listener before the live walk)
 
 VARIABLES
   stamped,  \* answers the desk appended to answers.jsonl
@@ -31,8 +34,8 @@ VARIABLES
   hold,     \* "held" | "closed": the captain hold that "dec" answers
   worker,   \* "waiting" | "told": the worker parked on that held task
   session,  \* "none" | "opened" (process up, no turn yet) | "idle" (between turns) | "busy" (mid-turn)
-  duty,     \* the running turn was started to drain (a typed wake or the watcher), so it drains before it ends
-  watcher,  \* the home's watcher is armed
+  duty,     \* the running turn was started to drain (a typed wake), so it drains before it ends
+  watcher,  \* the home's watcher is armed (it supervises workers; it never presents an inbox note)
   typed,    \* a prompt typed into the session's pane that it has not taken as a turn yet
   recent,   \* hd-listener.sh recorded a wake or start younger than HD_LISTENER_GRACE
   owed,     \* the bridge will run hd-listener.sh ensure: after a batch, then on its timer while notes are unread
@@ -68,14 +71,15 @@ BridgeRoutes(a) ==
   /\ UNCHANGED <<stamped, worker, sess, recent, faults>>
 
 \* hd-listener.sh ensure, run by listen() once the batch is routed: "clear" when firstmate read every HarborDeck
-\* note; nothing while it listens, is mid-turn, or a wake/start is younger than the grace; else it types the wake
-\* into the open session (fm-send.sh) or starts a session in herdr with the wake as its first prompt.
+\* note (and the wake record is dropped); nothing while it is mid-turn or a wake/start is younger than the grace;
+\* else it types the wake into the open session (fm-send.sh), watcher or not, or starts a session with the wake
+\* as its first prompt.
 BridgeEnsure ==
   /\ owed /\ toRoute = {}
   /\ IF inbox = {}
-       THEN owed' = FALSE /\ UNCHANGED <<session, typed, recent>>
+       THEN owed' = FALSE /\ recent' = FALSE /\ UNCHANGED <<session, typed>>
        ELSE /\ owed' = Recheck
-            /\ IF Listening \/ recent \/ session = "busy"
+            /\ IF (TrustWatcher /\ Listening) \/ recent \/ session = "busy"
                  THEN UNCHANGED <<session, typed, recent>>
                  ELSE /\ typed' = TRUE /\ recent' = TRUE
                       /\ session' = IF session = "none" THEN "opened" ELSE session
@@ -100,12 +104,6 @@ TakesTypedTurn ==
 CaptainTurn ==
   /\ session \in {"opened", "idle"}
   /\ session' = "busy" /\ duty' = FALSE /\ watcher' = FALSE
-  /\ UNCHANGED <<stamped, toRoute, inbox, hold, worker, typed, recent, owed, faults>>
-
-\* The armed watcher sees the queued `check` wake and rewakes the idle session.
-WatcherWakes ==
-  /\ Listening /\ inbox # {}
-  /\ session' = "busy" /\ duty' = TRUE /\ watcher' = FALSE
   /\ UNCHANGED <<stamped, toRoute, inbox, hold, worker, typed, recent, owed, faults>>
 
 \* The turn's wake drain presents every note; firstmate acts on each and sends the decision to the waiting worker.
@@ -143,15 +141,15 @@ BridgeRestarts ==   \* launchd restarts hd-live.sh; a fresh bridge starts owed o
 Next ==
   \/ \E a \in Answers : CaptainStamps(a) \/ BridgeRoutes(a)
   \/ BridgeEnsure \/ GraceExpires
-  \/ CaptainOpens \/ TakesTypedTurn \/ CaptainTurn \/ WatcherWakes \/ Drains \/ TurnEnds
+  \/ CaptainOpens \/ TakesTypedTurn \/ CaptainTurn \/ Drains \/ TurnEnds
   \/ SessionDies \/ WakeLost \/ WatcherDies \/ BridgeRestarts
 
-\* The bridge, the listener's clock, and a firstmate turn that has work keep going; a check the bridge owes, a typed prompt or an armed
-\* watcher that is offered again and again is eventually taken. The captain need not do anything.
+\* The bridge, the listener's clock, and a firstmate turn that has work keep going; a check the bridge owes or a typed
+\* prompt that is offered again and again is eventually taken. The captain need not do anything.
 Fairness ==
   /\ \A a \in Answers : WF_vars(BridgeRoutes(a))
   /\ SF_vars(BridgeEnsure) /\ WF_vars(GraceExpires)   \* the recheck timer fires whatever the session does
-  /\ SF_vars(TakesTypedTurn) /\ SF_vars(WatcherWakes)
+  /\ SF_vars(TakesTypedTurn)
   /\ WF_vars(Drains) /\ WF_vars(TurnEnds)
 
 Spec == Init /\ [][Next]_vars /\ Fairness
@@ -163,9 +161,9 @@ Spec == Init /\ [][Next]_vars /\ Fairness
 DecisionNotLost == (hold = "closed" /\ worker = "waiting") => "dec" \in inbox
 
 \* While a note is unread, something is on its way to act on it: the bridge still owes a check, a wake or start
-\* is in flight, the watcher is armed, or firstmate is mid-turn. Never a note with nobody coming.
+\* is in flight, or firstmate is mid-turn. An armed watcher does not count. Never a note with nobody coming.
 SomeoneComing ==
-  inbox # {} => (owed \/ toRoute # {} \/ recent \/ typed \/ Listening \/ session = "busy")
+  inbox # {} => (owed \/ toRoute # {} \/ recent \/ typed \/ session = "busy")
 
 \* Every note is read, and the worker hears the decision, with no help from the captain.
 NoteRead == inbox # {} ~> inbox = {}

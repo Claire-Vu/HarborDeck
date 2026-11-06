@@ -260,7 +260,10 @@ L ensure > "$tmp/l.txt"
 check "listener: a second answer in the burst does not wake again" test "$(sends)" = 1
 HD_LISTENER_GRACE=0 L ensure >/dev/null
 check "listener: past the grace it wakes again" test "$(sends)" = 2
-check "listener: a watcher that comes up wins over the record" grep -q '^listening ' <(ready held "$sess" true; L status)
+fresh; ready held "$sess" true
+check "listener: a session at its prompt with a live watcher is listening" grep -q "^listening watcher live in session pid $sess in default:w9:p9" <(L status)
+L ensure > "$tmp/l.txt"
+check "listener: listening still gets the wake (the watcher presents no inbox note)" bash -c "grep -q '^waking typed a wake into default:w9:p9' '$tmp/l.txt' && test \"\$(grep -c '^send ' '$log')\" = 1"
 kill "$watcher"; wait "$watcher" 2>/dev/null || true
 rm -f "$HARBORDECK_HOME/cursors/firstmate-listener"
 check "listener: a fresh beacon with no fm-watch.sh running is not listening" grep -q '^idle .*beacon fresh but no fm-watch.sh running' <(L status)
@@ -303,7 +306,9 @@ check "listener: an existing tmux session gets a new window" grep -q "^tmux new-
 printf '#!/usr/bin/env bash\necho "tmux $*" >> "%s/tmux.refused"; exit 1\n' "$tmp" > "$tmp/hbin/tmux"; fresh
 rc=0; NO_HERDR=1 PATH="$tmp/hbin:$PATH" "$here/wake.sh" <<<"reset done" >/dev/null 2>&1 || rc=$?
 check "wake.sh: no session and none startable is 75 (retry next tick)" test "$rc" = 75
+echo "waking $(date +%s) default:w9:p9" > "$HARBORDECK_HOME/cursors/firstmate-listener"
 check "listener: nothing unread from HarborDeck, nothing to do" grep -q '^clear' <(echo '{"pending":[{"request_id":"voice-1"}]}' > "$FM_HOME/receipts.json"; L ensure)
+check "listener: all read drops the wake record, so the desk stops saying waking" test ! -e "$HARBORDECK_HOME/cursors/firstmate-listener"
 rm -f "$FM_HOME/receipts.json"
 # bridge --follow: a wake that never led to a drain is retried on the recheck timer, and stops once firstmate read it
 HERDR_PANE_ID=w9:p9 node -e 'setTimeout(() => {}, 60000)' & sess=$!
