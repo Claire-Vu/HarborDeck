@@ -18,7 +18,7 @@
 #   unknown    the home cannot say (no fm-inbox.sh ready)
 # The session is the lock holder (state/.lock), else the newest agent process whose working directory is FM_HOME
 # (a session opened but not yet started). Its pane comes from that process's own environment (HERDR_PANE_ID,
-# HERDR_SESSION, TMUX_PANE), so only this home's session is ever typed into. Typing goes through the home's
+# HERDR_SESSION; TMUX_PANE and TMUX, its tmux server), so only this home's session is ever typed into. Typing goes through the home's
 # bin/fm-send.sh. Starting creates a tab in the herdr workspace labeled HD_WAKE_WORKSPACE (default firstmate;
 # the workspace is created when missing) in the running herdr server, starts HD_FM_HARNESS (default claude) there
 # with `herdr agent start`, then types the first message. It never starts herdr itself. Each wake or start is
@@ -63,7 +63,8 @@ target_of() {  # <pid> -> fm-send target for the pane the process runs in, or no
   pane=$(pane_env "$1" HERDR_PANE_ID)
   if [ -n "$pane" ]; then printf '%s:%s\n' "$(pane_env "$1" HERDR_SESSION | grep . || echo default)" "$pane"; return; fi
   tp=$(pane_env "$1" TMUX_PANE)
-  [ -z "$tp" ] || tmux display-message -p -t "$tp" '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null || true
+  # through the session's own tmux server (a private socket, e.g. a lab's), not whichever one this process reaches
+  [ -z "$tp" ] || TMUX=$(pane_env "$1" TMUX) tmux display-message -p -t "$tp" '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null || true
 }
 
 secs() {  # ps etime ([[dd-]hh:]mm:ss) -> seconds
@@ -86,7 +87,7 @@ newest_session() {  # -> pid of the youngest agent process whose working directo
   printf '%s' "$best"
 }
 
-READY='' PID='' TARGET='' RECENT=''
+READY='' PID='' TARGET='' RECENT='' TMUXV=''
 unread() {  # -> number of HarborDeck notes firstmate has not acknowledged yet
   "$FM_HOME/bin/fm-inbox.sh" receipts --all-pending 2>/dev/null \
     | jq -r '[.pending[]? | select((.request_id // "") | test("^(hd-|req-)"))] | length' 2>/dev/null | grep . || echo 0
@@ -99,7 +100,7 @@ probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start y
   can=$(jq -r '.can_receive' <<<"$READY"); lock=$(jq -r '.lock.state' <<<"$READY"); live=$(jq -r '.lock.live_harness' <<<"$READY")
   why=$(jq -r '.wake_consumer.reason // "?"' <<<"$READY")
   if [ "$lock" = held ] && [ "$live" = true ]; then PID=$(jq -r '.lock.pid // empty' <<<"$READY"); else PID=$(newest_session); fi
-  [ -z "$PID" ] || TARGET=$(target_of "$PID")
+  [ -z "$PID" ] || { TARGET=$(target_of "$PID"); TMUXV=$(pane_env "$PID" TMUX); }
   ! r=$(recent) || RECENT=${r#* }
   if [ "$can" = true ]; then STATE=listening WHY="watcher live"; return 0; fi
   if [ -n "$RECENT" ]; then STATE=${r%% *} WHY="HarborDeck is ${r%% *} it in $RECENT"; return 0; fi
@@ -110,8 +111,8 @@ probe() {  # sets STATE, WHY, PID, TARGET, RECENT (the pane of a wake or start y
   STATE=idle WHY="session pid $PID in ${TARGET:-an unknown pane}, nothing listening ($why)"
 }
 
-type_into() {  # <target> <message> -> fm-send's exit code
-  "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2
+type_into() {  # <target> <message> -> fm-send's exit code (a tmux pane: through that pane's own server)
+  if [ -n "$TMUXV" ]; then TMUX=$TMUXV "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2; else "$FM_HOME/bin/fm-send.sh" "$1" "$2" >&2; fi
 }
 
 start_session() {  # <first message> -> 0 started (target on stdout), 75 cannot start here
@@ -161,7 +162,7 @@ case "$cmd" in
     [ -x "$FM_HOME/bin/fm-send.sh" ] || { echo "hd-listener: $FM_HOME/bin/fm-send.sh not found" >&2; exit 2; }
     probe
     TARGET=${TARGET:-$RECENT}   # a session HarborDeck is starting has a pane before its process shows
-    if [ -n "$TARGET" ]; then exec "$FM_HOME/bin/fm-send.sh" "$TARGET" "$msg"; fi
+    if [ -n "$TARGET" ]; then [ -z "$TMUXV" ] || export TMUX=$TMUXV; exec "$FM_HOME/bin/fm-send.sh" "$TARGET" "$msg"; fi
     [ -z "$PID" ] || { log "session pid $PID has no pane to type into"; exit 75; }
     rc=0; start_session "$msg" >/dev/null || rc=$?
     exit "$rc" ;;
