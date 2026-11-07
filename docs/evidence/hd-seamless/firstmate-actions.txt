@@ -1,0 +1,137 @@
+# What firstmate did on each wake: the lab primary sessions own transcripts (Claude Code jsonl), in time order (UTC).
+# Sessions: d61c35fe = opened by hand (pid 24673, S1/S2); 527a9539 = started by HarborDeck in tmux (S3..S14); 05383e1e = opened by hand (S1 final); cd5c2216 = started by HarborDeck (S3 final).
+# > = the prompt that started the turn, $ = a shell command firstmate ran, read = a file it opened, = = what it told the captain. Long lines cut.
+19:13:55 d61c35fe > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     read ~/.claude/projects/<lab>-home/d61c35fe-2d21-4a45-9d49-705a951af9c2/tool-results/hook-1748466d-5994-4578-aed8-df2f7a5661ee-stdout.txt
+     $ bin/fm-wake-drain.sh
+     $ bin/fm-inbox.sh --help 2>&1 | head -40; bin/fm-inbox.sh list 2>&1 | head -30
+     = The user's message sent me to the inbox to act on the HarborDeck note, so I'm following it. The note asks for a one-word reply on the desk.
+     $ node <repo>/cli/bin/harbordeck.js reply req-1793992164-332 "PONG" 2>&1; echo "exit=$?"; bin/fm-inbox.sh reply 1793992164-WdMDj3 PONG 2>&1; bin/fm-inbox.sh drain --ack 1793992164-W
+     = Captain, the PONG reply reached the inbox but not the HarborDeck desk.  - **Inbox:** I replied `PONG` to the note and marked it handled. - **Desk:** The desk reply command failed with "no such item or request" for `req-1793992164-
+19:31:14 d61c35fe > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh list
+     $ HARBORDECK_HOME=<hdv-home> node <repo>/cli/bin/harbordeck.js reply req-1793992983-161 "PONG2" 2>&1; echo "exit=$?"; bin/fm-inbox.sh reply 1793992983-5Ri6fj PONG2 2>&
+     = Captain, order 2 is done: I replied `PONG2` on the HarborDeck desk and the desk accepted it. I also recorded the same reply on the inbox note and marked that note handled.  Order 1's desk reply failed earlier with "no such item or
+19:35:42 d61c35fe > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh list
+     $ HARBORDECK_HOME=<hdv-home> node <repo>/cli/bin/harbordeck.js reply req-1793993740-183 "PONG3" 2>&1; echo "exit=$?"; bin/fm-inbox.sh reply 1793993740-9isfIw PONG3 2>&
+     = Captain, order 3 is done: I replied `PONG3` on the HarborDeck desk and the desk accepted it. I also recorded the same reply on the inbox note and marked that note handled.  Order 1's desk reply is still open. It failed earlier wit
+19:36:15 d61c35fe > <local-command-caveat>The command below was run directly in Claude Code, not sent to you as a request, and its output goes straight to the user. It's recorded here as con
+19:36:15 d61c35fe > <command-name>/exit</command-name>             <command-message>exit</command-message>             <command-args></command-args>
+19:36:15 d61c35fe > <local-command-stdout>See ya!</local-command-stdout>
+19:36:48 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh
+     $ bin/fm-inbox.sh --help 2>&1 | head -40; bin/fm-inbox.sh drain 2>&1 | head -40
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply req-1793993802-205 "PONG4" && bin/fm-inbox.sh drain --ack 1793993802-H5CzoC && bin/fm-wake-drain.sh --a
+     = Captain, I replied "PONG4" on the desk to order 4, as asked. The reply went through, and I marked the note as handled. The final wake acknowledgement printed nothing, so I haven't confirmed it was accepted. It was the only note wa
+19:37:48 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ bin/fm-wake-drain.sh; bin/fm-crew-state.sh 2>&1 | head -20; ls state | head -30
+     $ bin/fm-crew-state.sh lab76f96daab579-worker; tail -5 state/lab76f96daab579-worker.status; sed -n 1,40p bin/fm-send.sh | grep -n -i -E "resolve-key|usage" 
+     $ FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain's answer to \"Notes file format for the lab worker?\": md (Markdown). Use Markdown for the notes file." 2>&1 | tail -5
+     $ bin/fm-inbox.sh drain --ack 1793993867-as90Mw && bin/fm-wake-drain.sh --ack-through 10 --recovery-generation 82214.1793993867.EM6793; ls state/lab76f96daab579-worker.inbox | tail -3
+     = Captain, I passed your answer to the lab worker: the notes file will be Markdown. The worker's inbox now holds that message. I haven't seen the worker read it yet.  The worker is still paused, waiting for its gate file and a resum
+19:43:46 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker --resolve-key lab76f96daab579-worker.q1 --resolve-key lab76f96daab579-worker.q2 "Captain's answers: (q1) Heading style for the notes file: atx (# headings). (q2) Put a note count 
+     $ FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain's answers: (q1) Heading style for the notes file: atx (# headings). (q2) Put a note count at the top: no." 2>&1 | tail -3; ls state/lab76f96daab579-worker.inbox
+     = Captain, I passed both answers to the lab worker: use `#` headings for the notes file, and don't put a note count at the top. The worker's inbox now holds that message. I haven't seen the worker read it yet.  My first send was ref
+19:44:51 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ ls state data | grep -i labcall; grep -rl "labcall-sheet" state data 2>/dev/null | head; bin/fm-crew-state.sh labcall-sheet 2>&1 | head
+     $ grep -n -B2 -A6 "labcall-sheet" data/backlog.md
+     $ bin/fm-captain-hold.sh 2>&1 | head -25
+     $ bin/fm-captain-hold.sh 2>&1 | sed -n 25,60p
+     = I'm recording your two answers on the layout hold, then passing them to the lab worker.
+     $ f=$(mktemp) && printf 'q1 Line width for the notes file: w100 (100 columns)\nq2 Date format in note headers: iso (2026-11-06)\n' > $f && bin/fm-captain-hold.sh answer labcall-sheet --decision-file $f 2>&1 | tail -3; FM_HOME=$PWD b
+     = Captain, your two layout answers are recorded and passed to the lab worker: notes lines wrap at 100 columns, and note headers use ISO dates like 2026-11-06. The worker's inbox now holds the message. I haven't seen the worker read 
+19:45:38 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ grep -rn -i "app store\|todo-app-store" data/backlog.md data/*.md 2>/dev/null | head; cat state/inbox/1793994337-VPAn1n.note
+     $ ls projects; cat config/projects* data/projects* 2>/dev/null | head; bin/fm-tasks-axi.sh add --help 2>&1 | head -20
+     $ bin/fm-tasks-axi.sh add todo-app-store-sign-agreement "Sign the app store developer agreement" --kind captain --repo todo-app-store --body "Filed via HarborDeck; captain reports it done." 2>&1 | tail -3; bin/fm-tasks-axi.sh done t
+     = Captain, I filed "Sign the app store developer agreement" under the todo-app-store project and marked it done, as you said. Nothing else is needed on it. The backlog had no existing entry for it, so I created one. todo-app-store i
+19:49:02 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ cat state/inbox/1793994541-uocmiI.note; grep -n -A5 "labcall-approve" data/backlog.md
+     = The hold is already closed in the backlog. The origin is the lab worker, so I'll pass the approval on.
+     $ FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain approved the notes plan: one file per day." 2>&1 | tail -2; ls state/lab76f96daab579-worker.inbox; bin/fm-inbox.sh drain --ack 1793994541-uocmiI && bin/fm-wake-drain.sh -
+     = Captain, you approved the notes plan of one file per day, and I passed that to the lab worker. The worker's inbox now holds the message, but I haven't seen the worker read it yet. The approval was already recorded in the backlog, 
+19:50:12 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ grep -n -A10 "labcall-reject" data/backlog.md | head -15; FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain rejected the proposal \"Approve a notes database instead of files\". Keep notes as files; do not use a database.
+     = Captain, you rejected the proposal to use a notes database instead of files, and I told the lab worker. The worker's inbox now holds my message, which says to keep notes as files and not use a database. I haven't seen the worker r
+19:50:49 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ grep -n -A10 "labcall-needswork" data/backlog.md | head -14; FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain says the notes template draft needs work: add a Sources section at the end of each note." 2>&1 | tail -2; ls 
+     = Captain, you said the notes template draft needs work: add a Sources section at the end of each note. I passed that to the lab worker, and its inbox now holds the message. I haven't seen the worker read it yet.  The draft's approv
+19:51:37 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ grep -n -A8 "labcall-later" data/backlog.md | head -12; FM_HOME=$PWD bin/fm-send.sh lab76f96daab579-worker "Captain deferred \"Archive notes older than a year?\": hold off on it until 2026-11-08; do not act on archiving before the
+     = Captain, you deferred the question "Archive notes older than a year?" until 2026-11-08, and I told the lab worker to hold off on archiving until then. I sent the message but didn't check that it reached the worker's inbox. The bac
+19:52:30 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ ls data/labres-1 2>&1; cat data/labres-1/report.md 2>&1 | head -40
+     $ grep -rl "labres-1" data state docs 2>/dev/null | head
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply labres-1 "The biggest risk is that plain files have no enforced structure or search index, so notes dri
+     = Captain, I answered your question on the lab notes research, and the reply went through. I said the biggest risk of plain files is that they have no enforced structure or search index. Notes drift into inconsistent formats and get
+19:54:25 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js --help 2>&1 | head -40
+     $ hd=<repo>/cli/bin/harbordeck.js; export HARBORDECK_HOME=<hdv-home>; $hd topics 2>&1 | head; $hd note topic:lab-notes "Captain chose plain files on 6 Nov." && $hd rep
+     = Captain, I kept "Captain chose plain files on 6 Nov." as a HarborDeck topic note on the lab-notes topic, not as a reply. I then replied DONE5 to order 5. Both went through, and I marked your note as handled.  The lab-notes topic d
+19:56:22 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     read <hdv-home>/attachments/2026-11/45fbf14eea.png
+19:56:28 527a9539 > [Image: original 2880x1736, displayed at 2000x1206. Multiply coordinates by 1.44 to map to original image.]
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply req-1793994980-97 "Check the notes folder size" && bin/fm-inbox.sh drain --ack 1793994980-g8uAGc && bin
+     = Captain, I replied to order 6 with the title of the paper on the desk: "Check the notes folder size". It's the notice card in the middle of the screenshot, filed under #lab-notes. The reply went through, and I marked your note as 
+19:59:26 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ cat data/captain.md 2>&1 | head -30; which hd-rules; ls bin | grep -i rule; ls <repo>/cli/bin
+     $ cat data/harbordeck.md | grep -n -i -B2 -A6 "rule"; export HARBORDECK_HOME=<hdv-home>; <repo>/cli/bin/harbordeck.js rules --help 2>&1 | head -20
+     $ ls data/*.sh bin/hd-rules.sh 2>&1; grep -rn "hd-rules" data/harbordeck.md | head -3; find / -name "hd-rules.sh" 2>/dev/null | head
+     $ ls <repo>/ <repo>/cli 2>&1 | head -30; command -v hd-rules.sh
+     = I'm filing the Sunday rule in your preferences. First I need to find the script that registers it on the desk.
+     $ cd <repo> && ls scripts adapters skill; find . -name "hd-rules*" -not -path "./node_modules/*" 2>/dev/null
+     $ D=<repo>; ls $D/scripts $D/adapters $D/skill; find $D -name "hd-rules*" -not -path "*/node_modules/*" 2>/dev/null
+     = Found it. I'll add the preference bullet, then run it.
+     $ printf -- '- Never schedule lab work on Sundays. {@req-1793995012-773}\n' >> data/captain.md && export HARBORDECK_HOME=<hdv-home> && bash <repo>/adapters/firstmate/h
+     $ export HARBORDECK_HOME=<hdv-home> && <repo>/cli/bin/harbordeck.js reply req-1793995012-773 "Filed: never schedule lab work on Sundays. It is in the standing orders."
+     = Captain, your standing order "Never schedule lab work on Sundays" is filed. I added it to your preferences and registered it on the desk, and the desk accepted it. I replied to the request and marked your note as handled. The wake
+20:02:49 527a9539 > <task-notification> <task-id>bkz926lpi</task-id> <tool-use-id>toolu_01FvBUaJhQS23fMcFkxrDAG3</tool-use-id> <output-file>/private/tmp/claude-501/<lab>-
+     = The background file search finished. It was the same search for the rules script, which I had already found another way. The Sunday standing order is already filed, so nothing more is needed from this, captain.
+20:03:14 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply req-1793995393-975 "PONG7" && bin/fm-inbox.sh drain --ack 1793995393-GBqK4w && bin/fm-wake-drain.sh --a
+     = Captain, I replied "PONG7" to order 7 on the desk, as you asked. The reply went through, and I marked your note as handled. It was the only note waiting. The wake acknowledgement printed nothing again, so I haven't confirmed it re
+20:03:25 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ export HARBORDECK_HOME=<hdv-home> && printf -- '- Keep lab notes under 200 lines each. {@req-1793995404-777}\n' >> data/captain.md && bash <repo>/adapters/firstmate/
+     $ grep -c Sunday data/captain.md; HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js rules --help 2>&1 | head -3; ls data
+     = Both bullets are in the file (the earlier `tail` just cut the Sunday line off).  Captain, your standing order "Keep lab notes under 200 lines each" is filed in your preferences, and I registered it on the desk. I replied to the re
+20:06:03 527a9539 > [harbordeck] request req-1793995471-808 for mate-main, queued for Fri 13:06: E2E queued order 9: reply on the desk to this order with the single word PONG9, nothing else.
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply req-1793995471-808 "PONG9" && bin/fm-inbox.sh drain --ack 1793995562-5gm57V && bin/fm-wake-drain.sh --a
+     = Captain, I replied "PONG9" to queued order 9 on the desk, as you asked. The reply went through, and I marked your note as handled. It was the only note waiting. The wake acknowledgement printed nothing again, so I haven't confirme
+20:06:38 527a9539 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh; bin/fm-inbox.sh drain
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply labtodo-1 "SEEN" && bin/fm-inbox.sh drain --ack 1793995597-b7CJpR && bin/fm-wake-drain.sh --ack-through
+     = Captain, I replied "SEEN" on your comment on "Check the notes folder size", as you asked. The reply went through, and I marked your note as handled. It was the only note waiting. The wake acknowledgement printed nothing again, so 
+20:07:51 527a9539 > <local-command-caveat>The command below was run directly in Claude Code, not sent to you as a request, and its output goes straight to the user. It's recorded here as con
+20:07:51 527a9539 > <command-name>/exit</command-name>             <command-message>exit</command-message>             <command-args></command-args>
+20:07:51 527a9539 > <local-command-stdout>Bye!</local-command-stdout>
+20:08:34 05383e1e > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     read ~/.claude/projects/<lab>-home/05383e1e-2954-402c-b300-8a67a87ffb42/tool-results/hook-39c5f3b8-40e5-4011-a08b-7ac3c333c1bc-stdout.txt
+     $ bin/fm-wake-drain.sh
+     $ cat data/harbordeck.md; bin/fm-inbox.sh --help 2>&1 | head -30; bin/fm-inbox.sh drain 2>&1 | head -50
+     $ export HARBORDECK_FROM=mate-main HARBORDECK_HOME=<hdv-home>; <repo>/cli/bin/harbordeck.js reply req-1793995712-931 "PONG10" && bin/fm-inbox.sh drain --ack 1793995712
+     = Captain, I replied "PONG10" on the desk to order 10, which was the only note in the inbox. I also marked the note as handled.  I did not confirm that the final wake-queue acknowledgement went through. The command printed no output
+20:12:45 05383e1e > <local-command-caveat>The command below was run directly in Claude Code, not sent to you as a request, and its output goes straight to the user. It's recorded here as con
+20:12:45 05383e1e > <command-name>/exit</command-name>             <command-message>exit</command-message>             <command-args></command-args>
+20:12:45 05383e1e > <local-command-stdout>Bye!</local-command-stdout>
+20:13:12 cd5c2216 > HarborDeck: the captain sent you something on the desk. It is in your inbox: drain your wakes now (run your session start first if this session has not) and act on each H
+     $ bin/fm-wake-drain.sh
+     $ bin/fm-inbox.sh --help 2>&1 | head -40; bin/fm-inbox.sh drain 2>&1 | head -40
+     $ HARBORDECK_HOME=<hdv-home> <repo>/cli/bin/harbordeck.js reply req-1793995984-555 "PONG11" && bin/fm-inbox.sh drain --ack 1793995985-zRfnbt && bin/fm-wake-drain.sh --
+     = Captain, I replied "PONG11" on the desk to E2E order 11, as the note asked. I also marked the note as handled.  The wake acknowledgement command printed no output, so I can't confirm it registered. That was the last command in the

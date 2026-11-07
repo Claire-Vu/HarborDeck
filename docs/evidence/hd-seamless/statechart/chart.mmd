@@ -1,0 +1,87 @@
+---
+title: "HarborDeck to firstmate: a stamp reaches a firstmate that acts"
+---
+stateDiagram-v2
+  state "Desk nothing stamped" as s0 {
+    s1: Firstmate firstmate idle, not listening
+    s2: Firstmate firstmate not running
+    s3: Firstmate firstmate open, no turn yet
+    s4: Firstmate firstmate listening
+    s5: Firstmate firstmate mid-turn
+  }
+  state "Desk decision at the bridge" as s6 {
+    s7: Firstmate firstmate idle, not listening
+    s8: Firstmate firstmate not running
+    s9: Firstmate firstmate open, no turn yet
+    s10: Firstmate firstmate listening
+    s11: Firstmate firstmate mid-turn
+  }
+  state "Desk decision unread, bridge will check" as s12 {
+    s13: Firstmate firstmate idle, not listening
+    s14: Firstmate firstmate not running
+    s15: Firstmate firstmate open, no turn yet
+    s16: Firstmate firstmate listening
+    s17: Firstmate firstmate mid-turn
+  }
+  state "Desk decision unread, wake on its way" as s18 {
+    s19: Firstmate firstmate idle, not listening
+    s20: Firstmate firstmate open, no turn yet
+    s21: Firstmate firstmate listening
+    s22: Firstmate firstmate mid-turn
+  }
+  state "Desk decision passed to the worker" as s23 {
+    s24: Firstmate firstmate mid-turn
+    s25: Firstmate firstmate idle, not listening
+    s26: Firstmate firstmate listening
+  }
+  [*] --> s1
+  [*] --> s2
+  [*] --> s3
+  [*] --> s4
+  s1 --> s7: you stamp on the desk
+  s1 --> s5: you type to firstmate
+  s2 --> s3: you open firstmate
+  s2 --> s8: you stamp on the desk
+  s3 --> s9: you stamp on the desk
+  s3 --> s5: you type to firstmate
+  s4 --> s10: you stamp on the desk
+  s4 --> s5: you type to firstmate
+  s7 --> s11: you type to firstmate
+  s7 --> s13: the bridge routes it
+  s8 --> s9: you open firstmate
+  s8 --> s14: the bridge routes it
+  s9 --> s11: you type to firstmate
+  s9 --> s15: the bridge routes it
+  s10 --> s11: you type to firstmate
+  s10 --> s16: the bridge routes it
+  s5 --> s1: the turn ends, no watcher
+  s5 --> s4: the turn ends, watcher armed
+  s5 --> s11: you stamp on the desk
+  s11 --> s7: the turn ends, no watcher
+  s11 --> s10: the turn ends, watcher armed
+  s11 --> s17: the bridge routes it
+  s13 --> s17: you type to firstmate
+  s13 --> s19: HarborDeck types a wake
+  s14 --> s15: you open firstmate
+  s14 --> s20: HarborDeck starts firstmate
+  s15 --> s17: you type to firstmate
+  s15 --> s20: HarborDeck types a wake
+  s16 --> s17: you type to firstmate
+  s16 --> s21: HarborDeck types a wake
+  s17 --> s13: the turn ends, no watcher
+  s17 --> s16: the turn ends, watcher armed
+  s17 --> s24: firstmate reads its inbox
+  s19 --> s22: you type to firstmate or firstmate takes the wake
+  s20 --> s22: you type to firstmate or firstmate takes the wake
+  s21 --> s22: you type to firstmate or firstmate takes the wake
+  s24 --> s25: the turn ends, no watcher
+  s24 --> s26: the turn ends, watcher armed
+  s19 --> s17: firstmate takes the wake
+  s20 --> s17: firstmate takes the wake
+  s21 --> s17: firstmate takes the wake
+  s22 --> s19: the turn ends, no watcher
+  s22 --> s21: the turn ends, watcher armed
+  s22 --> s24: firstmate reads its inbox
+  s22 --> s17: the wake grace runs out
+  s25 --> s24: you type to firstmate or firstmate takes the wake
+  s26 --> s24: you type to firstmate or firstmate takes the wake

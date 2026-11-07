@@ -6,6 +6,7 @@ A person asks a follow-up on an item; the question becomes a waiting ticket on t
 
 - `ask-slip` key `4` (or the Ask stamp) opens a note slip; `Send` writes an `ask` line with the note.
 - `ask-ticket` the ask clips to the rail as `.ticket.waiting`; its `.tk-foot` reads `awaiting reply · <age>`.
+- `ask-mate` a waiting ticket's foot ends with the addressed first mate's state from `fleet.json` (`.tk-mate.<state>`: `at its prompt`, `busy: reads it when this turn ends`, `being woken up`, `starting up`, `not running`; the firstmate adapter's `hd-listener.sh status` writes it), and `.tk-pop` says `Still with <mate> (<state>)`. With no fleet state the foot is just `awaiting reply · <age>`. Live proof against a firstmate home: `docs/evidence/hd-seamless/`.
 - `ask-reply` `hd reply <id> "<text>"` appends to the item thread; the ticket becomes `.ticket.replied.new` reading `● new reply` (`✓ replied` once opened). Unread replies sit first on the rail, the newest first.
 - `ask-read` clicking the ticket opens `.tk-pop` with the reply text; `t` focuses the newest unread reply.
 - `ask-space` `Space` on an item whose reply is unread opens that reply (`.tk-pop`, toast `New reply: read it, then Space stamps.`) and writes nothing; the next `Space` stamps.

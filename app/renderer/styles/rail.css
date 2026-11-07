@@ -21,6 +21,7 @@
 .ticket .tk-note { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #4a3d2c; }
 .ticket .tk-foot { display: block; font-size: 10px; line-height: 1.2; color: var(--paper-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ticket .tk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--needs); animation: blink 1.4s steps(2) infinite; vertical-align: middle; }
+.ticket .tk-mate.down { color: var(--reject); font-weight: 700; } .ticket .tk-mate.waking, .ticket .tk-mate.starting { color: var(--needs); font-weight: 700; }
 .ticket.replied { background: #e8f3ea; border-top-color: var(--approve); } .ticket.replied .tk-foot { color: var(--approve); font-weight: 700; }
 .ticket.queued { background: #eef1f6; border-top-color: #7d8ea6; border-top-style: dashed; } .ticket.queued .tk-foot { color: #4d5f78; font-weight: 700; }
 .ticket.new { animation: wiggle .7s ease-in-out 3; }

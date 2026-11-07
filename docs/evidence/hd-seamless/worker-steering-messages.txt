@@ -1,0 +1,43 @@
+# The lab worker steering inbox: every message firstmate sent it after a desk stamp (fm-task-inbox.v1). File times are local (UTC-7).
+
+== 001.msg (written 12:38:05 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:38:05Z
+--
+Captain's answer to "Notes file format for the lab worker?": md (Markdown). Use Markdown for the notes file.
+
+== 002.msg (written 12:43:57 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:43:57Z
+--
+Captain's answers: (q1) Heading style for the notes file: atx (# headings). (q2) Put a note count at the top: no.
+
+== 003.msg (written 12:45:12 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:45:12Z
+--
+Captain's answers on the notes file layout: line width 100 columns; date format in note headers ISO (2026-11-06).
+
+== 004.msg (written 12:49:41 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:49:41Z
+--
+Captain approved the notes plan: one file per day.
+
+== 005.msg (written 12:50:22 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:50:22Z
+--
+Captain rejected the proposal "Approve a notes database instead of files". Keep notes as files; do not use a database.
+
+== 006.msg (written 12:51:00 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:51:00Z
+--
+Captain says the notes template draft needs work: add a Sources section at the end of each note.
+
+== 007.msg (written 12:51:48 local)
+schema=fm-task-inbox.v1
+at=2026-11-06T19:51:48Z
+--
+Captain deferred "Archive notes older than a year?": hold off on it until 2026-11-08; do not act on archiving before then.

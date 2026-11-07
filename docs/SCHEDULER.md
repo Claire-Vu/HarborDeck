@@ -59,7 +59,7 @@ Presets:
 ```sh
 # generic: anything that reaches your agent
 hd scheduler config --wake-command 'tmux send-keys -t agent "$HARBORDECK_MESSAGE" Enter'
-# firstmate: one typed message to the primary firstmate pane via the home's fm-send.sh
+# firstmate: one typed message to the primary firstmate session via the home's fm-send.sh (started in herdr when none runs)
 hd scheduler config --wake-command 'FM_HOME=/path/to/firstmate-home /path/to/HarborDeck/adapters/firstmate/wake.sh'
 ```
 

@@ -12,7 +12,8 @@
 # Items and replies need no feeder: firstmate writes them with `harbordeck`
 # and the app watches the data dir. Stop with Ctrl-C; the bridge stops with it.
 # Env: FM_HOME (required), HD, HD_FLEET_EVERY, HD_QUOTA_EVERY, HD_BRIDGE_MODE (live|echo;
-# echo logs the firstmate commands instead of running them).
+# echo logs the firstmate commands instead of running them), and hd-listener.sh's HD_FM_START,
+# HD_WAKE_WORKSPACE, HD_LISTENER_GRACE, HD_BRIDGE_RECHECK (wake or start firstmate when nothing listens).
 set -uo pipefail
 
 FM_HOME=${FM_HOME:?set FM_HOME to the firstmate home}

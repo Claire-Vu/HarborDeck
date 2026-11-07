@@ -1,0 +1,425 @@
+---
+title: "HarborDeck to firstmate: a stamp reaches a firstmate that acts"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Path to the NoteRead or WorkerTold bug
+    lg1: Repeats forever, so NoteRead or WorkerTold breaks
+  }
+  class lg0 bugPath
+  class lg1 repeats
+  state "Desk nothing stamped" as s0 {
+    s1: Firstmate firstmate idle, not listening
+    s2: Firstmate firstmate not running
+    s3: Firstmate firstmate open, no turn yet
+    s4: Firstmate firstmate listening
+    s5: Firstmate firstmate mid-turn
+  }
+  state "Desk decision at the bridge" as s6 {
+    s7: Firstmate firstmate idle, not listening
+    s8: Firstmate firstmate not running
+    s9: Firstmate firstmate open, no turn yet
+    s10: Firstmate firstmate listening
+    s11: Firstmate firstmate mid-turn
+  }
+  state "Desk order at the bridge" as s12 {
+    s13: Firstmate firstmate idle, not listening
+    s14: Firstmate firstmate not running
+    s15: Firstmate firstmate open, no turn yet
+    s16: Firstmate firstmate listening
+    s17: Firstmate firstmate mid-turn
+  }
+  state "Desk decision at the bridge, order at the bridge" as s18 {
+    s19: Firstmate firstmate idle, not listening
+    s20: Firstmate firstmate not running
+    s21: Firstmate firstmate open, no turn yet
+    s22: Firstmate firstmate listening
+    s23: Firstmate firstmate mid-turn
+  }
+  state "Desk decision unread, bridge will check" as s24 {
+    s25: Firstmate firstmate idle, not listening
+    s26: Firstmate firstmate not running
+    s27: Firstmate firstmate open, no turn yet
+    s28: Firstmate firstmate listening
+    s29: Firstmate firstmate mid-turn
+  }
+  state "Desk order unread, bridge will check" as s30 {
+    s31: Firstmate firstmate idle, not listening
+    s32: Firstmate firstmate not running
+    s33: Firstmate firstmate open, no turn yet
+    s34: Firstmate firstmate listening
+    s35: Firstmate firstmate mid-turn
+  }
+  state "Desk decision at the bridge, order unread, bridge will check" as s36 {
+    s37: Firstmate firstmate idle, not listening
+    s38: Firstmate firstmate not running
+    s39: Firstmate firstmate open, no turn yet
+    s40: Firstmate firstmate listening
+    s41: Firstmate firstmate mid-turn
+  }
+  state "Desk decision unread, order at the bridge, bridge will check" as s42 {
+    s43: Firstmate firstmate idle, not listening
+    s44: Firstmate firstmate not running
+    s45: Firstmate firstmate open, no turn yet
+    s46: Firstmate firstmate listening
+    s47: Firstmate firstmate mid-turn
+  }
+  state "Desk decision unread, wake on its way" as s48 {
+    s49: Firstmate firstmate idle, not listening
+    s50: Firstmate firstmate open, no turn yet
+    s51: Firstmate firstmate mid-turn
+    s52: Firstmate firstmate listening
+  }
+  state "Desk order unread, wake on its way" as s53 {
+    s54: Firstmate firstmate idle, not listening
+    s55: Firstmate firstmate open, no turn yet
+    s56: Firstmate firstmate mid-turn
+    s57: Firstmate firstmate listening
+  }
+  state "Desk decision passed to the worker" as s58 {
+    s59: Firstmate firstmate mid-turn
+    s60: Firstmate firstmate idle, not listening
+    s61: Firstmate firstmate listening
+  }
+  state "Desk order read" as s62 {
+    s63: Firstmate firstmate mid-turn
+    s64: Firstmate firstmate idle, not listening
+    s65: Firstmate firstmate listening
+  }
+  state "Desk decision unread, order unread, bridge will check" as s66 {
+    s67: Firstmate firstmate idle, not listening
+    s68: Firstmate firstmate not running
+    s69: Firstmate firstmate open, no turn yet
+    s70: Firstmate firstmate listening
+    s71: Firstmate firstmate mid-turn
+  }
+  state "Desk decision at the bridge, order unread, wake on its way" as s72 {
+    s73: Firstmate firstmate idle, not listening
+    s74: Firstmate firstmate open, no turn yet
+    s75: Firstmate firstmate mid-turn
+    s76: Firstmate firstmate listening
+  }
+  state "Desk decision unread, order at the bridge, wake on its way" as s77 {
+    s78: Firstmate firstmate idle, not listening
+    s79: Firstmate firstmate open, no turn yet
+    s80: Firstmate firstmate mid-turn
+    s81: Firstmate firstmate listening
+  }
+  state "Desk decision at the bridge, order read" as s82 {
+    s83: Firstmate firstmate mid-turn
+    s84: Firstmate firstmate idle, not listening
+    s85: Firstmate firstmate listening
+  }
+  state "Desk decision passed to the worker, order at the bridge" as s86 {
+    s87: Firstmate firstmate mid-turn
+    s88: Firstmate firstmate idle, not listening
+    s89: Firstmate firstmate listening
+  }
+  state "Desk decision unread, order unread, wake on its way" as s90 {
+    s91: Firstmate firstmate idle, not listening
+    s92: Firstmate firstmate open, no turn yet
+    s93: Firstmate firstmate mid-turn
+    s94: Firstmate firstmate listening
+  }
+  state "Desk decision passed to the worker, order unread, bridge will check" as s95 {
+    s96: Firstmate firstmate mid-turn
+    s97: Firstmate firstmate idle, not listening
+    s98: Firstmate firstmate listening
+  }
+  state "Desk decision passed to the worker, order read" as s99 {
+    s100: Firstmate firstmate mid-turn
+    s101: Firstmate firstmate idle, not listening
+    s102: Firstmate firstmate listening
+  }
+  state "Desk decision unread, order read, bridge will check" as s103 {
+    s104: Firstmate firstmate mid-turn
+    s105: Firstmate firstmate idle, not listening
+    s106: Firstmate firstmate listening
+  }
+  state "Desk decision passed to the worker, order unread, wake on its way" as s107 {
+    s108: Firstmate firstmate mid-turn
+    s109: Firstmate firstmate idle, not listening
+    s110: Firstmate firstmate listening
+  }
+  state "Desk decision unread, order read, wake on its way" as s111 {
+    s112: Firstmate firstmate mid-turn
+    s113: Firstmate firstmate idle, not listening
+    s114: Firstmate firstmate listening
+  }
+  [*] --> s1
+  [*] --> s2
+  [*] --> s3
+  [*] --> s4
+  s1 --> s7: you stamp on the desk
+  s1 --> s13: you stamp on the desk
+  s1 --> s5: you type to firstmate
+  s2 --> s3: you open firstmate
+  s2 --> s8: you stamp on the desk
+  s2 --> s14: you stamp on the desk
+  s3 --> s9: you stamp on the desk
+  s3 --> s15: you stamp on the desk
+  s3 --> s5: you type to firstmate
+  s4 --> s10: you stamp on the desk
+  s4 --> s16: you stamp on the desk
+  s4 --> s5: you type to firstmate
+  s7 --> s11: you type to firstmate
+  s7 --> s19: you stamp on the desk
+  s7 --> s25: the bridge routes it
+  s8 --> s9: you open firstmate
+  s8 --> s20: you stamp on the desk
+  s8 --> s26: the bridge routes it
+  s9 --> s11: you type to firstmate
+  s9 --> s21: you stamp on the desk
+  s9 --> s27: the bridge routes it
+  s10 --> s11: you type to firstmate
+  s10 --> s22: you stamp on the desk
+  s10 --> s28: the bridge routes it
+  s13 --> s19: you stamp on the desk
+  s13 --> s17: you type to firstmate
+  s13 --> s31: the bridge routes it
+  s14 --> s15: you open firstmate
+  s14 --> s20: you stamp on the desk
+  s14 --> s32: the bridge routes it
+  s15 --> s21: you stamp on the desk
+  s15 --> s17: you type to firstmate
+  s15 --> s33: the bridge routes it
+  s16 --> s22: you stamp on the desk
+  s16 --> s17: you type to firstmate
+  s16 --> s34: the bridge routes it
+  s5 --> s1: the turn ends, no watcher
+  s5 --> s4: the turn ends, watcher armed
+  s5 --> s11: you stamp on the desk
+  s5 --> s17: you stamp on the desk
+  s11 --> s7: the turn ends, no watcher
+  s11 --> s10: the turn ends, watcher armed
+  s11 --> s23: you stamp on the desk
+  s11 --> s29: the bridge routes it
+  s19 --> s37: the bridge routes it
+  s19 --> s23: you type to firstmate
+  s19 --> s43: the bridge routes it
+  s20 --> s21: you open firstmate
+  s20 --> s38: the bridge routes it
+  s20 --> s44: the bridge routes it
+  s21 --> s39: the bridge routes it
+  s21 --> s23: you type to firstmate
+  s21 --> s45: the bridge routes it
+  s22 --> s40: the bridge routes it
+  s22 --> s23: you type to firstmate
+  s22 --> s46: the bridge routes it
+  s17 --> s13: the turn ends, no watcher
+  s17 --> s16: the turn ends, watcher armed
+  s17 --> s23: you stamp on the desk
+  s17 --> s35: the bridge routes it
+  s25 --> s43: you stamp on the desk
+  s25 --> s29: you type to firstmate
+  s25 --> s49: HarborDeck types a wake
+  s31 --> s37: you stamp on the desk
+  s31 --> s35: you type to firstmate
+  s31 --> s54: HarborDeck types a wake
+  s26 --> s27: you open firstmate
+  s26 --> s44: you stamp on the desk
+  s26 --> s50: HarborDeck starts firstmate
+  s32 --> s33: you open firstmate
+  s32 --> s38: you stamp on the desk
+  s32 --> s55: HarborDeck starts firstmate
+  s27 --> s45: you stamp on the desk
+  s27 --> s29: you type to firstmate
+  s27 --> s50: HarborDeck types a wake
+  s33 --> s39: you stamp on the desk
+  s33 --> s35: you type to firstmate
+  s33 --> s55: HarborDeck types a wake
+  s28 --> s46: you stamp on the desk
+  s28 --> s29: you type to firstmate
+  s34 --> s40: you stamp on the desk
+  s34 --> s35: you type to firstmate
+  s37 --> s41: you type to firstmate
+  s37 --> s67: the bridge routes it
+  s38 --> s39: you open firstmate
+  s38 --> s68: the bridge routes it
+  s39 --> s41: you type to firstmate
+  s39 --> s69: the bridge routes it
+  s40 --> s41: you type to firstmate
+  s40 --> s70: the bridge routes it
+  s23 --> s19: the turn ends, no watcher
+  s23 --> s22: the turn ends, watcher armed
+  s23 --> s41: the bridge routes it
+  s23 --> s47: the bridge routes it
+  s43 --> s47: you type to firstmate
+  s43 --> s67: the bridge routes it
+  s44 --> s45: you open firstmate
+  s44 --> s68: the bridge routes it
+  s45 --> s47: you type to firstmate
+  s45 --> s69: the bridge routes it
+  s46 --> s47: you type to firstmate
+  s46 --> s70: the bridge routes it
+  s29 --> s25: the turn ends, no watcher
+  s29 --> s28: the turn ends, watcher armed
+  s29 --> s47: you stamp on the desk
+  s29 --> s59: firstmate reads its inbox
+  s35 --> s31: the turn ends, no watcher
+  s35 --> s34: the turn ends, watcher armed
+  s35 --> s41: you stamp on the desk
+  s35 --> s63: firstmate reads its inbox
+  s49 --> s78: you stamp on the desk
+  s49 --> s51: you type to firstmate or firstmate takes the wake
+  s54 --> s73: you stamp on the desk
+  s54 --> s56: you type to firstmate or firstmate takes the wake
+  s50 --> s79: you stamp on the desk
+  s50 --> s51: you type to firstmate or firstmate takes the wake
+  s55 --> s74: you stamp on the desk
+  s55 --> s56: you type to firstmate or firstmate takes the wake
+  s41 --> s37: the turn ends, no watcher
+  s41 --> s40: the turn ends, watcher armed
+  s41 --> s83: firstmate reads its inbox
+  s41 --> s71: the bridge routes it
+  s47 --> s43: the turn ends, no watcher
+  s47 --> s46: the turn ends, watcher armed
+  s47 --> s87: firstmate reads its inbox
+  s47 --> s71: the bridge routes it
+  s59 --> s87: you stamp on the desk
+  s59 --> s60: the turn ends, no watcher
+  s59 --> s61: the turn ends, watcher armed
+  s63 --> s83: you stamp on the desk
+  s63 --> s64: the turn ends, no watcher
+  s63 --> s65: the turn ends, watcher armed
+  s49 --> s29: firstmate takes the wake
+  s67 --> s71: you type to firstmate
+  s67 --> s91: HarborDeck types a wake
+  s54 --> s35: firstmate takes the wake
+  s68 --> s69: you open firstmate
+  s68 --> s92: HarborDeck starts firstmate
+  s50 --> s29: firstmate takes the wake
+  s69 --> s71: you type to firstmate
+  s69 --> s92: HarborDeck types a wake
+  s55 --> s35: firstmate takes the wake
+  s70 --> s71: you type to firstmate
+  s73 --> s75: you type to firstmate or firstmate takes the wake
+  s73 --> s91: the bridge routes it
+  s74 --> s75: you type to firstmate or firstmate takes the wake
+  s74 --> s92: the bridge routes it
+  s78 --> s80: you type to firstmate or firstmate takes the wake
+  s78 --> s91: the bridge routes it
+  s79 --> s80: you type to firstmate or firstmate takes the wake
+  s79 --> s92: the bridge routes it
+  s51 --> s49: the turn ends, no watcher
+  s51 --> s59: firstmate reads its inbox
+  s51 --> s80: you stamp on the desk
+  s51 --> s52: the turn ends, watcher armed
+  s56 --> s54: the turn ends, no watcher
+  s56 --> s63: firstmate reads its inbox
+  s56 --> s75: you stamp on the desk
+  s56 --> s57: the turn ends, watcher armed
+  s51 --> s29: the wake grace runs out
+  s56 --> s35: the wake grace runs out
+  s83 --> s84: the turn ends, no watcher
+  s83 --> s85: the turn ends, watcher armed
+  s83 --> s104: the bridge routes it
+  s73 --> s41: firstmate takes the wake
+  s74 --> s41: firstmate takes the wake
+  s87 --> s88: the turn ends, no watcher
+  s87 --> s89: the turn ends, watcher armed
+  s87 --> s96: the bridge routes it
+  s78 --> s47: firstmate takes the wake
+  s79 --> s47: firstmate takes the wake
+  s71 --> s67: the turn ends, no watcher
+  s71 --> s70: the turn ends, watcher armed
+  s71 --> s100: firstmate reads its inbox
+  s60 --> s59: you type to firstmate or firstmate takes the wake
+  s60 --> s88: you stamp on the desk
+  s64 --> s63: you type to firstmate or firstmate takes the wake
+  s64 --> s84: you stamp on the desk
+  s61 --> s59: you type to firstmate or firstmate takes the wake
+  s61 --> s89: you stamp on the desk
+  s65 --> s63: you type to firstmate or firstmate takes the wake
+  s65 --> s85: you stamp on the desk
+  s75 --> s73: the turn ends, no watcher
+  s75 --> s83: firstmate reads its inbox
+  s75 --> s76: the turn ends, watcher armed
+  s75 --> s93: the bridge routes it
+  s75 --> s41: the wake grace runs out
+  s80 --> s78: the turn ends, no watcher
+  s80 --> s87: firstmate reads its inbox
+  s80 --> s81: the turn ends, watcher armed
+  s80 --> s93: the bridge routes it
+  s80 --> s47: the wake grace runs out
+  s91 --> s93: you type to firstmate or firstmate takes the wake
+  s92 --> s93: you type to firstmate or firstmate takes the wake
+  s52 --> s51: you type to firstmate or firstmate takes the wake
+  s52 --> s81: you stamp on the desk
+  s57 --> s56: you type to firstmate or firstmate takes the wake
+  s57 --> s76: you stamp on the desk
+  s83 --> s112: the bridge routes it
+  s84 --> s83: you type to firstmate or firstmate takes the wake
+  s84 --> s105: the bridge routes it
+  s85 --> s83: you type to firstmate or firstmate takes the wake
+  s85 --> s106: the bridge routes it
+  s87 --> s108: the bridge routes it
+  s88 --> s87: you type to firstmate or firstmate takes the wake
+  s88 --> s97: the bridge routes it
+  s89 --> s87: you type to firstmate or firstmate takes the wake
+  s89 --> s98: the bridge routes it
+  s96 --> s100: firstmate reads its inbox
+  s96 --> s97: the turn ends, no watcher
+  s96 --> s98: the turn ends, watcher armed
+  s100 --> s101: the turn ends, no watcher
+  s100 --> s102: the turn ends, watcher armed
+  s104 --> s100: firstmate reads its inbox
+  s104 --> s105: the turn ends, no watcher
+  s104 --> s106: the turn ends, watcher armed
+  s91 --> s71: firstmate takes the wake
+  s92 --> s71: firstmate takes the wake
+  s52 --> s29: firstmate takes the wake
+  s57 --> s35: firstmate takes the wake
+  s76 --> s75: you type to firstmate or firstmate takes the wake
+  s76 --> s94: the bridge routes it
+  s81 --> s80: you type to firstmate or firstmate takes the wake
+  s81 --> s94: the bridge routes it
+  s93 --> s91: the turn ends, no watcher
+  s93 --> s100: firstmate reads its inbox
+  s93 --> s94: the turn ends, watcher armed
+  s93 --> s71: the wake grace runs out
+  s84 --> s113: the bridge routes it
+  s76 --> s41: firstmate takes the wake
+  s85 --> s114: the bridge routes it
+  s88 --> s109: the bridge routes it
+  s89 --> s110: the bridge routes it
+  s81 --> s47: firstmate takes the wake
+  s108 --> s100: firstmate reads its inbox
+  s108 --> s109: the turn ends, no watcher
+  s108 --> s110: the turn ends, watcher armed
+  s112 --> s100: firstmate reads its inbox
+  s112 --> s113: the turn ends, no watcher
+  s112 --> s114: the turn ends, watcher armed
+  s97 --> s96: you type to firstmate
+  s97 --> s109: HarborDeck types a wake
+  s101 --> s100: you type to firstmate or firstmate takes the wake
+  s105 --> s104: you type to firstmate
+  s105 --> s113: HarborDeck types a wake
+  s98 --> s96: you type to firstmate
+  s102 --> s100: you type to firstmate or firstmate takes the wake
+  s106 --> s104: you type to firstmate
+  s94 --> s93: you type to firstmate or firstmate takes the wake
+  s109 --> s108: you type to firstmate or firstmate takes the wake
+  s109 --> s96: firstmate takes the wake
+  s113 --> s112: you type to firstmate or firstmate takes the wake
+  s113 --> s104: firstmate takes the wake
+  s110 --> s108: you type to firstmate or firstmate takes the wake
+  s110 --> s96: firstmate takes the wake
+  s114 --> s112: you type to firstmate or firstmate takes the wake
+  s114 --> s104: firstmate takes the wake
+  s94 --> s71: firstmate takes the wake
+  s108 --> s96: the wake grace runs out
+  s112 --> s104: the wake grace runs out
+  class s1 bugPath
+  class s4 bugPath
+  class s7 bugPath
+  class s10 bugPath
+  class s11 bugPath
+  class s23 bugPath
+  class s28 bugPath
+  class s41 bugPath
+  class s46 bugPath
+  class s70 repeats
+  class s83 bugPath
+  class s104 repeats
+  class s106 repeats
