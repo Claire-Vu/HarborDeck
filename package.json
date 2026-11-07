@@ -78,11 +78,11 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",
-    "electron": "44.7.0",
+    "electron": "44.10.2",
     "electron-builder": "26.15.3"
   },
   "allowScripts": {
-    "electron@44.7.0": true
+    "electron@44.10.2": true
   },
   "overrides": {
     "global-agent": "4.1.3"
