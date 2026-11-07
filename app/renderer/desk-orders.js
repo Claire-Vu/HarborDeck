@@ -23,8 +23,8 @@ async function queueOrder(note, to, when, attachments, rule) {
   if (typeof when === 'number' && when - now() > 3600) toast(`Queued for ${fmtTime(when)}. The Mac is kept awake from ${fmtTime(when - 3600)}; if it sleeps through, the order goes out when it wakes.`);
   applySnapshot(r.snapshot); return true;
 }
-function staminaPanel() {
-  const box = h('div', { class: 'stamina' }, h('h3', { class: 'oh' }, 'Stamina'));
+function staminaPanel(heading = true) { // the Stamina dialog already says it in its title
+  const box = h('div', { class: 'stamina' }, heading ? h('h3', { class: 'oh' }, 'Stamina') : null);
   const views = staminaViews();
   if (!views.length) { box.append(h('p', { class: 'legend' }, 'No usage readings yet (quota.json or the Claude Code status line).')); return box; }
   for (const v of views) {
@@ -34,8 +34,7 @@ function staminaPanel() {
       h('div', { class: 'meter' }, h('span', { style: `width:${v.left || 0}%` })),
       h('div', { class: 'sub-foot' }, v.reset ? `reset at ${when}, no reading since` : `resets in ${ST.dur(v.in)} (${when})`,
         v.runsOut ? h('span', { class: 'warn' }, ` · runs out ~${staminaWhen(v.runsOut)} at this pace`) : null,
-        ` · ${v.source === 'statusline' ? 'status line' : 'quota.json'}, ${v.age == null ? 'time unknown' : ST.ago(v.age)}`, v.stale ? h('span', { class: 'warn' }, ' (stale)') : null,
-        v.left != null && v.left < 10 ? ' · nearly empty, crew will stall' : v.left != null && v.left < 25 ? ' · running low, crew yawning' : '')));
+        v.stale ? h('span', { class: 'warn' }, ' · stale') : null)));
   }
   return box;
 }

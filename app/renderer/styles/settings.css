@@ -28,7 +28,6 @@ summary.set-h:hover { color: var(--paper-ink); }
 .set-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; padding: 7px 0; }
 .set-l { display: grid; gap: 2px; min-width: 0; }
 .set-name { font-weight: 700; font-size: 13.5px; }
-.set-hint { font-size: 11.5px; line-height: 1.35; color: var(--paper-faint); }
 .set-in { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; }
 
 /* fields: one inset paper well for folders, chips, the command and the key recorder */
@@ -36,7 +35,7 @@ summary.set-h:hover { color: var(--paper-ink); }
 .fp:hover, .chips:focus-within, .set-cmd:focus, .kc:hover, .kc:focus-visible { border-color: var(--wood-1); outline: none; }
 .set-btn { font: 600 12px/1 var(--font-paper); color: var(--paper-ink); background: var(--paper-2); border: 2px solid var(--paper-faint); border-radius: 0; padding: 8px 12px; margin-bottom: 3px; box-shadow: 0 3px 0 var(--paper-faint); }
 .set-btn:hover { border-color: var(--wood-1); }
-.set-btn.ghost { background: transparent; border-color: var(--paper-line); box-shadow: 0 3px 0 var(--paper-line); color: var(--paper-faint); }
+.set-btn.ghost { background: transparent; border-color: var(--paper-faint); box-shadow: 0 3px 0 var(--paper-line); color: var(--paper-ink); }
 .set-btn.ghost:hover { color: var(--paper-ink); border-color: var(--paper-faint); }
 
 .fp-wrap { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0; }

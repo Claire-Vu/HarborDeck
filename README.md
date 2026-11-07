@@ -144,7 +144,7 @@ Desk state that is not part of the contract (cash, day count, paper positions, r
 |---|---|
 | `1`-`4` | stamp: Approve/File, Reject, Needs work, Ask (the last two open a note slip) |
 | `Space` | stamp Approve/File (a question sheet: every ticked row); no Enter-to-stamp anywhere; on the morning manifest it opens the office |
-| `A`-`E` | pick option A-E on a decision; on a question sheet, then move to the next row |
+| `A`-`E` | pick option A-E on a decision; on a question sheet, then move to the next decision row |
 | `J` / `K` | next / previous row of a question sheet |
 | `S` / `Shift+S` / `⌥S` | Later: park the item (a sheet: every ticked row) until tomorrow 9:00 / just after the next usage reset / a date and time you pick (also a click on the Later stamp); writes a `defer` line |
 | `Shift+A` | take all recommended: a checklist of every P3-P4 decision with a recommendation; untick, then one stamp (Shift+A again) |

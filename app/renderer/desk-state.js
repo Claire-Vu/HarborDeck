@@ -104,7 +104,10 @@ function unblocks(it) {
 const waitingOn = it => [...new Set([...(it.waiting || []), ...FLEET.crew.filter(c => c.item === it.id && c.state === 'waiting').map(c => c.id)])];
 const crewLabel = id => (FLEET.crew.some(c => c.id === id) ? crewName(id) : id);
 const waitChip = it => { const w = waitingOn(it); return w.length ? h('span', { class: 'waitn', title: `${w.length} worker${w.length > 1 ? 's' : ''} paused until you answer: ${w.map(crewLabel).join(', ')}` }, h('span', { class: 'wi', 'aria-hidden': 'true' }, '⏸'), w.length) : null; };
-const urgency = (a, b) => (prio(a) - waitingOn(a).length) - (prio(b) - waitingOn(b).length) || waitingOn(b).length - waitingOn(a).length || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created;
+// A missed deadline lifts an item one step too, and among equals the overdue one goes first.
+const overdue = it => !!it.due && it.due < now();
+const lift = it => waitingOn(it).length + (overdue(it) ? 1 : 0);
+const urgency = (a, b) => (prio(a) - lift(a)) - (prio(b) - lift(b)) || overdue(b) - overdue(a) || waitingOn(b).length - waitingOn(a).length || ((a.due || 9e12) - (b.due || 9e12)) || a.created - b.created;
 // What changed (changes.js): the version the captain last looked at is kept in the desk state as `seen`.
 const CH = HarborChanges;
 const agentMsgs = it => [...(it.thread || []).filter(m => m.from !== 'captain'), ...(SNAP.notes || []).filter(n => n.item === it.id)];

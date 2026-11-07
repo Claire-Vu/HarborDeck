@@ -17,14 +17,16 @@ window.HarborSchedule = (() => {
     if (d <= 0) return d < -180 ? 'overdue: is the scheduler running? (harbordeck scheduler install)' : 'going out now';
     return p.kind === 'reset' ? `waiting for reset · ${dur(d)}` : `queued for ${fmtTime(p.due)} · ${dur(d)}`;
   }
-  // Top-bar chip: queued count, time to reset, keep-awake. null when there is nothing to show.
+  // Top-bar chip: queued count and when the first one goes out (else time to reset), keep-awake as a bare ☕
+  // (its end time is in the tooltip: a second clock time on the chip read as the send time). null when nothing to show.
   function chip(sched, orders, t, { fmtTime, fmtDate }) {
     if (!sched) return null;
-    const pend = (sched.pending || []).filter(p => p.kind !== 'limit').length;
+    const queued = (sched.pending || []).filter(p => p.kind !== 'limit'), pend = queued.length;
+    const first = Math.min(...queued.map(p => p.due || Infinity));
     const reset = sched.next_reset && sched.next_reset > t ? sched.next_reset : null;
     const awake = sched.keep_awake && sched.keep_awake.until > t ? sched.keep_awake.until : null;
     if (!pend && !reset && sched.enabled) return null;
-    const text = [!sched.enabled && 'scheduler off', pend && `⏳ ${pend} queued`, reset && `↻ ${dur(reset - t)}`, awake && `☕ ${fmtTime(awake)}`].filter(Boolean).join(' · ');
+    const text = [!sched.enabled && 'scheduler off', pend && `⏳ ${pend} queued${first > t && first < Infinity ? ` · ${fmtTime(first)}` : ''}`, !pend && reset && `↻ ${dur(reset - t)}`, awake && '☕'].filter(Boolean).join(' · ');
     const title = [!sched.enabled && 'Scheduler is off: nothing queued goes out (harbordeck scheduler on).',
       pend && `${pend} waiting in the scheduler${orders ? ` (${orders} order${orders > 1 ? 's' : ''})` : ''}; they go out by themselves.`,
       reset && `Usage limit resets at ${fmtTime(reset)}${reset - t > 86400 ? ' ' + fmtDate(reset) : ''}.`,

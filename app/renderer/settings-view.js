@@ -22,7 +22,7 @@ else window.HarborSettings = deps => {
   const mac = /Mac/.test(navigator.platform || '');
 
   const section = (title, sub, ...rows) => h('section', { class: 'set-sec', 'aria-label': title }, h('h3', { class: 'set-h' }, title, sub ? h('span', { class: 'set-sub' }, sub) : null), ...rows);
-  const row = (label, hint, ...control) => h('div', { class: 'set-row' }, h('div', { class: 'set-l' }, h('span', { class: 'set-name' }, label), hint ? h('span', { class: 'set-hint' }, hint) : null), h('div', { class: 'set-in' }, ...control));
+  const row = (label, hint, ...control) => h('div', { class: 'set-row' }, h('div', { class: 'set-l', title: hint || null }, h('span', { class: 'set-name' }, label)), h('div', { class: 'set-in' }, ...control));
 
   // A folder shown as its name with the parent dimmed under it; Choose… opens the system picker, Reset falls back.
   function folder(label, value, fallback, fallbackWhere) {
@@ -31,9 +31,9 @@ else window.HarborSettings = deps => {
     const paint = () => {
       const parts = cur.replace(/\/+$/, '').split('/');
       name.textContent = cur ? parts.pop() || '/' : fallback;
-      where.textContent = cur ? parts.join('/') || '/' : fallbackWhere;
+      where.textContent = cur ? parts.join('/') || '/' : ''; // unset: the name alone; what that means is on hover
       reset.hidden = !cur;
-      box.title = cur || fallback;
+      box.title = cur || `${fallback}: ${fallbackWhere}`;
     };
     const box = h('div', { class: 'fp' }, h('span', { class: 'fp-ic', 'aria-hidden': 'true' }), h('span', { class: 'fp-text' }, name, where));
     const el = h('div', { class: 'fp-wrap' }, box, h('button', { class: 'set-btn', type: 'button', 'aria-label': `Choose ${label.toLowerCase()}`, onclick: async () => { const d = await bridge.chooseDir(label); if (d) { cur = d; paint(); } } }, 'Choose…'), reset);
@@ -92,7 +92,7 @@ else window.HarborSettings = deps => {
     const hookOn = h('input', { type: 'checkbox', class: 'set-switch', checked: !!cur.onAnswer.enabled, 'aria-label': 'Run a command on every answer' });
     const hookCmd = h('input', { type: 'text', class: 'set-cmd', value: cur.onAnswer.command || '', placeholder: '~/bin/wake-agent.sh', spellcheck: false, 'aria-label': 'On-answer command' });
     const demoBtn = (label, on) => h('button', { class: 'set-btn', type: 'button', onclick: () => deps.demo(on) }, label);
-    const reading = h('p', { class: 'set-reading' }, h('span', { class: 'set-dot', 'aria-hidden': 'true' }), 'Reading ', h('code', null, cur.home), cur.demo ? ' (demo data)' : '', cur.envHome && !cur.demo ? h('span', { class: 'set-warn' }, 'Set by HARBORDECK_HOME, which wins over the folder below.') : null);
+    const reading = h('p', { class: 'set-reading' }, h('span', { class: 'set-dot', 'aria-hidden': 'true' }), 'Reading ', h('code', null, cur.home), cur.demo ? ' (demo data)' : '', cur.envHome && !cur.demo ? h('span', { class: 'set-warn', title: 'It wins over the Data folder below.' }, 'Set by HARBORDECK_HOME') : null);
     const content = h('div', { class: 'settings' },
       errors.length ? h('div', { class: 'flag-note' }, h('div', null, `${errors.length} item file(s) skipped:`), errors.slice(0, 8).map(e => h('div', null, `${e.file}: ${e.error}`))) : null,
       section('General', null,

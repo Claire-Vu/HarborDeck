@@ -4,7 +4,7 @@
 
 // ------------------------------------------------------------ plain mode
 function actionsFor(it) {
-  const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = (v, pick) => { S.current = it.id; s.read = true; save(); stamp(v, false, pick); };
+  const cfg = trayConfig(it); const s = st(it.id); const out = []; const run = (v, pick) => { S.current = it.id; s.read = true; save(); stamp(v, false, pick, true); }; // a card's Approve is that card only; Approve bundle takes the sheet
   for (const v of [...VERDICTS, 'later']) if (cfg[v]?.show) out.push(h('button', { class: `abtn ${cfg[v].cls}`, disabled: s.awaiting, title: v === 'later' ? 'Park it: tomorrow 9:00, after the next usage reset, or a date you pick' : null, onclick: () => run(v, v === 'later') }, cfg[v].label));
   // the bundle stamp takes the ticked papers only: opening a card counts as opening it (topicView.ticked); any card
   // opening re-counts every bundle button (sync)
@@ -36,7 +36,7 @@ function plainCard(it, openByDefault) {
 function renderPlain() {
   const root = $('#plain-mode'); root.replaceChildren();
   const open = ITEMS.filter(i => statusOf(i) === 'open'); const f = S.prefs.filter;
-  root.append(h('div', { class: 'plain-filters' }, ...['all', 'decision', 'review', 'answer', 'todo'].map(k => h('button', { class: 'chip', 'aria-pressed': String(f === k), onclick: () => { S.prefs.filter = k; save(); renderPlain(); } }, k === 'all' ? 'All' : KINDS[k])), h('span', { class: 'count' }, `${open.length} open${parkedItems().length ? ` · ${parkedItems().length} parked` : ''} · ${money(S.cash)} · ${S.answers.length} actions`)));
+  root.append(h('div', { class: 'plain-filters' }, ...['all', 'decision', 'review', 'answer', 'todo'].map(k => h('button', { class: 'chip', 'aria-pressed': String(f === k), onclick: () => { S.prefs.filter = k; save(); renderPlain(); } }, k === 'all' ? 'All' : KINDS[k])), h('span', { class: 'count' }, `${open.length} open${parkedItems().length ? ` · ${parkedItems().length} parked` : ''} · ${S.answers.length} actions`)));
   const groups = [['decision', 'Needs your word'], ['review', 'Review the work'], ['answer', 'Research to read and file'], ['todo', 'Notices: only you']];
   for (const [k, label] of groups) {
     if (f !== 'all' && f !== k) continue;

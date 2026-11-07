@@ -1,5 +1,5 @@
 /* ---------- the desk ---------- */
-.desk { position: relative; min-height: 0; overflow: hidden; }
+.desk { position: relative; min-height: 0; overflow: hidden; isolation: isolate; } /* a raised paper stays under the menu and popovers */
 .desk-surface { position: absolute; inset: 0; overflow: auto; background: repeating-linear-gradient(90deg, transparent 0 118px, rgba(0,0,0,.08) 118px 122px), repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 2px, transparent 2px 7px), linear-gradient(180deg, var(--wood-1), var(--wood-2)); }
 .desk-surface::before { content: ""; position: absolute; left: 6%; right: 6%; top: 8%; bottom: 8%; background: var(--blotter); border: 6px solid var(--blotter-edge); border-radius: 4px; box-shadow: inset 0 0 40px rgba(0,0,0,.25); }
 .desk.shake { animation: shake .22s ease-out; }
@@ -12,8 +12,12 @@
 @keyframes slide-out { to { transform: translate(60px,160px) rotate(5deg); opacity: 0; } }
 .paper .grip { cursor: grab; margin: -12px -14px 8px; padding: 6px 14px; background: rgba(0,0,0,.06); display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--paper-faint); border-bottom: 1px solid var(--paper-line); }
 .paper .grip:active { cursor: grabbing; }
+/* the paper scrolls; its grip stays on top (opaque: the paper's own background under the grip tint) */
+.paper:not(.mini) .grip { position: sticky; top: -12px; z-index: 2; background: inherit; box-shadow: inset 0 0 0 999px rgba(0,0,0,.06); }
+.paper.photo:not(.mini) .grip { top: -10px; } .paper.monitor:not(.mini) .grip { top: -8px; background: #3a3f47; box-shadow: inset 0 0 0 999px rgba(255,255,255,.05); }
 .paper .ibtn, .ibtn { background: none; border: 1px solid var(--paper-line); color: inherit; border-radius: 3px; padding: 1px 7px; font-size: 11px; font-family: var(--font-paper); text-decoration: none; }
 .paper .ibtn:hover { background: rgba(0,0,0,.06); }
+.paper .ibtn { color: var(--paper-ink); border-color: rgba(43,35,24,.3); } /* readable on both paper tones (the dark theme's paper hides --paper-line) */
 .paper h3 { margin: 0 0 6px; font-size: 14px; line-height: 1.3; }
 .paper p { margin: 0 0 8px; }
 .paper .meta { color: var(--paper-faint); font-size: 11px; margin-bottom: 8px; }
@@ -28,13 +32,12 @@
 .paper.ask .q { margin: 8px 0; border: 1px solid rgba(0,0,0,.15); border-radius: 3px; padding: 4px 8px 6px; }
 .paper.ask .q legend, .paper.ask .ql { font-weight: 700; font-size: 12px; }
 .paper.ask label.opt { display: flex; gap: 6px; align-items: flex-start; padding: 3px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
-.paper.ask label.opt.on { border-color: var(--approve); background: rgba(31,122,74,.1); }
+.paper.ask label.opt.on { border-color: var(--approve); background: rgba(31,122,74,.16); box-shadow: inset 0 0 0 1px var(--approve); } /* picked: a heavier edge than any outlined option */
 .paper.ask label.opt .k { flex: none; font-weight: 700; font-size: 10.5px; line-height: 15px; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; opacity: .75; }
 .paper.ask label.opt.on .k { background: var(--approve); color: #fff; border-color: var(--approve); opacity: 1; }
 .paper.ask label.opt input { position: absolute; opacity: 0; pointer-events: none; }
 .paper.ask .why, .pcard .why, .sweep .why { display: block; font-size: 10.5px; color: var(--paper-faint); font-weight: 400; }
 .pcard .why, .sweep .why { color: var(--ui-muted); }
-.paper.ask legend .hint { font-weight: 400; font-size: 10px; color: var(--paper-faint); margin-left: 4px; }
 .paper.ask label.opt:hover { background: rgba(0,0,0,.05); }
 .paper.ask label.opt { position: relative; }
 /* option previews (quick-call.js): a sample of the option in its row */
@@ -50,6 +53,7 @@
 .paper.ask .rec { font-size: 10px; color: var(--approve); font-weight: 700; margin-left: 4px; }
 .paper.ask .stamp-zone { position: relative; min-height: 88px; margin-top: 8px; border: 1px dashed rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; color: var(--paper-faint); font-size: 11px; text-transform: uppercase; letter-spacing: .15em; }
 .paper.photo { background: #fff; color: #222; padding: 10px 10px 14px; width: 260px; }
+.paper.photo .grip { margin: -10px -10px 8px; } /* match the photo paper's padding: the grip ends at its edges */
 .paper.photo img { display: block; width: 100%; height: auto; background: #ddd; cursor: zoom-in; }
 .paper.photo .cap { font-size: 11px; margin: 8px 0 0; color: #555; text-align: center; }
 .paper.monitor { width: 260px; background: #3a3f47; color: #d7dde6; border: 6px solid #2a2e35; border-radius: 10px; padding: 8px; }
@@ -88,7 +92,7 @@ body.inspect .fact:hover { background: rgba(242,181,68,.5); }
 .fact.picked { background: var(--ui-accent) !important; color: #1b1b1b; outline: 2px solid #1b1b1b !important; }
 .fact.matched::after { content: " \2713"; color: var(--approve); font-weight: 700; }
 .fact.flagged::after { content: " ?"; color: var(--reject); font-weight: 700; }
-.inspect-banner { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: var(--ui-accent); color: #1b1b1b; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 50; box-shadow: var(--shadow); max-width: 90%; }
+.inspect-banner { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--ui-accent); color: #1b1b1b; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 50; box-shadow: var(--shadow); max-width: 90%; }
 
 .impression { position: absolute; left: 50%; top: 50%; zoom: .82; padding: 4px 12px 3px; border: 3px solid currentColor; box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px currentColor; font: 900 21px var(--font-paper); letter-spacing: .08em; text-transform: uppercase; text-align: center; transform: translate(-50%,-50%) rotate(var(--rot, -4deg)); mix-blend-mode: multiply; opacity: .9; -webkit-mask: var(--px-holes) 0 0 / 14px 14px; mask: var(--px-holes) 0 0 / 14px 14px; animation: press .35s steps(5) both; white-space: nowrap; }
 /* pixel-block ink: a blocky monospace double box; --px-holes drops a few pixels where the ink did not take */

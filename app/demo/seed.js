@@ -22,7 +22,7 @@ function items(t, webUrl) {
       summary: 'Free + pro earns more by month three in every comparable product. It also adds about $40 a month of hosting for free users. One plan is simpler to explain.',
       options: [{ key: 'free-pro', label: 'Free + pro ($9)', recommended: true }, { key: 'one-plan', label: 'One plan ($7)' }],
       body: 'assets/reports/pricing-tiers.md', rules: ['budget-60', 'no-dark-patterns'],
-      checks: [{ rule: 'budget-60', ok: false, note: 'free tier hosting pushes tooling spend to about $70/mo' }, { rule: 'no-dark-patterns', ok: true, note: 'no countdowns or pre-ticked upgrades' }],
+      checks: [{ rule: 'budget-60', ok: false, note: 'free tier hosting (+$40/mo) pushes total tooling to about $70/mo' }, { rule: 'no-dark-patterns', ok: true, note: 'no countdowns or pre-ticked upgrades' }],
       created: t - 9 * H },
     { id: 'logo-direction', topic: 'logo', kind: 'decision', project: 'brand', stream: 'brand', from: 'mate-growth', priority: 2,
       title: 'Pick a logo direction',

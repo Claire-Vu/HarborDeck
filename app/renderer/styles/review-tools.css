@@ -13,7 +13,7 @@
 .paper.qsheet .b-title { font-weight: 700; text-align: left; display: block; margin-bottom: 4px; }
 .paper.qsheet .opts { display: flex; flex-wrap: wrap; gap: 4px; }
 .paper.qsheet .b-verb { font-size: 11px; color: var(--paper-faint); }
-.paper.qsheet .b-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+.paper.qsheet .b-foot { display: flex; justify-content: flex-end; position: sticky; bottom: -12px; margin: 8px -14px -12px; padding: 6px 14px 10px; background: var(--slip); border-top: 1px solid rgba(0,0,0,.15); box-shadow: 0 -4px 6px -4px rgba(0,0,0,.18); } /* the sheet scrolls; its stamp button stays in view */
 .paper.qsheet .b-foot .pbtn { background: var(--wood-1); color: #fff; }
 .tp-link { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .tp-rel { font-size: 12px; color: var(--paper-faint); margin: -2px 0 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }

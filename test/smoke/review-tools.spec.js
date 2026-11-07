@@ -40,6 +40,8 @@ test("who's waiting: badges from the item field and the fleet; more blocked work
   await expect(pr.locator('.waitn')).toHaveText('⏸1'); // crew in fleet.json waiting on it
   await expect(page.locator('#queue li', { hasText: 'Newsletter #6' }).locator('.waitn')).toHaveText('⏸1'); // item.waiting
   await expect(page.locator('#queue li', { hasText: 'Pick a logo direction' }).locator('.waitn')).toHaveCount(0);
+  await expect(title(page)).toHaveText('Sign the app store developer agreement'); // overdue P1 leads; the waited-on P1 merge is next
+  await pr.click();
   await expect(title(page)).toHaveText('Merge PR 142 (calmer checkout)?');
   await expect(page.locator('#desk-surface .paper.manifest .waitn')).toHaveAttribute('title', /1 worker paused until you answer/);
   // an agent marks three workers blocked on a low-priority item: it climbs the queue live, with no edit to the item

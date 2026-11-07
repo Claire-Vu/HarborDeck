@@ -90,8 +90,8 @@
   </div>
   <div class="mg" role="group" aria-label="Sound">
     <div class="mg-h">Sound</div>
-      <button class="mi" role="menuitem" id="btn-sound" title="Desk sounds"><svg class="ic"><use href="#i-sound"/></svg><span class="mi-l">Desk sounds</span></button>
-      <button class="mi" role="menuitem" id="btn-music" title="Harbor music"><svg class="ic"><use href="#i-music"/></svg><span class="mi-l">Harbor music</span></button>
+      <button class="mi" role="menuitemcheckbox" aria-checked="false" id="btn-sound" title="Desk sounds"><svg class="ic"><use href="#i-sound"/></svg><span class="mi-l">Desk sounds</span></button>
+      <button class="mi" role="menuitemcheckbox" aria-checked="false" id="btn-music" title="Harbor music"><svg class="ic"><use href="#i-music"/></svg><span class="mi-l">Harbor music</span></button>
       <label class="mi mi-vol"><svg class="ic"><use href="#i-music"/></svg><span class="mi-l">Volume</span><input type="range" id="music-vol" class="vol" min="0" max="100" value="40" aria-label="Music volume"></label>
   </div>
   <div class="mg" role="group" aria-label="Look">
@@ -177,7 +177,7 @@
 <aside class="drawer agentlog" id="agentlog" aria-label="Agent log">
   <header><h2>Agent log</h2><button class="tbtn" id="btn-log-copy">Copy</button><button class="tbtn" id="btn-log-export">Export</button><button class="ibtn-top" data-close="agentlog" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button></header>
   <div class="content">
-    <p class="legend">One line of <code id="answers-path">answers.jsonl</code> per action. Your agent tails this file; nothing else crosses the wire.</p>
+    <p class="legend" title="One line per action. Your agent tails this file; nothing else crosses the wire."><code id="answers-path">answers.jsonl</code></p>
     <pre id="log-lines" class="loglines"></pre>
     <section id="gaps" class="gaps"></section>
   </div>

@@ -4,7 +4,7 @@ Three helpers for getting through the desk: a `⏸ N` badge counts the workers p
 
 ## Sub-features
 
-- `rt-waiting` `.waitn` on queue rows, the desk manifest and plain cards; its title names the workers; count = item `waiting` plus `fleet.json` crew in state `waiting` whose `item` is the id; each worker lifts the item one priority step.
+- `rt-waiting` `.waitn` on queue rows, the desk manifest and plain cards; its title names the workers; count = item `waiting` plus `fleet.json` crew in state `waiting` whose `item` is the id; each worker lifts the item one priority step, and so does a missed `due` (an overdue item goes ahead of equals).
 - `rt-waiting-cli` `hd ... -w <a>,<b>` sets it, rewrites keep it, `hd waiting <id> [<worker>...]` replaces it (none clears) without bumping `updated`; unchanged lists write nothing.
 - `rt-waiting-fleet` firstmate's `hd-fleet.sh` (every `hd-live` refresh) sets each open item's `waiting` to the crew blocked/paused/parked on it by id, task id, `<task>.qN` or topic.
 - `rt-updated` a read item rewritten by an agent shows `.upd` "updated" on its queue row, plain card and rail ticket; `waiting` changes alone never count.

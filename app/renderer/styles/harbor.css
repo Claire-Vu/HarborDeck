@@ -25,7 +25,7 @@ body[data-ink="violet"] .impression.ink-approve, body[data-ink="violet"] .impres
 body[data-ink="gold"] .impression.ink-approve, body[data-ink="gold"] .impression.ink-file { color: #b8860b; }
 /* chandlery + stamp book: round ink impressions in a passport page */
 .stampbook { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; padding: 6px 0; }
-.sb-stamp { aspect-ratio: 1; border-radius: 50%; border: 2px dashed var(--paper-line); color: var(--paper-line); display: grid; place-items: center; align-content: center; text-align: center; padding: 8px; font: 700 9.5px var(--font-paper); text-transform: uppercase; letter-spacing: .08em; min-width: 0; overflow: hidden; }
+.sb-stamp { aspect-ratio: 1; border-radius: 50%; border: 2px dashed var(--paper-line); color: var(--paper-faint); /* not earned: readable, still unlike the red earned stamp */ display: grid; place-items: center; align-content: center; text-align: center; padding: 8px; font: 700 9.5px var(--font-paper); text-transform: uppercase; letter-spacing: .08em; min-width: 0; overflow: hidden; }
 .sb-stamp.got { border: 4px double var(--reject); color: var(--reject); transform: rotate(var(--rot, -8deg)); mix-blend-mode: multiply; mask-image: radial-gradient(circle at 35% 40%, #000 60%, rgba(0,0,0,.65) 100%); }
 .sb-stamp small { display: block; font-size: 8px; letter-spacing: .1em; margin-top: 3px; font-weight: 600; }
 .shop { list-style: none; margin: 0; padding: 0; }

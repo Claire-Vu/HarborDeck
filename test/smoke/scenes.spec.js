@@ -27,6 +27,8 @@ const chipCount = async name => +(await page.locator('#filters .chip', { hasText
 const title = () => page.locator('#desk-surface .paper.manifest h3');
 
 test('one figure per open decision; arrows and the on-screen arrows flip scenes', async () => {
+  await expect(scenes()).toHaveAttribute('data-scene', 'todo'); // the desk opens on the overdue notice; → wraps to the first scene
+  await page.keyboard.press('ArrowRight');
   await expect(scenes()).toHaveAttribute('data-scene', 'decision');
   await expect(scenes().locator('.sc-name')).toHaveText('Signpost Square');
   const n = await chipCount('Decisions');

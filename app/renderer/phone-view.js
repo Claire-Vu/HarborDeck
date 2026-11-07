@@ -54,7 +54,7 @@ if (typeof module === 'object') module.exports = { ...HarborPhoneKeys, HarborPho
 else window.HarborPhone = deps => {
   const { h, snd } = deps;
   let el = null, rule = null, pad = null, dial = null, dialed = null, back = null, resetBtn = null, at = null, atBtn = null;
-  let addTo = null, picker = null, target = null; // target: { id, label } once the message is an addition
+  let addTo = null, picker = null, target = null; // target: { id, label, to } once the message is an addition
   const tray = deps.tray; // image tray (attach-view.js), kept across hang-ups like the unsent text
   const mates = () => deps.mates();
   const shortcut = () => deps.settings().phoneShortcut || '';
@@ -75,13 +75,17 @@ else window.HarborPhone = deps => {
     if (!list.some(m => m.id === dialed)) dialed = list[0]?.id;
     dial.replaceChildren(...list.map((m, i) => h('button', { class: 'dial-pos', role: 'radio', 'aria-checked': String(m.id === dialed), tabindex: m.id === dialed ? 0 : -1, dataset: { mate: m.id }, title: m.domain || m.label, onclick: () => { dialTo(m.id); pad.focus(); } },
       h('span', { class: 'dial-n' }, i < 9 ? String(i + 1) : '·'), h('span', { class: 'dial-face', html: deps.sprite(m.id) }), h('span', { class: 'dial-name' }, m.label))));
-    const who = list.find(m => m.id === dialed);
+    speakTo();
+  }
+  // the pad names who hears it: the dialed mate, or whoever owns what the message is added to
+  function speakTo() {
+    const who = mates().find(m => m.id === (target ? target.to : dialed));
     pad.placeholder = who ? `Speak to ${who.label}…` : '';
     pad.setAttribute('aria-label', who ? `Message to ${who.label}` : 'Message');
   }
   // "Add to…": a chip above the pad; picking a running order or the desk's item turns the message into a comment on it.
   function renderAddTo() {
-    el.classList.toggle('adding', !!target);
+    el.classList.toggle('adding', !!target); speakTo();
     for (const b of [resetBtn, at, atBtn]) b.disabled = !!target || (b === atBtn && !at.value);
     addTo.replaceChildren(target
       ? h('span', { class: 'addto-chip' }, h('b', null, 'Add to: '), h('span', { class: 'addto-label', title: target.label }, target.label),
@@ -94,7 +98,7 @@ else window.HarborPhone = deps => {
     addTo.after(picker); renderAddTo(); picker.querySelector('button')?.focus();
   }
   function closePicker() { picker?.remove(); picker = null; if (el) renderAddTo(); }
-  function choose(t) { target = { id: t.id, label: t.label }; snd('tick'); closePicker(); pad.focus(); }
+  function choose(t) { target = { id: t.id, label: t.label, to: t.to }; snd('tick'); closePicker(); pad.focus(); }
   function detach() { target = null; snd('tick'); closePicker(); pad.focus(); }
 
   function dialTo(id) { if (id === dialed) return; dialed = id; snd('tick'); render(); }
@@ -107,7 +111,7 @@ else window.HarborPhone = deps => {
     if (!((deps.draft.get() || tray.has()) && mates().some(m => m.id === dialed))) dialed = deps.lastMate() || mates()[0]?.id;
     pad = h('textarea', { class: 'phone-pad', rows: 3, value: deps.draft.get(), oninput: () => deps.draft.set(pad.value) });
     dial = h('div', { class: 'dial', role: 'radiogroup', 'aria-label': 'Dial a first mate' });
-    resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset');
+    resetBtn = h('button', { class: 'phone-q', title: `Queue for after the usage-limit reset: it goes out by itself (${deps.resetNote()})`, onclick: () => queue('reset') }, 'Queue for after reset', deps.resetAt?.() ? h('span', { class: 'phone-q-at' }, ` · ${deps.resetAt()}`) : null); // when it goes, in the button
     at = h('input', { type: 'time', class: 'phone-at', 'aria-label': 'Send at time', title: 'Send at this time (next occurrence)' });
     atBtn = h('button', { class: 'phone-q', disabled: true, onclick: () => { if (at.value) queue(deps.clockEpoch(at.value)); } }, 'Queue at time');
     at.addEventListener('input', () => { atBtn.disabled = !at.value || !!target; });

@@ -78,3 +78,23 @@ Video: [live-feed.mp4](live-feed.mp4)
 ## Electron 44.10.2 security bump (hd-audit-deps)
 
 `docs/evidence/hd-audit-deps/` is a headless verify-harbordeck run after the electron 44.7.0 -> 44.10.2 bump and `npm audit fix`: doctor all `ok` with the pinned Electron, the renderer reporting `Electron/44.10.2`, and key `1` stamping a decision that lands in `answers.jsonl` ([`transcript.txt`](hd-audit-deps/transcript.txt)). The screenshot is the desk right after that stamp.
+
+## Usability walk (hd-usability-walk)
+
+[`docs/evidence/hd-usability-walk/`](hd-usability-walk/README.md) holds three rounds of the ystack usability-walk loop. Each round ran a fresh Opus 5.5 walker on real captain missions and a reviewer's-eye auditor. Both worked from the page only, each on its own isolated headless `hdv` instance with synthetic data. The layout check covered every state at 1440x868 and 1000x640.
+
+Each round folder has:
+- the walker and auditor reports;
+- `sort.md`, which puts every finding in Fix now, Reviewer's call, Out of scope or Keep;
+- before/after shots;
+- the before and after layout-check output.
+
+Results:
+
+| Round | Fixed | Layout states after |
+|---|---|---|
+| 1 | 22 | 64/64 clean |
+| 2 | 16 | 68/68 clean |
+| 3 | 15 | 72/72 clean |
+
+The README lists each walker's concepts in its own words and the 26 reviewer's calls held for the captain.

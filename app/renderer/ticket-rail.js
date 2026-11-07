@@ -3,14 +3,19 @@
 'use strict';
 
 // ------------------------------------------------------------ ticket rail (derived from answers.jsonl + item threads)
-let railFocus = 0;
+let railFocus = 0, railSeen = null; // railSeen: the tickets on the last render (a ticket just sent scrolls into view)
 function tickets() {
   const out = [];
   for (const a of S.answers) {
     if (!['ask', 'needs-work', 'request'].includes(a.action)) continue;
     const key = `${a.id}:${a.at}`; if (S.tickets.done[key]) continue;
     let title, reply = null, item = null;
-    if (a.action === 'request') { title = `Order to ${mateLabel(a.to)}`; reply = (byId[a.id] ? { from: mateFor(byId[a.id]).label, text: byId[a.id].summary, at: byId[a.id].created } : null); item = byId[a.id] || null; }
+    if (a.action === 'request') {
+      // the reply is the item the agent wrote under the order's id: its summary, else its latest message (`hd reply`)
+      title = `Order to ${mateLabel(a.to)}`; item = byId[a.id] || null;
+      const last = item && (item.thread || []).filter(m => m.from !== 'captain').sort((x, y) => x.at - y.at).pop();
+      reply = item ? { from: last?.from || mateFor(item).label, text: item.summary || last?.text || item.title, at: last?.at || item.created } : null;
+    }
     else { item = byId[a.id]; title = item?.title || a.id; const th = item?.thread || []; reply = th.filter(m => m.at >= a.at && m.from !== 'captain').sort((x, y) => x.at - y.at)[0] || null; }
     out.push({ key, a, title, reply, item, seen: !!S.tickets.seen[key] });
   }
@@ -21,6 +26,7 @@ function tickets() {
 function renderRail(ring) {
   const rail = $('#rail'); if (!rail) return; const list = tickets(); const t0 = now();
   rail.replaceChildren(h('span', { class: 'rail-label', title: 'Things you asked for (T)' }, 'Tickets'));
+  const fresh = railSeen ? list.filter(t => !railSeen.has(t.key) && t0 - t.a.at < 30) : []; railSeen = new Set(list.map(t => t.key));
   if (!list.length) { rail.append(h('span', { class: 'rail-empty' }, 'Asks and orders you send clip here')); rail.dataset.count = 0; return; }
   list.forEach((t, i) => {
     const unread = t.reply && !t.seen;
@@ -33,6 +39,7 @@ function renderRail(ring) {
   });
   rail.dataset.count = list.filter(t => t.reply && !t.seen).length;
   if (ring) { const first = rail.querySelector('.ticket.new'); if (first) { first.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } }
+  else if (fresh.length) rail.querySelector(`.ticket[data-key="${CSS.escape(fresh.at(-1).key)}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   railCues();
 }
 // An overflowing rail shows how many tickets hide off each edge (click to scroll there); the wheel scrolls it sideways.
@@ -44,7 +51,13 @@ function railCues() {
   for (const t of rail.querySelectorAll('.ticket')) { const b = t.getBoundingClientRect(); if (b.right > r.right + 4) right++; else if (b.left < r.left - 4) left++; }
   for (const [id, n, dir] of [['#rail-left', left, -1], ['#rail-right', right, 1]]) {
     const c = $(id); c.hidden = !n || !rail.classList.contains(dir < 0 ? 'cue-l' : 'cue-r'); c.textContent = dir < 0 ? `‹ ${n}` : `${n} more ›`; c.title = `${n} ticket${n === 1 ? '' : 's'} ${dir < 0 ? 'before' : 'after'} these`;
-    c.onclick = () => rail.scrollBy({ left: dir * rail.clientWidth * .8, behavior: 'smooth' });
+    c.onclick = () => { // a page: the ticket cut at this edge moves to the opposite edge, whole
+      const r = rail.getBoundingClientRect(), ts = [...rail.querySelectorAll('.ticket')], cut = dir > 0 ? ts.find(t => t.getBoundingClientRect().right > r.right + 4) : ts.filter(t => t.getBoundingClientRect().left < r.left - 4).pop();
+      // 4: inside the 8px gap, so the neighbour stays fully off that edge; paging back from the end, the right cue's gutter
+      // is about to take its room, so the ticket lands clear of it
+      const gutter = dir < 0 && !rail.classList.contains('cue-r') ? parseFloat(getComputedStyle(rail).getPropertyValue('--cue-w')) || 78 : 0;
+      const b = cut?.getBoundingClientRect(); if (b) rail.scrollBy({ left: dir > 0 ? b.left - r.left - 4 : b.right - r.right + gutter + 4, behavior: 'smooth' });
+    };
   }
 }
 // the first mate a ticket waits on: the order's addressee, else whoever raised the item
@@ -52,15 +65,18 @@ const ticketMate = t => t.a.action === 'request' ? t.a.to : t.item ? mateFor(t.i
 function openTicket(t, el) {
   document.querySelector('.tk-pop')?.remove();
   S.tickets.seen[t.key] = true; save(); renderRail();
-  const r = el.getBoundingClientRect();
+  // the rail re-renders (and may re-sort): anchor under the ticket as it stands now, not the replaced element
+  const r = ($('#rail').querySelector(`.ticket[data-key="${CSS.escape(t.key)}"]`) || el).getBoundingClientRect();
   const pop = h('div', { class: 'tk-pop', role: 'dialog', 'aria-label': 'Ticket' },
     h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you · ${fmtDate(t.a.at)} ${fmtTime(t.a.at)}`), t.a.note, attachView.thumbs(t.a.attachments)),
-    t.queued ? h('div', { class: 'tk-r dim' }, `Held in the scheduler: ${queuedLabel(t.queued)}. It goes to ${mateLabel(t.a.to)} automatically${t.queued.kind === 'reset' ? ' once the usage limit resets' : ''}; nothing else to do.`)
+    // what you added to it since (phone Add to…): your words stay on the ticket
+    ...S.answers.filter(x => x.id === t.a.id && x.action === 'comment' && x.at >= t.a.at).map(x => h('div', { class: 'tk-q' }, h('span', { class: 'who' }, `you added · ${fmtDate(x.at)} ${fmtTime(x.at)}`), x.note, attachView.thumbs(x.attachments))),
+    t.queued ? h('div', { class: 'tk-r dim', title: `Held in the scheduler; it goes to ${mateLabel(t.a.to)} by itself` }, `⏳ ${queuedLabel(t.queued)} · to ${mateLabel(t.a.to)}`)
       : t.reply ? h('div', { class: 'tk-r' }, h('span', { class: 'who' }, `${mateLabel(t.reply.from || 'first mate')} · ${fmtDate(t.reply.at)} ${fmtTime(t.reply.at)}`), t.reply.text) : h('div', { class: 'tk-r dim' }, `Still with ${t.a.action === 'request' ? mateLabel(t.a.to) : (t.item ? mateFor(t.item).label : 'the first mate')}${mateState(ticketMate(t)) ? ` (${mateState(ticketMate(t))})` : ''}. Waiting ${age(now() - t.a.at)}.`),
     t.queued ? h('div', { class: 'row' }, h('button', { class: 'pbtn ghost', onclick: async () => { pop.remove(); const r = await bridge.cancelScheduled(t.queued.id); if (r.snapshot) applySnapshot(r.snapshot); if (!r.ok) toast('Already sent', 'warn'); } }, 'Withdraw'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')) :
     h('div', { class: 'row' }, t.item && statusOf(t.item) === 'open' ? h('button', { class: 'pbtn', onclick: () => { pop.remove(); if (S.prefs.plain) { S.prefs.plain = false; save(); } stepUp(t.item.id); } }, 'Open item') : null, h('button', { class: 'pbtn ghost', onclick: () => { S.tickets.done[t.key] = true; save(); pop.remove(); snd('flip'); renderRail(); } }, 'Done'), h('button', { class: 'pbtn ghost', onclick: () => pop.remove() }, 'Close')));
   document.body.append(pop);
-  pop.style.left = Math.max(8, Math.min(window.innerWidth - 328, r.left)) + 'px'; pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.left = `max(8px, min(${Math.round(r.left)}px, calc(100vw - 328px)))`; pop.style.top = (r.bottom + 6) + 'px'; // left stays in the window if it shrinks
   pop.querySelector('.pbtn')?.focus();
 }
 // Space on an item whose agent reply the captain has not opened yet: show that reply instead of deciding (once).

@@ -39,10 +39,12 @@ test('morning manifest opens, then the desk fills from the data dir', async () =
   await expect(page.locator('.modal .box h2', { hasText: 'Morning manifest' })).toBeVisible();
   await page.getByRole('button', { name: 'Open the office' }).click();
   await expect(page.locator('#queue li').first()).toBeVisible();
-  // queue order: priority lifted one step per worker waiting on the item, then due date; the P1 merge a crew waits on is first
-  await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Merge PR 142 (calmer checkout)?');
-  await page.locator('#queue li', { hasText: 'Sign the app store' }).click();
+  // queue order: priority lifted one step per worker waiting on the item and one for a missed deadline; among equals
+  // the overdue one first: the overdue P1 app store agreement leads, ahead of the P1 merge a crew waits on (due later)
   await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Sign the app store developer agreement');
+  await expect(page.locator('.modal .box h2', { hasText: 'Morning manifest' })).toHaveCount(0);
+  const order = await page.locator('#queue li:not(.q-lane):not(.q-later)').evaluateAll(els => els.map(e => e.textContent));
+  expect(order.findIndex(t => t.includes('Sign the app store'))).toBeLessThan(order.findIndex(t => t.includes('Merge PR 142')));
   await page.locator('#queue li', { hasText: 'Merge PR 142' }).click();
   await expect(page.locator('#desk-surface .paper.manifest h3')).toHaveText('Merge PR 142 (calmer checkout)?');
   // top bar stays on one row

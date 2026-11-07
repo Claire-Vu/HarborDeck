@@ -5,7 +5,7 @@
 // ------------------------------------------------------------ inspect mode
 function setInspect(on) {
   document.body.classList.toggle('inspect', on); $('#btn-inspect').setAttribute('aria-pressed', String(on));
-  const b = $('#inspect-banner'); b.hidden = !on; b.textContent = 'Inspect: click a claim on the manifest, then a point of evidence (a moment, a spot on a photo, a heading, a standing order).';
+  const b = $('#inspect-banner'); b.hidden = !on; b.textContent = 'Inspect: claim → evidence'; b.title = 'Click a claim on the manifest, then a point of evidence: a moment, a spot on a photo, a heading, a standing order';
   if (!on) clearPick();
 }
 function clearPick() { inspectPick = null; document.querySelectorAll('.fact.picked').forEach(e => e.classList.remove('picked')); document.querySelector('.popover')?.remove(); }

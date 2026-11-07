@@ -1,0 +1,335 @@
+01-manifest @1440x868: clean []
+01-manifest @1000x640: clean []
+02-desk-first @1440x868: clean []
+02-desk-first @1000x640: clean []
+02b-desk-pr @1440x868: clean []
+02b-desk-pr @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+03-menu @1440x868: clean []
+03-menu @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+04-phone @1440x868: clean []
+04-phone @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+05-phone-addto @1440x868: clean []
+05-phone-addto @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+06-later-slip @1440x868: clean []
+06-later-slip @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+07-noteslip @1440x868: clean []
+07-noteslip @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+08-search @1440x868: clean []
+08-search @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+09-settings @1440x868: clean []
+09-settings @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+10-chandlery @1440x868: clean []
+10-chandlery @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+11-ships-out @1440x868: clean []
+11-ships-out @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+12-orders @1440x868: clean []
+12-orders @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+13-archive @1440x868: clean []
+13-archive @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+14-agent-log @1440x868: clean []
+14-agent-log @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+15-ticket-pop @1440x868: clean []
+15-ticket-pop @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+16-stamina-open @1440x868: clean []
+16-stamina-open @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+17-topic @1440x868: clean []
+17-topic @1000x640: clean []  (raw 13: 13 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Pull requestOpen⋮⋮#142repoexample-org/bo\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Pull requestOpen⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮checkout-mock.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"MonitorFull⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮captain · Nov 5 11:54 AM\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAMergerec.BHold, I wan\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AMergerec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BHold, I want changes\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CDecide later\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+18-review-video @1440x868: clean []
+18-review-video @1000x640: clean []  (raw 4: 4 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.monitor \"MonitorFull⋮⋮harbor-promo.mp4Mark moment\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your verdictSpace to stamp\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+19-answer-report @1440x868: clean []
+19-answer-report @1000x640: clean []  (raw 8: 8 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.report \"ResearchRead⋮⋮hosted-postgres.mdHosted P\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.excerpt.md \"Hosted Postgres: three options for the b\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.thread \"Correspondence⋮⋮note · Web mate · Nov 6 \"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Correspondence⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"Question sheet · 2⋮⋮1Hosted Postgres: th\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Question sheet · 2⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space stamps 1 row\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.b-foot \"Stamp the sheet\"","outOf":"window","side":"bottom"}
+20-todo @1440x868: clean []
+20-todo @1000x640: clean []
+21-qsheet @1440x868: clean []  (raw 3: 3 scrolled inside an in-window scroll box)
+    raw-only {"el":"label.opt \"BIn the apponly reaches people who alrea\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CBoth\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space stamps 3 rows\"","outOf":"window","side":"bottom"}
+21-qsheet @1000x640: clean []  (raw 12: 12 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Invite waves⋮⋮waves.htmlpagewaves.htmlOp\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"Question sheet · 3⋮⋮1Beta invites: how m\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"Question sheet · 3⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"A50 peoplerec.enough feedback, support s\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"B200 peoplemore signal, about 3 h of sup\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"AWaitlist orderfair and no work\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"BHand-pickrec.better mix of team sizes, \"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"AEmailrec.works before they sign in\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"BIn the apponly reaches people who alrea\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CBoth\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space stamps 3 rows\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.b-foot \"Stamp the sheet\"","outOf":"window","side":"bottom"}
+22-web-paper @1440x868: clean []
+22-web-paper @1000x640: clean []  (raw 4: 4 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Plan page⋮⋮127.0.0.1:61009pagehttp://127\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your verdictSpace to stamp\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+23-web-pane @1440x868: clean []
+23-web-pane @1000x640: clean []  (raw 4: 4 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.prcard \"Plan page⋮⋮127.0.0.1:61009pagehttp://127\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your verdictSpace to stamp\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+23-web-pane [pane]: clean []
+  (ui click --css .modal.web [aria-label=Close] failed)
+24-logo @1440x868: clean []
+24-logo @1000x640: clean []  (raw 7: 7 scrolled inside an in-window scroll box)
+    raw-only {"el":"div.paper.photo \"PhotoZoom⋮⋮logo-options.svg\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.paper.ask \"The ask⋮⋮Your callAA · RoundelBB · Tide \"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div.grip \"The ask⋮⋮\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"AA · Roundel\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt.on \"BB · Tide markrec.\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"label.opt \"CC · Beacon\"","outOf":"window","side":"bottom"}
+    raw-only {"el":"div#stamp-zone.stamp-zone \"Space to stamp\"","outOf":"window","side":"bottom"}
+25-stow-view @1440x868: clean []
+25-stow-view @1000x640: clean []
+26-parked-view @1440x868: clean []
+26-parked-view @1000x640: clean []
+27-inspect @1440x868: clean []
+27-inspect @1000x640: clean []
+28-plain @1440x868: clean []
+28-plain @1000x640: clean []
+29-tray-closed @1440x868: clean []
+29-tray-closed @1000x640: clean []
+30-theme-2 @1440x868: clean []
+30-theme-2 @1000x640: clean []
+31-theme-3 @1440x868: clean []
+31-theme-3 @1000x640: clean []
+32-sched-pop @1440x868: clean []
+32-sched-pop @1000x640: clean []  (raw 1: 1 scrolled inside an in-window scroll box)
+    raw-only {"el":"button.ticket.queued \"Order to First Mate: layout walk queued.\"","outOf":"window","side":"right"}
+33-plain-card @1440x868: clean []
+33-plain-card @1000x640: clean []
+34-rail-new @1440x868: clean []
+34-rail-new @1000x640: clean []  (raw 3: 3 scrolled inside an in-window scroll box)
+    raw-only {"el":"button.ticket.waiting \"Order to First Mate: walk order two. awa\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.waiting \"Order to First Mate: walk order three. a\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.queued \"Order to First Mate: layout walk queued.\"","outOf":"window","side":"right"}
+  (ui click --css #rail-left failed)
+35-rail-paged @1440x868: clean []  (raw 2: 2 scrolled inside an in-window scroll box)
+    raw-only {"el":"button.ticket.waiting \"Order to Web mate: Add a \"what changed s\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.queued \"Order to First Mate: layout walk queued.\"","outOf":"window","side":"right"}
+35-rail-paged @1000x640: clean []  (raw 4: 4 scrolled inside an in-window scroll box)
+    raw-only {"el":"button.ticket.replied \"Order to First Mate: walk order one. new\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.replied \"Newsletter #6 draft: is the weekly diges\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.waiting \"Order to Web mate: Add a \"what changed s\"","outOf":"window","side":"right"}
+    raw-only {"el":"button.ticket.queued \"Order to First Mate: layout walk queued.\"","outOf":"window","side":"right"}

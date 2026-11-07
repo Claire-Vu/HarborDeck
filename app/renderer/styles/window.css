@@ -123,6 +123,7 @@ body.tired .steam { animation-duration: 3.5s; }
 .prio { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .04em; padding: 0 5px; border-radius: 3px; color: #fff; line-height: 15px; }
 .prio.p1 { background: var(--p1); } .prio.p2 { background: var(--p2); } .prio.p3 { background: var(--p3); } .prio.p4 { background: var(--p4); }
 .due { font-size: 10.5px; color: var(--ui-muted); } .due.soon { color: var(--warn); font-weight: 600; } .due.over { color: #ff6b6b; font-weight: 700; }
+.paper .due { color: var(--paper-faint); } .paper .due.soon { color: var(--warn); } .paper .due.over { color: var(--reject); } /* paper ink, in either theme */
 .flag { color: var(--warn); font-weight: 700; font-size: 11px; }
 .via { opacity: .8; }
 .queue-actions { padding: 8px 12px; border-top: 1px solid var(--ui-edge); display: flex; }

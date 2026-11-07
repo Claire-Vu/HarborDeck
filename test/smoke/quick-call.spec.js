@@ -174,7 +174,8 @@ test('ticket rail: the wheel scrolls it sideways and a count shows what is off s
   await rail.hover(); await page.mouse.wheel(0, 600);
   await expect.poll(() => rail.evaluate(el => el.scrollLeft)).toBeGreaterThan(x0);
   // the count is a button too: clicking it pages through until every ticket has been on screen
-  for (let i = 0; i < 12 && await page.locator('#rail-right').isVisible(); i++) { await page.locator('#rail-right').click(); await page.waitForTimeout(400); }
+  const settled = () => expect.poll(async () => { const a = await rail.evaluate(el => el.scrollLeft); await page.waitForTimeout(150); return a === await rail.evaluate(el => el.scrollLeft); }).toBe(true); // a page is a smooth scroll
+  for (let i = 0; i < 12 && await page.locator('#rail-right').isVisible(); i++) { await page.locator('#rail-right').click(); await settled(); }
   expect(await rail.evaluate(el => el.scrollLeft + el.clientWidth >= el.scrollWidth - 2)).toBe(true);
   await expect(page.locator('#rail-left')).toBeVisible();
   await expect(page.locator('#rail-right')).toBeHidden();

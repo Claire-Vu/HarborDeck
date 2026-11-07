@@ -34,7 +34,7 @@ const answers = () => { try { return fs.readFileSync(path.join(home, 'answers.js
 
 test('switching scenes puts the front of the line on the desk: P1 first, then oldest', async () => {
   // a kind chip narrows the list to that scene's line; arrows and pips then move that filter along
-  for (const go of [() => page.locator('#filters .chip', { hasText: 'Notices' }).click(), () => page.keyboard.press('ArrowRight'), () => page.locator('#scenes .sc-pip').nth(1).click()]) {
+  for (const go of [() => page.locator('#filters .chip', { hasText: 'Research' }).click(), () => page.keyboard.press('ArrowRight'), () => page.locator('#scenes .sc-pip').nth(1).click()]) {
     const was = await scenes().getAttribute('data-scene'); await go(); await expect(scenes()).not.toHaveAttribute('data-scene', was);
     const line = (await rows()).filter(r => !r[2]); expect(line.length).toBeGreaterThan(0);
     for (let i = 1; i < line.length; i++) expect(line[i - 1][1] < line[i][1] || (line[i - 1][1] === line[i][1] && created(line[i - 1][0]) <= created(line[i][0]))).toBe(true);
@@ -60,6 +60,18 @@ test('Back of the line (W, or the slip button) sends the visitor to the end and 
   await page.waitForTimeout(500); expect(answers()).toBe(log); // view state only
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowLeft'); // the order holds across scene switches
   await expect(title()).toHaveText(before[2]);
+});
+
+test('with All shown, one sent to the back of the line stays behind the rest after a stamp', async () => {
+  await page.locator('#filters .chip', { hasText: 'All' }).click();
+  await page.locator('#queue li', { hasText: 'Sign the app store developer agreement' }).click(); // P1, overdue: the front of the queue
+  await page.keyboard.press('w');
+  await expect(title()).not.toHaveText('Sign the app store developer agreement');
+  await page.locator('#queue li', { hasText: 'Forward September receipts' }).click();
+  await page.keyboard.press('1'); // File: the desk moves on to the front of the line
+  await expect(title()).not.toHaveText('Forward September receipts to the bookkeeper');
+  await expect(title()).not.toHaveText('Sign the app store developer agreement');
+  await page.keyboard.press('u');
 });
 
 test('N walks forward through the whole line, not back and forth between the first two', async () => {

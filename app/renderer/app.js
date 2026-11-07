@@ -59,7 +59,8 @@ syncItems(null);
 // ------------------------------------------------------------ ship phone (phone-view.js): a quick order to a first mate from anywhere
 let phoneDraft = '';
 phone = window.HarborPhone({ h, snd, mates: () => FLEET.firstmates, settings: () => SNAP.settings || {}, lastMate: () => S.prefs.lastMate,
-  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()), tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
+  sprite: id => spriteSVG(id, 'slip', { mate: true, tired: tired() }), draft: { get: () => phoneDraft, set: v => { phoneDraft = v; } }, send: sendOrder, queue: queueOrder, targets: () => HarborAddTo.targets(byId[S.current] && statusOf(byId[S.current]) === 'open' ? byId[S.current] : null, tickets()).map(t => ({ ...t, to: byId[t.id] ? mateFor(byId[t.id]).id : tickets().find(k => k.a.id === t.id)?.a.to })) /* to: whose it is (the addition goes there) */, tray: attachView.tray({ snap: true }), clockEpoch: nextClockEpoch,
+  resetAt: () => (SCHED?.reset_due > now() ? fmtTime(SCHED.reset_due) : ''),
   resetNote: () => SCHED ? [SCHED.next_reset ? `next reset ${fmtTime(SCHED.next_reset)} (${dur(SCHED.next_reset - now())})` : null, !SCHED.enabled ? 'scheduler is off' : null].filter(Boolean).join(' · ') : 'scheduler unavailable' });
 $('#btn-phone').onclick = () => phone.toggle();
 bridge.onPhone(how => how === 'toggle' ? phone.toggle() : phone.open());
@@ -109,8 +110,13 @@ menuEl.addEventListener('keydown', e => {
   its[(i + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length]?.focus();
 });
 document.addEventListener('pointerdown', e => { if (menuOpen() && !menuEl.contains(e.target) && !menuBtn.contains(e.target)) setMenu(false); });
-$('#sched-chip').onclick = () => phone.open();
-$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel()); };
+// the chip says what is queued: it opens the first queued ticket (Withdraw is there); with nothing queued, the phone
+$('#sched-chip').onclick = () => {
+  const t = tickets().find(x => x.queued); const el = t && $('#rail').querySelector(`.ticket[data-key="${CSS.escape(t.key)}"]`);
+  if (!el) return phone.open();
+  el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); openTicket(t, el);
+};
+$('#stamina-cluster').onclick = () => { if (window.innerWidth <= 860) { S.prefs.staminaOpen = !S.prefs.staminaOpen; save(); renderStaminaMini(); return; } modal('ledger stamina-modal', 'Stamina', staminaPanel(false)); };
 $('#cash').onclick = () => harborScene.openChandlery();
 $('#btn-plain').onclick = () => { S.prefs.plain = !S.prefs.plain; save(); setInspect(false); renderAll(); };
 $('#btn-sound').onclick = () => { S.prefs.sound = !S.prefs.sound; save(); applyPrefs(); snd('ding'); };
@@ -127,6 +133,10 @@ document.querySelectorAll('#stamps .stamp').forEach(b => b.onclick = e => stamp(
 document.addEventListener('keydown', deskKeys);
 window.addEventListener('beforeunload', commitPending);
 window.addEventListener('resize', () => { renderStaminaMini(); if (!S.prefs.plain) { renderDesk(); railCues(); } });
+// the usage strip refits whenever its room changes (a badge, chip or the cash beside it grew), not only on a window resize,
+// and once the fonts have loaded (the first fit measured the fallback font)
+document.fonts?.ready.then(() => renderStaminaMini());
+let statusW = 0; new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w !== statusW) { statusW = w; renderStaminaMini(); } }).observe(document.querySelector('.topbar .status'));
 // the stamp tray opening or closing resizes the desk: lay the papers out again once it settles
 $('#stamps').addEventListener('transitionend', e => { if (e.target === e.currentTarget && e.propertyName === 'width' && !S.prefs.plain) { renderDesk(); railCues(); } });
 

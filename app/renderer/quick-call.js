@@ -66,7 +66,7 @@ window.HarborQuickCall = deps => {
       const body = m.kind === 'decision' && m.options
         ? h('div', { class: 'opts' }, m.options.map((o, i) => option(m, o, i, choice === o.key, key => { s.choice = key; deps.save(); deps.pick(m.id); }, `sheet-${m.id}`)))
         : null;
-      const verb = h('div', { class: 'b-verb' }, `${KIND[m.kind]}: ${on ? VERB[m.kind] + ' on stamp' : unseen ? 'not opened yet, open it to include' : 'left out'}`);
+      const verb = h('div', { class: 'b-verb' }, `${KIND[m.kind]}: ${on ? VERB[m.kind] + ' on stamp' : unseen ? 'not opened' : 'left out'}`);
       const row = h('div', { class: `b-row${cur ? ' cur' : ''}${on ? '' : ' skip'}${unseen ? ' unseen' : ''}`, dataset: { id: m.id }, onclick: e => { if (!cur && !e.target.closest('input,label,button')) deps.focusRow(m.id); } },
         take, h('span', { class: 'qnum' }, n + 1),
         h('div', { class: 'b-what' }, h('button', { class: 'tp-link b-title', onclick: () => deps.focusRow(m.id) }, m.title), body || verb));
@@ -74,8 +74,9 @@ window.HarborQuickCall = deps => {
     });
     const zone = h('div', { class: 'stamp-zone', id: 'stamp-zone' }, awaiting ? 'sent back; awaiting reply' : h('span', null, 'Space stamps ', h('b', { class: 'sheet-n' }, ''), ''));
     const p = deps.paper('ask qsheet', `Question sheet · ${group.length}`, [
-      h('p', { class: 'meta' }, 'A–E pick on the row in focus and move on · J/K row · Space stamps every ticked row'), ...rows, zone,
+      ...rows, zone,
       h('div', { class: 'b-foot' }, h('button', { class: 'pbtn', onclick: () => deps.stampSheet() }, 'Stamp the sheet'))], 'ask');
+    p.querySelector('.grip')?.setAttribute('title', 'A–E pick on the row in focus and move on · J/K row · Space stamps every ticked row');
     return p;
   }
 

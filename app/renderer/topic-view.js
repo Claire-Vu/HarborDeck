@@ -15,7 +15,7 @@ window.HarborTopicView = deps => {
 
   function chip(it) {
     if (!it.topic) return null;
-    return h('button', { class: 'topic-chip', title: `Topic ${it.topic}: everything on it (O)`, onclick: e => { e.stopPropagation(); openTopic(it.topic); }, onkeydown: e => e.stopPropagation() }, `#${it.topic}`);
+    return h('button', { class: 'topic-chip', title: `Topic ${it.topic}: everything on it (O)`, onclick: e => { e.stopPropagation(); openTopic(it.topic); }, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); } }, `#${it.topic}`);
   }
 
   // Bundles: open items that share a topic, as one visitor. A rel link never bundles: it crosses kinds and projects,

@@ -7,8 +7,8 @@ function openDrawer(id) { document.querySelectorAll('.drawer').forEach(d => d.cl
 function closeDrawers() { document.querySelectorAll('.drawer.open').forEach(d => d.classList.remove('open')); }
 function renderOrders() {
   const it = byId[S.current]; const checks = it ? checksFor(it) : []; const tagged = new Set(checks.map(c => c.rule));
-  $('#orders-legend').textContent = it ? `${checks.filter(c => c.check?.ok === false).length} flagged on this item` : '';
-  const content = $('#orders-content'); content.replaceChildren(h('p', { class: 'legend' }, 'Your saved preferences, which firstmate already follows. It auto-checks the tagged ones on each item; only look when one is flagged.'));
+  const flagged = it ? checks.filter(c => c.check?.ok === false).length : 0; $('#orders-legend').textContent = flagged ? `${flagged} flagged on this item` : '';
+  const content = $('#orders-content'); content.replaceChildren(); $('#orders h2').title = 'Your saved preferences, which firstmate already follows. It auto-checks the tagged ones on each item; only look when one is flagged.';
   if (checks.length) content.append(h('h3', { class: 'oh' }, 'On this item'), ...checks.map(({ rule, check }) => ruleRow(rule, check)));
   content.append(h('h3', { class: 'oh' }, 'All standing orders'), ...Object.keys(RULES).filter(k => !tagged.has(k)).map(k => ruleRow(k, null)));
   function ruleRow(k, check) {
@@ -21,13 +21,13 @@ function renderOrders() {
 function renderVault() {
   const done = ITEMS.filter(i => statusOf(i) === 'resolved').map(i => ({ i, v: st(i.id).verdict })).sort((a, b) => (b.v?.at || 0) - (a.v?.at || 0));
   $('#vault-content').replaceChildren(done.length ? h('div', null, ...done.map(({ i, v }) => h('div', { class: 'entry', onclick: () => modal('viewer', i.title, plainCard(i, true)) },
-    h('div', { class: `v ink-${v?.action === 'reject' ? 'reject' : v?.action === 'file' ? 'file' : 'approve'}` }, v ? ACTION_LABEL[v.action] : 'resolved', v?.key ? `: ${v.key}` : ''), h('div', null, i.title), h('div', { class: 'c' }, `${KIND[i.kind]} · ${i.stream || i.project} · ${v ? fmtDate(v.at) + ' ' + fmtTime(v.at) : ''}`)))) :
+    h('div', { class: `v ink-${v?.action === 'reject' ? 'reject' : v?.action === 'file' ? 'file' : 'approve'}` }, v ? ACTION_LABEL[v.action] : 'resolved', v?.key ? `: ${i.options?.find(o => o.key === v.key)?.label || v.key}` : ''), h('div', null, i.title), h('div', { class: 'c' }, [KIND[i.kind], i.project || i.stream, v && `${fmtDate(v.at)} ${fmtTime(v.at)}`].filter(Boolean).join(' · '))))) :
     h('p', { class: 'legend' }, 'Nothing filed yet.'));
 }
 // gaps.jsonl: responses an agent could not fit into an item kind. Listed so HarborDeck can grow new shapes.
 function renderGaps() {
   const gaps = (SNAP.gaps || []).slice().reverse();
-  $('#gaps').replaceChildren(h('h3', { class: 'oh' }, `Gaps (${gaps.length})`), h('p', { class: 'legend' }, 'Responses an agent could not fit into a decision, review, research note or notice. Each one is a case for a new desk item.'),
+  $('#gaps').replaceChildren(h('h3', { class: 'oh', title: 'Responses an agent could not fit into a decision, review, research note or notice. Each one is a case for a new desk item.' }, `Gaps (${gaps.length})`),
     ...(gaps.length ? gaps.map(g => h('div', { class: 'gap' }, h('div', null, g.text), h('div', { class: 'si-meta' }, [g.from && mateLabel(g.from), g.item && `squeezed into ${g.item}`, g.at && `${fmtDate(g.at)} ${fmtTime(g.at)}`].filter(Boolean).join(' · ')), g.sample ? h('div', { class: 'si-meta' }, 'sample: ', g.sample) : null)) : [h('p', { class: 'legend' }, 'None yet.')]));
 }
 function renderLog() { renderGaps(); $('#answers-path').textContent = `${SNAP.home}/answers.jsonl`; $('#log-lines').textContent = (jsonl() || '(no actions yet)\n') + (pending ? `\n# held ${UNDO_MS / 1000}s for undo, not yet written:\n${[pending.line, ...(pending.extra || []).map(e => e.line)].map(l => JSON.stringify(l)).join('\n')}` : ''); $('#log-count').textContent = S.answers.length; }
